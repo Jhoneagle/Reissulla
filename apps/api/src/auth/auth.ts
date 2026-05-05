@@ -10,7 +10,10 @@ export const auth = betterAuth({
     schema,
   }),
   secret: config.authSecret,
-  baseURL: `http://localhost:${config.port}`,
+  baseURL:
+    config.nodeEnv === "production"
+      ? process.env.BASE_URL
+      : `http://localhost:${config.port}`,
   trustedOrigins: [config.frontendUrl],
   emailAndPassword: {
     enabled: true,
