@@ -11,6 +11,35 @@ jobs:
     name: Lint, Type-check & Build
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: reissulla
+          POSTGRES_PASSWORD: reissulla_dev
+          POSTGRES_DB: reissulla
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reissulla"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://reissulla:reissulla_dev@localhost:5432/reissulla
+      REDIS_URL: redis://localhost:6379
+
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +56,10 @@ jobs:
 
       - run: pnpm type-check
 
+      - run: pnpm --filter @reissulla/api db:migrate
+
       - run: pnpm build
+
+      - run: pnpm test
 
       - run: pnpm format:check

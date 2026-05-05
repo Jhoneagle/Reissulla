@@ -9,4 +9,7 @@ export const config = {
     "postgresql://reissulla:reissulla_dev@localhost:5432/reissulla",
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
+  authSecret: process.env.AUTH_SECRET ?? "dev-secret-change-in-production",
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
 };
