@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: reissulla
+      POSTGRES_PASSWORD: reissulla_dev
+      POSTGRES_DB: reissulla
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/var/lib/redis/data
+
+volumes:
+  postgres-data:
+  redis-data:
