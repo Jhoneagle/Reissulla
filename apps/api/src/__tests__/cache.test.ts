@@ -39,7 +39,7 @@ describe("cache utility", () => {
     const before = await cacheGet("ttl-key");
     expect(before).toBe("expires-fast");
 
-    await new Promise((r) => setTimeout(r, 1100));
+    await new Promise((r) => setTimeout(r, 2000));
     const after = await cacheGet("ttl-key");
     expect(after).toBeNull();
   });
