@@ -286,7 +286,9 @@ describe("Rate limiting", () => {
   it("throttles rapid requests to respect 1 req/sec", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
+      .mockImplementation(() =>
+        Promise.resolve(new Response(JSON.stringify([]), { status: 200 })),
+      );
 
     const start = Date.now();
 
