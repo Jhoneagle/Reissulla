@@ -278,7 +278,9 @@ describe("GET /api/v1/geocoding/reverse", () => {
 });
 
 describe("Rate limiting", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await cacheDel("geocoding:search:test1");
+    await cacheDel("geocoding:search:test2");
     vi.restoreAllMocks();
     _resetThrottle();
   });
