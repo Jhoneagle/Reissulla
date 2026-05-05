@@ -5,6 +5,7 @@ import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
 import { meRoutes } from "./routes/me.js";
 import { weatherRoutes } from "./routes/weather.js";
+import { geocodingRoutes } from "./routes/geocoding.js";
 
 export async function buildServer() {
   const server = Fastify({
@@ -20,6 +21,7 @@ export async function buildServer() {
   await server.register(authRoutes);
   await server.register(meRoutes);
   await server.register(weatherRoutes);
+  await server.register(geocodingRoutes);
 
   return server;
 }

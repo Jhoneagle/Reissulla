@@ -6,6 +6,7 @@ import {
   WMO_CODES,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../cache/cache.js";
+import { tryCache } from "../utils/resilience.js";
 
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1/forecast";
 const CACHE_TTL = 15 * 60; // 15 minutes
@@ -55,14 +56,6 @@ function cacheKey(type: string, lat: number, lon: number): string {
 
 function describeCode(code: number): string {
   return WMO_CODES[code] ?? "Unknown";
-}
-
-async function tryCache<T>(fn: () => Promise<T>): Promise<T | null> {
-  try {
-    return await fn();
-  } catch {
-    return null;
-  }
 }
 
 export async function getCurrentWeather(
