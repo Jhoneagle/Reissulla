@@ -24,6 +24,16 @@ describe("cache utility", () => {
     await cacheDel("test-key");
   });
 
+  it("returns null and cleans up malformed JSON", async () => {
+    await redis.set("bad-json-key", "not-valid-json{{{");
+    const result = await cacheGet("bad-json-key");
+    expect(result).toBeNull();
+
+    // Verify the bad key was deleted
+    const raw = await redis.get("bad-json-key");
+    expect(raw).toBeNull();
+  });
+
   it("respects TTL expiration", async () => {
     await cacheSet("ttl-key", "expires-fast", 1);
     const before = await cacheGet("ttl-key");
