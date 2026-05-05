@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "./components/Layout";
 import { routes } from "./routes";
+import { useAuthStore } from "./stores/auth";
 import "./styles/global.css";
 
 const queryClient = new QueryClient({
@@ -14,6 +16,10 @@ const queryClient = new QueryClient({
 });
 
 export function App() {
+  useEffect(() => {
+    useAuthStore.getState().initialize();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

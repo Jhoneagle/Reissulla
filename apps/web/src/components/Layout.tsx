@@ -1,7 +1,12 @@
-import { NavLink, Outlet } from "react-router";
-import { routes } from "../routes";
+import { NavLink, Outlet, Link } from "react-router";
+import { navRoutes } from "../routes";
+import { useAuthStore } from "../stores/auth";
 
 export function Layout() {
+  const user = useAuthStore((s) => s.user);
+  const loading = useAuthStore((s) => s.loading);
+  const signOut = useAuthStore((s) => s.signOut);
+
   return (
     <>
       <a href="#main-content" className="skip-link">
@@ -11,7 +16,7 @@ export function Layout() {
         <h1>Reissulla</h1>
         <nav aria-label="Main navigation">
           <ul>
-            {routes.map(({ path, label }) => (
+            {navRoutes.map(({ path, label }) => (
               <li key={path}>
                 <NavLink
                   to={path}
@@ -24,6 +29,25 @@ export function Layout() {
             ))}
           </ul>
         </nav>
+        {!loading && (
+          <div className="auth-nav">
+            {user ? (
+              <>
+                <span className="user-name">{user.name}</span>
+                <button type="button" onClick={signOut}>
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">Log in</Link>
+                <Link to="/register" className="btn-register">
+                  Register
+                </Link>
+              </>
+            )}
+          </div>
+        )}
       </header>
       <main id="main-content">
         <Outlet />
