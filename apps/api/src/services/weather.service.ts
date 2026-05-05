@@ -76,12 +76,15 @@ export async function getCurrentWeather(
   const params = new URLSearchParams({
     latitude: String(lat),
     longitude: String(lon),
-    current: "temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,is_day",
+    current:
+      "temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,is_day",
     timezone: "auto",
   });
   const url = `${OPEN_METEO_BASE}?${params}`;
 
-  const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   if (!res.ok) {
     throw new Error(`Open-Meteo API error: ${res.status} ${res.statusText}`);
   }
@@ -116,14 +119,18 @@ export async function getWeatherForecast(
   const params = new URLSearchParams({
     latitude: String(lat),
     longitude: String(lon),
-    hourly: "temperature_2m,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m",
-    daily: "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,sunrise,sunset",
+    hourly:
+      "temperature_2m,relative_humidity_2m,precipitation_probability,weather_code,wind_speed_10m",
+    daily:
+      "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,sunrise,sunset",
     timezone: "auto",
     forecast_days: "7",
   });
   const url = `${OPEN_METEO_BASE}?${params}`;
 
-  const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   if (!res.ok) {
     throw new Error(`Open-Meteo API error: ${res.status} ${res.statusText}`);
   }

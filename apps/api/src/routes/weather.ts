@@ -1,5 +1,8 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
-import { getCurrentWeather, getWeatherForecast } from "../services/weather.service.js";
+import {
+  getCurrentWeather,
+  getWeatherForecast,
+} from "../services/weather.service.js";
 
 interface CoordinateQuery {
   lat: string;
@@ -15,11 +18,19 @@ const coordinateSchema = {
   },
 };
 
-function parseCoordinates(query: CoordinateQuery): { lat: number; lon: number } {
+function parseCoordinates(query: CoordinateQuery): {
+  lat: number;
+  lon: number;
+} {
   const lat = Number(query.lat);
   const lon = Number(query.lon);
 
-  if (query.lat === "" || query.lon === "" || Number.isNaN(lat) || Number.isNaN(lon)) {
+  if (
+    query.lat === "" ||
+    query.lon === "" ||
+    Number.isNaN(lat) ||
+    Number.isNaN(lon)
+  ) {
     return badRequest("lat and lon must be valid numbers");
   }
   if (lat < -90 || lat > 90) {
@@ -39,7 +50,10 @@ function badRequest(message: string): never {
 }
 
 function createWeatherHandler(
-  fetcher: (lat: number, lon: number) => Promise<{ data: unknown; cached: boolean }>,
+  fetcher: (
+    lat: number,
+    lon: number,
+  ) => Promise<{ data: unknown; cached: boolean }>,
 ) {
   return async (
     request: FastifyRequest<{ Querystring: CoordinateQuery }>,
@@ -59,7 +73,8 @@ function createWeatherHandler(
       return reply.status(502).send({
         error: {
           code: "WEATHER_UNAVAILABLE",
-          message: "Weather data temporarily unavailable — please try again shortly",
+          message:
+            "Weather data temporarily unavailable — please try again shortly",
         },
       });
     }
@@ -69,6 +84,14 @@ function createWeatherHandler(
 export const weatherRoutes: FastifyPluginAsync = async (server) => {
   const routeOpts = { schema: { querystring: coordinateSchema } };
 
-  server.get("/api/v1/weather/current", routeOpts, createWeatherHandler(getCurrentWeather));
-  server.get("/api/v1/weather/forecast", routeOpts, createWeatherHandler(getWeatherForecast));
+  server.get(
+    "/api/v1/weather/current",
+    routeOpts,
+    createWeatherHandler(getCurrentWeather),
+  );
+  server.get(
+    "/api/v1/weather/forecast",
+    routeOpts,
+    createWeatherHandler(getWeatherForecast),
+  );
 };

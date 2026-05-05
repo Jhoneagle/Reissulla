@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  vi,
+  beforeEach,
+} from "vitest";
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
 import { cacheDel } from "../cache/cache.js";
@@ -126,9 +134,11 @@ describe("GET /api/v1/weather/current", () => {
   });
 
   it("serves cached response on second call", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockCurrentResponse), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockCurrentResponse), { status: 200 }),
+      );
 
     // First call — hits API
     await server.inject({
@@ -146,7 +156,9 @@ describe("GET /api/v1/weather/current", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1); // no additional fetch
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.data.temperature).toBe(mockCurrentResponse.current.temperature_2m);
+    expect(body.data.temperature).toBe(
+      mockCurrentResponse.current.temperature_2m,
+    );
     expect(body.cached).toBe(true);
   });
 
@@ -194,9 +206,11 @@ describe("GET /api/v1/weather/forecast", () => {
   });
 
   it("serves cached forecast on second call", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockForecastResponse), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockForecastResponse), { status: 200 }),
+      );
 
     await server.inject({
       method: "GET",
@@ -214,7 +228,9 @@ describe("GET /api/v1/weather/forecast", () => {
   });
 
   it("returns 502 when Open-Meteo is down", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("Network error"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
+      new Error("Network error"),
+    );
 
     const res = await server.inject({
       method: "GET",
