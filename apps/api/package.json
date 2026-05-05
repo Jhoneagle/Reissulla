@@ -9,15 +9,26 @@
     "start": "node dist/server.js",
     "lint": "eslint src/",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
     "@reissulla/shared": "workspace:*",
-    "fastify": "^5.3.3"
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.3.3",
+    "ioredis": "^5.10.1",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.5"
   }
 }
