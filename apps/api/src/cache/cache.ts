@@ -3,7 +3,12 @@ import { redis } from "./redis.js";
 export async function cacheGet<T>(key: string): Promise<T | null> {
   const data = await redis.get(key);
   if (data === null) return null;
-  return JSON.parse(data) as T;
+  try {
+    return JSON.parse(data) as T;
+  } catch {
+    await redis.del(key);
+    return null;
+  }
 }
 
 export async function cacheSet(
