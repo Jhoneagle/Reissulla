@@ -32,14 +32,14 @@ The web app runs at http://localhost:5173 and the API at http://localhost:3000.
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `pnpm dev` | Start all apps in development mode |
-| `pnpm build` | Build all packages |
-| `pnpm lint` | Lint all packages |
-| `pnpm format` | Format code with Prettier |
-| `pnpm type-check` | Type-check all packages |
-| `pnpm test` | Run all tests |
+| Command           | Description                        |
+| ----------------- | ---------------------------------- |
+| `pnpm dev`        | Start all apps in development mode |
+| `pnpm build`      | Build all packages                 |
+| `pnpm lint`       | Lint all packages                  |
+| `pnpm format`     | Format code with Prettier          |
+| `pnpm type-check` | Type-check all packages            |
+| `pnpm test`       | Run all tests                      |
 
 ## Project Structure
 

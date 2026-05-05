@@ -1,20 +1,17 @@
-import Fastify from "fastify";
+import { config } from "./config.js";
+import { redis } from "./cache/redis.js";
+import { buildServer } from "./app.js";
 
-const server = Fastify({
-  logger: true,
-});
+async function start() {
+  const server = await buildServer();
 
-server.get("/api/v1/health", async () => {
-  return { status: "ok" };
-});
-
-const start = async () => {
   try {
-    await server.listen({ port: 3000, host: "0.0.0.0" });
+    await redis.connect();
+    await server.listen({ port: config.port, host: config.host });
   } catch (err) {
     server.log.error(err);
     process.exit(1);
   }
-};
+}
 
 start();
