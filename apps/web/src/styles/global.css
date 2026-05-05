@@ -1,0 +1,140 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #ffffff;
+  --color-text: #1a1a1a;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-nav-bg: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-active: #2563eb;
+  --color-footer-text: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0f172a;
+    --color-text: #e2e8f0;
+    --color-primary: #60a5fa;
+    --color-primary-hover: #93c5fd;
+    --color-nav-bg: #1e293b;
+    --color-border: #334155;
+    --color-active: #60a5fa;
+    --color-footer-text: #94a3b8;
+  }
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+/* Skip link — visible only on focus */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 0 0 0.25rem 0.25rem;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-nav-bg);
+}
+
+header h1 {
+  font-size: 1.25rem;
+  white-space: nowrap;
+}
+
+/* Nav */
+nav ul {
+  display: flex;
+  gap: 0.25rem;
+  list-style: none;
+}
+
+nav a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+nav a:hover {
+  background: var(--color-border);
+}
+
+nav a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+nav a.active {
+  color: var(--color-active);
+  background: color-mix(in srgb, var(--color-active) 10%, transparent);
+  font-weight: 700;
+}
+
+/* Main */
+main {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* Footer */
+footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+footer a {
+  color: var(--color-primary);
+}
+
+/* Focus visible for all interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

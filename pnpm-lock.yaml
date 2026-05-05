@@ -102,12 +102,18 @@ importers:
       '@reissulla/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@tanstack/react-query':
+        specifier: ^5.100.9
+        version: 5.100.9(react@19.2.5)
       react:
         specifier: ^19.1.0
         version: 19.2.5
       react-dom:
         specifier: ^19.1.0
         version: 19.2.5(react@19.2.5)
+      react-router:
+        specifier: ^7.15.0
+        version: 7.15.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
     devDependencies:
       '@types/react':
         specifier: ^19.1.4
@@ -1017,6 +1023,14 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@tanstack/query-core@5.100.9':
+    resolution: {integrity: sha512-SJSFw1S8+kQ0+knv/XGfrbocWoAlT7vDKsSImtLx3ZPQmEcR46hkDjLSvynSy25N8Ms4tIEini1FuBd5k7IscQ==}
+
+  '@tanstack/react-query@5.100.9':
+    resolution: {integrity: sha512-Oa44XkaI3kCNN6ME0KByU3xT3SEUNOMfZpHxL6+wFoTm+OeUFYHKdeYVe0aOXlRDm/f15sgLwEt2HDorIdW8+A==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@turbo/darwin-64@2.9.9':
     resolution: {integrity: sha512-hTEiNu2ABZZOO1qbjnKASI8eF3BdOOzU6iKv5w5uGOK65DDMc10cS40N1kqM99YT0uSAGUwNu6GdFctRPeEeVA==}
@@ -2162,6 +2176,16 @@ packages:
     resolution: {integrity: sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==}
     engines: {node: '>=0.10.0'}
 
+  react-router@7.15.0:
+    resolution: {integrity: sha512-HW9vYwuM8f4yx66Izy8xfrzCM+SBJluoZcCbww9A1TySax11S5Vgw6fi3ZjMONw9J4gQwngL7PzkyIpJJpJ7RQ==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+
   react@19.2.5:
     resolution: {integrity: sha512-llUJLzz1zTUBrskt2pwZgLq59AemifIftw4aB7JxOqf1HY2FDaGDxgwpAPVzHU1kdWabH7FauP4i1oEeer2WCA==}
     engines: {node: '>=0.10.0'}
@@ -3138,6 +3162,13 @@ snapshots:
     optional: true
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@tanstack/query-core@5.100.9': {}
+
+  '@tanstack/react-query@5.100.9(react@19.2.5)':
+    dependencies:
+      '@tanstack/query-core': 5.100.9
+      react: 19.2.5
 
   '@turbo/darwin-64@2.9.9':
     optional: true
@@ -4379,6 +4410,14 @@ snapshots:
       scheduler: 0.27.0
 
   react-refresh@0.17.0: {}
+
+  react-router@7.15.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
+    dependencies:
+      cookie: 1.1.1
+      react: 19.2.5
+      set-cookie-parser: 2.7.2
+    optionalDependencies:
+      react-dom: 19.2.5(react@19.2.5)
 
   react@19.2.5: {}
 
