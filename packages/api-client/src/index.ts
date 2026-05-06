@@ -75,9 +75,12 @@ const AUTH_BASE = "/api/auth";
 
 async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${AUTH_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
     credentials: "include",
     ...options,
+    headers: {
+      ...(options?.body ? { "Content-Type": "application/json" } : {}),
+      ...options?.headers,
+    },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({
