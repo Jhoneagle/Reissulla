@@ -5,6 +5,10 @@ import { buildServer } from "./app.js";
 async function start() {
   const server = await buildServer();
 
+  server.addHook("onClose", async () => {
+    await redis.quit();
+  });
+
   try {
     await redis.connect();
     await server.listen({ port: config.port, host: config.host });
