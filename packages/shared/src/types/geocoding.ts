@@ -1,27 +1,29 @@
 export interface GeocodingResult {
-  placeId: number;
+  placeId: string;
   name: string;
   displayName: string;
   latitude: number;
   longitude: number;
   type: string;
   importance: number;
+  /** City / municipality name (e.g. "Helsinki") */
+  locality?: string;
+  /** Neighbourhood name (e.g. "Savela") */
+  neighbourhood?: string;
 }
 
 export interface ReverseGeocodingResult {
-  placeId: number;
+  placeId: string;
   name: string;
   displayName: string;
   address: {
     road?: string;
     houseNumber?: string;
     city?: string;
-    municipality?: string;
+    neighbourhood?: string;
     county?: string;
-    state?: string;
     postcode?: string;
     country?: string;
-    countryCode?: string;
   };
   latitude: number;
   longitude: number;

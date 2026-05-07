@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "./components/Layout";
 import { routes } from "./routes";
 import { useAuthStore } from "./stores/auth";
+import { useGeolocationStore } from "./stores/geolocation";
 import "./styles/global.css";
 
 const queryClient = new QueryClient({
@@ -18,6 +19,7 @@ const queryClient = new QueryClient({
 export function App() {
   useEffect(() => {
     useAuthStore.getState().initialize();
+    useGeolocationStore.getState().requestPosition();
   }, []);
 
   return (
