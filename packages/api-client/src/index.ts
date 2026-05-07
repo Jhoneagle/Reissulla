@@ -6,6 +6,9 @@ import type {
   SavedLocation,
   CreateLocationInput,
   UpdateLocationInput,
+  TransitStop,
+  TransitDeparturesResult,
+  TransitPlanResult,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -164,6 +167,34 @@ export const authApi = {
   },
   getSession() {
     return authRequest<{ user: AuthUser }>("/get-session");
+  },
+};
+
+export const transitApi = {
+  nearbyStops(lat: number, lon: number, radius?: number) {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lon),
+    });
+    if (radius) params.set("radius", String(radius));
+    return request<ApiResponse<TransitStop[]>>(`/transit/stops?${params}`);
+  },
+  searchStops(query: string) {
+    return request<ApiResponse<TransitStop[]>>(
+      `/transit/stops/search?q=${encodeURIComponent(query)}`,
+    );
+  },
+  departures(stopId: string, count?: number) {
+    const params = new URLSearchParams({ stopId });
+    if (count) params.set("count", String(count));
+    return request<ApiResponse<TransitDeparturesResult>>(
+      `/transit/departures?${params}`,
+    );
+  },
+  plan(fromLat: number, fromLon: number, toLat: number, toLon: number) {
+    return request<ApiResponse<TransitPlanResult>>(
+      `/transit/plan?fromLat=${fromLat}&fromLon=${fromLon}&toLat=${toLat}&toLon=${toLon}`,
+    );
   },
 };
 

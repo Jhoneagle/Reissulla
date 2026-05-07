@@ -141,6 +141,7 @@ describe("Geocoding reverse - input validation", () => {
 describe("GET /api/v1/geocoding/search", () => {
   beforeEach(async () => {
     await cacheDel("geocoding:search:mannerheimintie");
+    await cacheDel("geocoding:search:helsinki");
     vi.restoreAllMocks();
   });
 
@@ -208,7 +209,8 @@ describe("GET /api/v1/geocoding/search", () => {
   });
 
   it("returns 502 when Digitransit is down", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+    // Mock all fetch calls (search fires two parallel requests)
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("Service Unavailable", { status: 503 }),
     );
 
