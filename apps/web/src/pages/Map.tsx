@@ -165,7 +165,7 @@ export function MapPage() {
               isError={currentWeather.isError}
               isStale={currentWeather.isStale}
               dataUpdatedAt={currentWeather.dataUpdatedAt}
-              onRetry={() => currentWeather.refetch()}
+              onRetry={currentWeather.refetch}
             />
             <ForecastStrip
               days={forecast.data?.data.daily}

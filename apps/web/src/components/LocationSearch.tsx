@@ -28,7 +28,7 @@ export function LocationSearch({
   const listboxId = `${id}-listbox`;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["geocoding-search", debouncedQuery],
+    queryKey: ["geocoding-search", debouncedQuery, geoPosition?.lat, geoPosition?.lon],
     queryFn: () =>
       geocodingApi.search(
         debouncedQuery,

@@ -1,6 +1,6 @@
 import { useWeatherForecast } from "../../hooks/useWeather";
 import { WeatherIcon } from "./WeatherIcon";
-import { shortDay } from "../../lib/weather-utils";
+import { shortDay, isToday } from "../../lib/weather-utils";
 
 interface ListRowForecastProps {
   lat: number;
@@ -21,16 +21,15 @@ export function ListRowForecast({ lat, lon }: ListRowForecastProps) {
   return (
     <div className="cell-forecast__strip">
       {data.data.daily.map((day) => {
-        const isToday =
-          new Date(day.date).toDateString() === new Date().toDateString();
+        const today = isToday(day.date);
         return (
           <div
             key={day.date}
-            className={`cell-forecast__day${isToday ? " cell-forecast__day--today" : ""}`}
-            title={`${isToday ? "Today" : shortDay(day.date)}: ${day.weatherDescription}, ${Math.round(day.temperatureMax)}°/${Math.round(day.temperatureMin)}°`}
+            className={`cell-forecast__day${today ? " cell-forecast__day--today" : ""}`}
+            title={`${today ? "Today" : shortDay(day.date)}: ${day.weatherDescription}, ${Math.round(day.temperatureMax)}°/${Math.round(day.temperatureMin)}°`}
           >
             <span className="cell-forecast__label">
-              {isToday ? "Today" : shortDay(day.date)}
+              {today ? "Today" : shortDay(day.date)}
             </span>
             <WeatherIcon
               code={day.weatherCode}

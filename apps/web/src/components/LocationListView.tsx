@@ -181,10 +181,10 @@ export function LocationListView({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, i) => {
+          {rows.map((row) => {
             const addr = formatAddress(row);
             return (
-              <tr key={`${row.lat}-${row.lon}-${i}`}>
+              <tr key={`${row.lat}-${row.lon}`}>
                 <td className="cell-name">
                   <span className="cell-name__primary">{addr.primary}</span>
                   {addr.secondary && (

@@ -72,6 +72,11 @@ export function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+/** Check if an ISO date string is today. */
+export function isToday(iso: string): boolean {
+  return new Date(iso).toDateString() === new Date().toDateString();
+}
+
 /** Short day name from ISO date string. */
 export function shortDay(iso: string): string {
   return new Date(iso).toLocaleDateString("en", { weekday: "short" });

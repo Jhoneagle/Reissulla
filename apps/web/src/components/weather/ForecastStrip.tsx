@@ -1,6 +1,6 @@
 import type { DailyForecast } from "@reissulla/shared";
 import { WeatherIcon } from "./WeatherIcon";
-import { shortDay } from "../../lib/weather-utils";
+import { shortDay, isToday } from "../../lib/weather-utils";
 
 interface ForecastStripProps {
   days: DailyForecast[] | undefined;
@@ -31,18 +31,17 @@ export function ForecastStrip({ days, isLoading, isError }: ForecastStripProps) 
     <div className="forecast-strip" role="list" aria-label="7-day forecast">
       {days.map((day) => {
         const dayName = shortDay(day.date);
-        const isToday =
-          new Date(day.date).toDateString() === new Date().toDateString();
+        const today = isToday(day.date);
 
         return (
           <div
             key={day.date}
-            className={`forecast-day${isToday ? " forecast-day--today" : ""}`}
+            className={`forecast-day${today ? " forecast-day--today" : ""}`}
             role="listitem"
-            aria-label={`${isToday ? "Today" : dayName}: ${day.weatherDescription}, high ${Math.round(day.temperatureMax)}°, low ${Math.round(day.temperatureMin)}°${day.precipitationProbability > 0 ? `, ${day.precipitationProbability}% chance of precipitation` : ""}`}
+            aria-label={`${today ? "Today" : dayName}: ${day.weatherDescription}, high ${Math.round(day.temperatureMax)}°, low ${Math.round(day.temperatureMin)}°${day.precipitationProbability > 0 ? `, ${day.precipitationProbability}% chance of precipitation` : ""}`}
           >
             <span className="forecast-day__label">
-              {isToday ? "Today" : dayName}
+              {today ? "Today" : dayName}
             </span>
             <WeatherIcon
               code={day.weatherCode}
