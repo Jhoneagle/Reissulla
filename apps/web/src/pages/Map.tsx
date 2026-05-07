@@ -21,6 +21,7 @@ import "../components/weather/Weather.css";
 import "./Map.css";
 
 const HELSINKI = { lat: 60.1699, lon: 24.9384 };
+const EMPTY_LOCATIONS: import("@reissulla/shared").SavedLocation[] = [];
 
 type ViewMode = "map" | "list";
 
@@ -235,6 +236,7 @@ export function MapPage() {
           results={searchResults}
           userPosition={geoPosition}
           selectedLocation={selectedLocation}
+          savedLocations={savedLocations.data?.data ?? EMPTY_LOCATIONS}
         />
       </div>
     </div>

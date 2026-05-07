@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { locationsApi } from "@reissulla/api-client";
 import type { CreateLocationInput, UpdateLocationInput } from "@reissulla/shared";
+import { coordsMatch } from "../lib/geo";
 import { useAuthStore } from "../stores/auth";
 
 const QUERY_KEY = ["saved-locations"];
@@ -47,10 +48,8 @@ export function useDeleteLocation() {
 export function useIsLocationSaved(lat: number, lon: number): string | null {
   const { data } = useSavedLocations();
   if (!data?.data) return null;
-  const match = data.data.find(
-    (loc) =>
-      Math.abs(loc.latitude - lat) < 0.0001 &&
-      Math.abs(loc.longitude - lon) < 0.0001,
+  const match = data.data.find((loc) =>
+    coordsMatch(loc.latitude, loc.longitude, lat, lon),
   );
   return match?.id ?? null;
 }

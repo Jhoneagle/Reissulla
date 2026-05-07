@@ -652,6 +652,93 @@
   line-height: 1.5;
 }
 
+/* --- Save toggle button ------------------------------------ */
+.cell-actions {
+  width: 2.5rem;
+  padding: 0.5rem 0.25rem !important;
+  text-align: center;
+}
+
+.location-list thead .cell-actions {
+  border-bottom: 2px solid var(--color-border);
+}
+
+.save-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-footer-text);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.save-toggle:hover:not(:disabled) {
+  background: rgba(180, 83, 9, 0.08);
+  color: #b45309;
+}
+
+.save-toggle--saved {
+  color: #b45309;
+}
+
+.save-toggle--saved:hover:not(:disabled) {
+  background: rgba(180, 83, 9, 0.12);
+  color: #92400e;
+}
+
+.save-toggle--pending {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.save-toggle--error {
+  color: #dc2626;
+}
+
+.save-toggle--error:hover:not(:disabled) {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-toggle:hover:not(:disabled) {
+    background: rgba(217, 119, 6, 0.1);
+    color: #fbbf24;
+  }
+
+  .save-toggle--saved {
+    color: #fbbf24;
+  }
+
+  .save-toggle--saved:hover:not(:disabled) {
+    background: rgba(217, 119, 6, 0.15);
+    color: #fde68a;
+  }
+}
+
+/* --- Saved row accent -------------------------------------- */
+.list-row--saved > td:first-child {
+  border-left: 3px solid #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+  .list-row--saved > td:first-child {
+    border-left-color: #fbbf24;
+  }
+}
+
+/* --- Group divider between saved & search rows ------------- */
+.list-group-divider td {
+  padding: 0.125rem 0;
+  border-bottom: 1px dashed var(--color-border);
+}
+
 /* --- Responsive tweaks ------------------------------------- */
 @media (max-width: 480px) {
   .map-search-wrapper {

@@ -1,13 +1,17 @@
 import { useState, useMemo } from "react";
-import type { GeocodingResult } from "@reissulla/shared";
+import type { GeocodingResult, SavedLocation } from "@reissulla/shared";
 import { ListRowWeather } from "./weather/ListRowWeather";
 import { ListRowForecast } from "./weather/ListRowForecast";
+import { SaveToggleButton } from "./SaveToggleButton";
 import { formatAddress } from "../lib/format-address";
+import { coordsMatch } from "../lib/geo";
+import { useAuthStore } from "../stores/auth";
 
 interface LocationListViewProps {
   results: GeocodingResult[];
   userPosition: { lat: number; lon: number } | null;
   selectedLocation: { lat: number; lon: number; name?: string } | null;
+  savedLocations: SavedLocation[];
 }
 
 type SortField = "name" | "distance";
@@ -37,6 +41,8 @@ interface ListRow {
   lat: number;
   lon: number;
   distance: number | null;
+  savedId: string | null;
+  source: "saved" | "search" | "selected";
 }
 
 function ariaSortValue(
@@ -52,61 +58,115 @@ export function LocationListView({
   results,
   userPosition,
   selectedLocation,
+  savedLocations,
 }: LocationListViewProps) {
+  const isAuthenticated = !!useAuthStore((s) => s.user);
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortAsc, setSortAsc] = useState(true);
 
-  const rows = useMemo<ListRow[]>(() => {
-    const items: ListRow[] = results.map((r) => ({
-      name: r.name,
-      displayName: r.displayName,
-      locality: r.locality,
-      neighbourhood: r.neighbourhood,
-      lat: r.latitude,
-      lon: r.longitude,
-      distance: userPosition
-        ? haversineKm(userPosition.lat, userPosition.lon, r.latitude, r.longitude)
-        : null,
-    }));
+  const { savedRows, otherRows } = useMemo(() => {
+    const distFor = (lat: number, lon: number) =>
+      userPosition
+        ? haversineKm(userPosition.lat, userPosition.lon, lat, lon)
+        : null;
 
+    // Build saved location rows — these always go to the saved section.
+    // Enrich with search result data if a match exists.
+    const savedRowList: ListRow[] = savedLocations.map((loc) => {
+      const matchingResult = results.find((r) =>
+        coordsMatch(r.latitude, r.longitude, loc.latitude, loc.longitude),
+      );
+      return {
+        name: matchingResult?.name,
+        displayName: matchingResult?.displayName ?? loc.name,
+        locality: matchingResult?.locality,
+        neighbourhood: matchingResult?.neighbourhood,
+        lat: loc.latitude,
+        lon: loc.longitude,
+        distance: distFor(loc.latitude, loc.longitude),
+        savedId: loc.id,
+        source: "saved" as const,
+      };
+    });
+
+    // Build search result rows — exclude any that match a saved location
+    // (those are already shown in the saved section above).
+    const searchRows: ListRow[] = results
+      .filter(
+        (r) =>
+          !savedLocations.some((loc) =>
+            coordsMatch(loc.latitude, loc.longitude, r.latitude, r.longitude),
+          ),
+      )
+      .map((r) => ({
+        name: r.name,
+        displayName: r.displayName,
+        locality: r.locality,
+        neighbourhood: r.neighbourhood,
+        lat: r.latitude,
+        lon: r.longitude,
+        distance: distFor(r.latitude, r.longitude),
+        savedId: null,
+        source: "search" as const,
+      }));
+
+    // Build selected location row (if not already in search or saved)
+    const selectionRows: ListRow[] = [];
     if (
       selectedLocation &&
-      !results.some(
-        (r) =>
-          r.latitude === selectedLocation.lat &&
-          r.longitude === selectedLocation.lon,
+      !results.some((r) =>
+        coordsMatch(r.latitude, r.longitude, selectedLocation.lat, selectedLocation.lon),
+      ) &&
+      !savedLocations.some((loc) =>
+        coordsMatch(
+          loc.latitude,
+          loc.longitude,
+          selectedLocation.lat,
+          selectedLocation.lon,
+        ),
       )
     ) {
-      items.unshift({
+      selectionRows.push({
         displayName: selectedLocation.name ?? "Selected location",
         lat: selectedLocation.lat,
         lon: selectedLocation.lon,
-        distance: userPosition
-          ? haversineKm(
-              userPosition.lat,
-              userPosition.lon,
-              selectedLocation.lat,
-              selectedLocation.lon,
-            )
-          : null,
+        distance: distFor(selectedLocation.lat, selectedLocation.lon),
+        savedId: null,
+        source: "selected",
       });
     }
 
-    items.sort((a, b) => {
-      let cmp: number;
-      if (sortField === "distance") {
-        if (a.distance === null && b.distance === null) cmp = 0;
-        else if (a.distance === null) cmp = 1;
-        else if (b.distance === null) cmp = -1;
-        else cmp = a.distance - b.distance;
-      } else {
-        cmp = a.displayName.localeCompare(b.displayName);
-      }
-      return sortAsc ? cmp : -cmp;
-    });
+    const sortRows = (rows: ListRow[]) => {
+      const sorted = [...rows];
+      sorted.sort((a, b) => {
+        let cmp: number;
+        if (sortField === "distance") {
+          if (a.distance === null && b.distance === null) cmp = 0;
+          else if (a.distance === null) cmp = 1;
+          else if (b.distance === null) cmp = -1;
+          else cmp = a.distance - b.distance;
+        } else {
+          cmp = a.displayName.localeCompare(b.displayName);
+        }
+        return sortAsc ? cmp : -cmp;
+      });
+      return sorted;
+    };
 
-    return items;
-  }, [results, selectedLocation, userPosition, sortField, sortAsc]);
+    return {
+      savedRows: sortRows(savedRowList),
+      otherRows: sortRows([...selectionRows, ...searchRows]),
+    };
+  }, [
+    results,
+    selectedLocation,
+    userPosition,
+    savedLocations,
+    sortField,
+    sortAsc,
+  ]);
+
+  const totalRows = savedRows.length + otherRows.length;
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -122,7 +182,10 @@ export function LocationListView({
     return d < 1 ? `${Math.round(d * 1000)} m` : `${d.toFixed(1)} km`;
   };
 
-  if (rows.length === 0) {
+  const showDivider = savedRows.length > 0 && otherRows.length > 0;
+  const colCount = isAuthenticated ? 5 : 4;
+
+  if (totalRows === 0) {
     return (
       <div className="location-list">
         <div className="empty-state">
@@ -145,15 +208,57 @@ export function LocationListView({
     );
   }
 
+  const renderRow = (row: ListRow) => {
+    const addr = formatAddress(row);
+    const isSavedOnly = row.source === "saved";
+    return (
+      <tr
+        key={`${row.source}-${row.lat}-${row.lon}`}
+        className={isSavedOnly ? "list-row--saved" : undefined}
+      >
+        {isAuthenticated && (
+          <td className="cell-actions">
+            <SaveToggleButton
+              savedId={row.savedId}
+              lat={row.lat}
+              lon={row.lon}
+              name={row.displayName}
+            />
+          </td>
+        )}
+        <td className="cell-name">
+          <span className="cell-name__primary">{addr.primary}</span>
+          {addr.secondary && (
+            <span className="cell-name__secondary">{addr.secondary}</span>
+          )}
+        </td>
+        <td className="cell-weather">
+          <ListRowWeather lat={row.lat} lon={row.lon} />
+        </td>
+        <td className="cell-forecast">
+          <ListRowForecast lat={row.lat} lon={row.lon} />
+        </td>
+        <td className="cell-distance">{formatDistance(row.distance)}</td>
+      </tr>
+    );
+  };
+
   return (
     <div className="location-list">
       <table>
         <caption className="visually-hidden">
-          Locations &mdash; {rows.length}{" "}
-          {rows.length === 1 ? "result" : "results"}
+          Locations &mdash;{" "}
+          {savedRows.length > 0
+            ? `${savedRows.length} saved, ${otherRows.length} search results`
+            : `${otherRows.length} ${otherRows.length === 1 ? "result" : "results"}`}
         </caption>
         <thead>
           <tr>
+            {isAuthenticated && (
+              <th scope="col" className="cell-actions">
+                <span className="visually-hidden">Save</span>
+              </th>
+            )}
             <th
               scope="col"
               aria-sort={ariaSortValue("name", sortField, sortAsc)}
@@ -181,30 +286,13 @@ export function LocationListView({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
-            const addr = formatAddress(row);
-            return (
-              <tr key={`${row.lat}-${row.lon}`}>
-                <td className="cell-name">
-                  <span className="cell-name__primary">{addr.primary}</span>
-                  {addr.secondary && (
-                    <span className="cell-name__secondary">
-                      {addr.secondary}
-                    </span>
-                  )}
-                </td>
-                <td className="cell-weather">
-                  <ListRowWeather lat={row.lat} lon={row.lon} />
-                </td>
-                <td className="cell-forecast">
-                  <ListRowForecast lat={row.lat} lon={row.lon} />
-                </td>
-                <td className="cell-distance">
-                  {formatDistance(row.distance)}
-                </td>
-              </tr>
-            );
-          })}
+          {savedRows.map(renderRow)}
+          {showDivider && (
+            <tr className="list-group-divider" aria-hidden="true">
+              <td colSpan={colCount} />
+            </tr>
+          )}
+          {otherRows.map(renderRow)}
         </tbody>
       </table>
     </div>
