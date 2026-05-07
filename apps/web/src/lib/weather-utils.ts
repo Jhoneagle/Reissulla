@@ -81,12 +81,3 @@ export function isToday(iso: string): boolean {
 export function shortDay(iso: string): string {
   return new Date(iso).toLocaleDateString("en", { weekday: "short" });
 }
-
-/** Format hour from ISO datetime, e.g. "14:00". */
-export function formatHour(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
