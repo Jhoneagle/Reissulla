@@ -21,7 +21,10 @@ export function CurrentWeatherCard({
 }: CurrentWeatherCardProps) {
   if (isLoading) {
     return (
-      <section className="weather-card weather-card--loading" aria-label="Loading weather">
+      <section
+        className="weather-card weather-card--loading"
+        aria-label="Loading weather"
+      >
         <div className="weather-skeleton">
           <div className="skel skel-icon" />
           <div className="skel-group">
@@ -40,9 +43,22 @@ export function CurrentWeatherCard({
 
   if (isError && !data) {
     return (
-      <section className="weather-card weather-card--error" aria-label="Weather unavailable">
+      <section
+        className="weather-card weather-card--error"
+        aria-label="Weather unavailable"
+      >
         <div className="weather-error">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -98,7 +114,8 @@ export function CurrentWeatherCard({
         <div className="weather-detail">
           <dt>Wind</dt>
           <dd>
-            {Math.round(data.windSpeed)} m/s {windDirectionLabel(data.windDirection)}
+            {Math.round(data.windSpeed)} m/s{" "}
+            {windDirectionLabel(data.windDirection)}
           </dd>
         </div>
         <div className="weather-detail">
@@ -107,11 +124,7 @@ export function CurrentWeatherCard({
         </div>
       </dl>
 
-      {!isStale && (
-        <p className="weather-timestamp">
-          Updated {updatedLabel}
-        </p>
-      )}
+      {!isStale && <p className="weather-timestamp">Updated {updatedLabel}</p>}
     </section>
   );
 }

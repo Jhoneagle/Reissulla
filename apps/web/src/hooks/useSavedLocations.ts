@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { locationsApi } from "@reissulla/api-client";
-import type { CreateLocationInput, UpdateLocationInput } from "@reissulla/shared";
+import type {
+  CreateLocationInput,
+  UpdateLocationInput,
+} from "@reissulla/shared";
 import { coordsMatch } from "../lib/geo";
 import { useAuthStore } from "../stores/auth";
 

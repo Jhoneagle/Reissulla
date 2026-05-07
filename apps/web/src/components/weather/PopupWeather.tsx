@@ -18,14 +18,15 @@ export function PopupWeather({ data, isLoading, isError }: PopupWeatherProps) {
 
   if (isError || !data) {
     return (
-      <p className="popup-weather popup-weather--error">
-        Weather unavailable
-      </p>
+      <p className="popup-weather popup-weather--error">Weather unavailable</p>
     );
   }
 
   return (
-    <div className="popup-weather" aria-label={`${Math.round(data.temperature)}°C, ${data.weatherDescription}`}>
+    <div
+      className="popup-weather"
+      aria-label={`${Math.round(data.temperature)}°C, ${data.weatherDescription}`}
+    >
       <WeatherIcon
         code={data.weatherCode}
         isDay={data.isDay}

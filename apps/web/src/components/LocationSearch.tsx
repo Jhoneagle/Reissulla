@@ -28,12 +28,14 @@ export function LocationSearch({
   const listboxId = `${id}-listbox`;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["geocoding-search", debouncedQuery, geoPosition?.lat, geoPosition?.lon],
+    queryKey: [
+      "geocoding-search",
+      debouncedQuery,
+      geoPosition?.lat,
+      geoPosition?.lon,
+    ],
     queryFn: () =>
-      geocodingApi.search(
-        debouncedQuery,
-        geoPosition ?? undefined,
-      ),
+      geocodingApi.search(debouncedQuery, geoPosition ?? undefined),
     enabled: debouncedQuery.length >= 2,
   });
 
@@ -160,17 +162,32 @@ export function LocationSearch({
           className="search-results"
         >
           {isLoading && (
-            <li role="option" aria-selected={false} aria-disabled="true" className="search-status">
+            <li
+              role="option"
+              aria-selected={false}
+              aria-disabled="true"
+              className="search-status"
+            >
               Searching...
             </li>
           )}
           {isError && (
-            <li role="option" aria-selected={false} aria-disabled="true" className="search-status">
+            <li
+              role="option"
+              aria-selected={false}
+              aria-disabled="true"
+              className="search-status"
+            >
               Search temporarily unavailable
             </li>
           )}
           {!isLoading && !isError && results.length === 0 && (
-            <li role="option" aria-selected={false} aria-disabled="true" className="search-status">
+            <li
+              role="option"
+              aria-selected={false}
+              aria-disabled="true"
+              className="search-status"
+            >
               No locations found
             </li>
           )}

@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  vi,
+} from "vitest";
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
 import { db } from "../db/index.js";
@@ -11,14 +19,25 @@ vi.mock("../auth/auth.js", () => ({
   auth: {
     api: {
       getSession: vi.fn().mockResolvedValue({
-        user: { id: "test-user-locations", name: "Test User", email: "test@test.com" },
+        user: {
+          id: "test-user-locations",
+          name: "Test User",
+          email: "test@test.com",
+        },
         session: { id: "test-session" },
       }),
     },
-    handler: vi.fn().mockReturnValue((_req: unknown, res: { writeHead: (s: number) => void; end: () => void }) => {
-      res.writeHead(404);
-      res.end();
-    }),
+    handler: vi
+      .fn()
+      .mockReturnValue(
+        (
+          _req: unknown,
+          res: { writeHead: (s: number) => void; end: () => void },
+        ) => {
+          res.writeHead(404);
+          res.end();
+        },
+      ),
   },
 }));
 
@@ -43,7 +62,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Clean up test data
-  await db.delete(savedLocations).where(eq(savedLocations.userId, TEST_USER_ID));
+  await db
+    .delete(savedLocations)
+    .where(eq(savedLocations.userId, TEST_USER_ID));
   await db.delete(user).where(eq(user.id, TEST_USER_ID));
   await server.close();
   await redis.quit();
@@ -51,7 +72,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   // Clear all saved locations for the test user
-  await db.delete(savedLocations).where(eq(savedLocations.userId, TEST_USER_ID));
+  await db
+    .delete(savedLocations)
+    .where(eq(savedLocations.userId, TEST_USER_ID));
 });
 
 describe("GET /api/v1/locations", () => {
@@ -113,7 +136,7 @@ describe("POST /api/v1/locations", () => {
     const res = await server.inject({
       method: "POST",
       url: "/api/v1/locations",
-      payload: { name: "Second", latitude: 61.50, longitude: 23.76 },
+      payload: { name: "Second", latitude: 61.5, longitude: 23.76 },
     });
 
     expect(res.statusCode).toBe(201);
@@ -194,7 +217,7 @@ describe("PATCH /api/v1/locations/:id", () => {
       .values({
         userId: TEST_USER_ID,
         name: "Second",
-        latitude: 61.50,
+        latitude: 61.5,
         longitude: 23.76,
         sortOrder: 1,
       })
@@ -267,7 +290,7 @@ describe("DELETE /api/v1/locations/:id", () => {
       .values({
         userId: TEST_USER_ID,
         name: "Second",
-        latitude: 61.50,
+        latitude: 61.5,
         longitude: 23.76,
         sortOrder: 1,
       })

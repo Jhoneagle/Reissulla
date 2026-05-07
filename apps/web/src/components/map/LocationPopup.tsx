@@ -77,7 +77,9 @@ export function LocationPopup({
                   {savedId ? "Saved" : "Save location"}
                 </button>
                 {saveError && (
-                  <p className="popup-save__error">Failed to save — try again</p>
+                  <p className="popup-save__error">
+                    Failed to save — try again
+                  </p>
                 )}
               </>
             ) : (

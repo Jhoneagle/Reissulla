@@ -99,9 +99,9 @@ export function MapPage() {
 
   // Short label for the weather panel heading
   const weatherLocationName = selectedLocation
-    ? selectedLocation.name?.split(",")[0] ??
+    ? (selectedLocation.name?.split(",")[0] ??
       reverseQuery.data?.data.name ??
-      "Selected location"
+      "Selected location")
     : geoPosition
       ? "Your location"
       : null;
@@ -127,7 +127,17 @@ export function MapPage() {
           aria-controls="panel-map"
           onClick={() => setView("map")}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
             <line x1="8" y1="2" x2="8" y2="18" />
             <line x1="16" y1="6" x2="16" y2="22" />
@@ -141,7 +151,17 @@ export function MapPage() {
           aria-controls="panel-list"
           onClick={() => setView("list")}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <line x1="8" y1="6" x2="21" y2="6" />
             <line x1="8" y1="12" x2="21" y2="12" />
             <line x1="8" y1="18" x2="21" y2="18" />
@@ -170,7 +190,10 @@ export function MapPage() {
 
         {/* Weather panel — top right overlay on map */}
         {weatherTarget && (
-          <div className="weather-panel" aria-label="Weather for active location">
+          <div
+            className="weather-panel"
+            aria-label="Weather for active location"
+          >
             {weatherLocationName && (
               <p className="weather-panel__heading">{weatherLocationName}</p>
             )}
@@ -196,9 +219,7 @@ export function MapPage() {
             <MapFlyTo lat={selectedLocation.lat} lon={selectedLocation.lon} />
           )}
           {geoPosition && (
-            <UserLocationMarker
-              position={[geoPosition.lat, geoPosition.lon]}
-            />
+            <UserLocationMarker position={[geoPosition.lat, geoPosition.lon]} />
           )}
           <MapClickHandler onClick={handleMapClick} />
           {savedLocations.data?.data && (

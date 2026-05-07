@@ -8,10 +8,17 @@ interface ForecastStripProps {
   isError: boolean;
 }
 
-export function ForecastStrip({ days, isLoading, isError }: ForecastStripProps) {
+export function ForecastStrip({
+  days,
+  isLoading,
+  isError,
+}: ForecastStripProps) {
   if (isLoading) {
     return (
-      <div className="forecast-strip forecast-strip--loading" aria-label="Loading forecast">
+      <div
+        className="forecast-strip forecast-strip--loading"
+        aria-label="Loading forecast"
+      >
         {Array.from({ length: 7 }, (_, i) => (
           <div key={i} className="forecast-day forecast-day--skel">
             <div className="skel skel-day-label" />

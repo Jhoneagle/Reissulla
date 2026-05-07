@@ -115,7 +115,12 @@ export function LocationListView({
     if (
       selectedLocation &&
       !results.some((r) =>
-        coordsMatch(r.latitude, r.longitude, selectedLocation.lat, selectedLocation.lon),
+        coordsMatch(
+          r.latitude,
+          r.longitude,
+          selectedLocation.lat,
+          selectedLocation.lon,
+        ),
       ) &&
       !savedLocations.some((loc) =>
         coordsMatch(

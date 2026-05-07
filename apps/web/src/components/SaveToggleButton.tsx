@@ -1,7 +1,4 @@
-import {
-  useSaveLocation,
-  useDeleteLocation,
-} from "../hooks/useSavedLocations";
+import { useSaveLocation, useDeleteLocation } from "../hooks/useSavedLocations";
 import { useAuthStore } from "../stores/auth";
 
 interface SaveToggleButtonProps {

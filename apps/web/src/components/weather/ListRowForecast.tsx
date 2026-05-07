@@ -38,7 +38,8 @@ export function ListRowForecast({ lat, lon }: ListRowForecastProps) {
               className="cell-forecast__icon"
             />
             <span className="cell-forecast__temps">
-              {Math.round(day.temperatureMax)}° {Math.round(day.temperatureMin)}°
+              {Math.round(day.temperatureMax)}° {Math.round(day.temperatureMin)}
+              °
             </span>
           </div>
         );
