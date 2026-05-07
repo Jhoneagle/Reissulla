@@ -1,18 +1,20 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { geocodingApi } from "@reissulla/api-client";
-import type { GeocodingResult } from "@reissulla/shared";
+import type { GeocodingResult, SavedLocation } from "@reissulla/shared";
 import { LeafletMap } from "../components/map/LeafletMap";
 import { MapFlyTo } from "../components/map/MapFlyTo";
 import { UserLocationMarker } from "../components/map/UserLocationMarker";
 import { MapClickHandler } from "../components/map/MapClickHandler";
 import { MapResizeHandler } from "../components/map/MapResizeHandler";
 import { LocationPopup } from "../components/map/LocationPopup";
+import { SavedLocationMarkers } from "../components/map/SavedLocationMarkers";
 import { LocationSearch } from "../components/LocationSearch";
 import { LocationListView } from "../components/LocationListView";
 import { CurrentWeatherCard } from "../components/weather/CurrentWeatherCard";
 import { ForecastStrip } from "../components/weather/ForecastStrip";
 import { useCurrentWeather, useWeatherForecast } from "../hooks/useWeather";
+import { useSavedLocations } from "../hooks/useSavedLocations";
 import { useGeolocationStore } from "../stores/geolocation";
 import { useMapStore } from "../stores/map";
 import "../components/weather/Weather.css";
@@ -34,6 +36,7 @@ export function MapPage() {
   const setSearchResults = useMapStore((s) => s.setSearchResults);
 
   const defaultCenter = geoPosition ?? HELSINKI;
+  const savedLocations = useSavedLocations();
 
   // Weather is shown for: selected location > GPS position > null
   const weatherTarget = selectedLocation ?? geoPosition;
@@ -62,6 +65,17 @@ export function MapPage() {
   const handleMapClick = useCallback(
     (lat: number, lon: number) => {
       selectLocation({ lat, lon });
+    },
+    [selectLocation],
+  );
+
+  const handleSavedMarkerClick = useCallback(
+    (loc: SavedLocation) => {
+      selectLocation({
+        lat: loc.latitude,
+        lon: loc.longitude,
+        name: loc.name,
+      });
     },
     [selectLocation],
   );
@@ -186,6 +200,12 @@ export function MapPage() {
             />
           )}
           <MapClickHandler onClick={handleMapClick} />
+          {savedLocations.data?.data && (
+            <SavedLocationMarkers
+              locations={savedLocations.data.data}
+              onSelect={handleSavedMarkerClick}
+            />
+          )}
           {selectedLocation && (
             <LocationPopup
               position={[selectedLocation.lat, selectedLocation.lon]}

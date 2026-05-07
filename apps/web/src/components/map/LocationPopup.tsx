@@ -1,5 +1,11 @@
 import { Marker, Popup } from "react-leaflet";
 import { useCurrentWeather } from "../../hooks/useWeather";
+import {
+  useIsLocationSaved,
+  useSaveLocation,
+  useDeleteLocation,
+} from "../../hooks/useSavedLocations";
+import { useAuthStore } from "../../stores/auth";
 import { PopupWeather } from "../weather/PopupWeather";
 
 interface LocationPopupProps {
@@ -15,10 +21,30 @@ export function LocationPopup({
   loading,
   onClose,
 }: LocationPopupProps) {
+  const user = useAuthStore((s) => s.user);
   const { data, isLoading, isError } = useCurrentWeather(
     position[0],
     position[1],
   );
+
+  const savedId = useIsLocationSaved(position[0], position[1]);
+  const saveLocation = useSaveLocation();
+  const deleteLocation = useDeleteLocation();
+
+  const locationName = name ?? "Selected location";
+  const isSaving = saveLocation.isPending || deleteLocation.isPending;
+
+  const handleSave = () => {
+    if (savedId) {
+      deleteLocation.mutate(savedId);
+    } else {
+      saveLocation.mutate({
+        name: locationName,
+        latitude: position[0],
+        longitude: position[1],
+      });
+    }
+  };
 
   return (
     <Marker position={position}>
@@ -27,7 +53,7 @@ export function LocationPopup({
           {loading ? (
             <p className="popup-loading">Loading location...</p>
           ) : (
-            <h3>{name ?? "Selected location"}</h3>
+            <h3>{locationName}</h3>
           )}
           <p className="popup-coords">
             {position[0].toFixed(4)}, {position[1].toFixed(4)}
@@ -37,6 +63,22 @@ export function LocationPopup({
             isLoading={isLoading}
             isError={isError}
           />
+          <div className="popup-save">
+            {user ? (
+              <button
+                type="button"
+                className={`popup-save__btn${savedId ? " popup-save__btn--saved" : ""}`}
+                onClick={handleSave}
+                disabled={isSaving || loading}
+              >
+                {savedId ? "Saved" : "Save location"}
+              </button>
+            ) : (
+              <p className="popup-save__prompt">
+                <a href="/login">Log in</a> to save locations
+              </p>
+            )}
+          </div>
         </div>
       </Popup>
     </Marker>

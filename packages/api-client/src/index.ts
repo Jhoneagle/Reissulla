@@ -3,6 +3,9 @@ import type {
   WeatherForecast,
   GeocodingResult,
   ReverseGeocodingResult,
+  SavedLocation,
+  CreateLocationInput,
+  UpdateLocationInput,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -28,13 +31,34 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`);
+  const res = await fetch(`${BASE_URL}${path}`, { credentials: "include" });
   if (!res.ok) {
     const body = await res
       .json()
       .catch(() => ({ error: { code: "UNKNOWN", message: res.statusText } }));
     throw new ApiError(body.error.code, body.error.message, res.status);
   }
+  return res.json();
+}
+
+async function mutationRequest<T>(
+  path: string,
+  method: string,
+  body?: unknown,
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    credentials: "include",
+    headers: body ? { "Content-Type": "application/json" } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const data = await res
+      .json()
+      .catch(() => ({ error: { code: "UNKNOWN", message: res.statusText } }));
+    throw new ApiError(data.error.code, data.error.message, res.status);
+  }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -66,6 +90,29 @@ export const geocodingApi = {
     return request<ApiResponse<ReverseGeocodingResult>>(
       `/geocoding/reverse?lat=${lat}&lon=${lon}`,
     );
+  },
+};
+
+export const locationsApi = {
+  list() {
+    return request<{ data: SavedLocation[] }>("/locations");
+  },
+  create(input: CreateLocationInput) {
+    return mutationRequest<{ data: SavedLocation }>(
+      "/locations",
+      "POST",
+      input,
+    );
+  },
+  update(id: string, input: UpdateLocationInput) {
+    return mutationRequest<{ data: SavedLocation }>(
+      `/locations/${id}`,
+      "PATCH",
+      input,
+    );
+  },
+  remove(id: string) {
+    return mutationRequest<void>(`/locations/${id}`, "DELETE");
   },
 };
 
