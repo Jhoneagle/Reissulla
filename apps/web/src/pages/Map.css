@@ -371,6 +371,13 @@
   text-decoration: underline;
 }
 
+.popup-save__error {
+  font-size: 0.6875rem;
+  color: #dc2626;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
 /* --- Saved location marker --------------------------------- */
 .saved-location-marker {
   width: 12px;

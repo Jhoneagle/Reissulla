@@ -1,4 +1,5 @@
 import { Marker, Popup } from "react-leaflet";
+import { Link } from "react-router";
 import { useCurrentWeather } from "../../hooks/useWeather";
 import {
   useIsLocationSaved,
@@ -33,6 +34,7 @@ export function LocationPopup({
 
   const locationName = name ?? "Selected location";
   const isSaving = saveLocation.isPending || deleteLocation.isPending;
+  const saveError = saveLocation.isError || deleteLocation.isError;
 
   const handleSave = () => {
     if (savedId) {
@@ -65,17 +67,22 @@ export function LocationPopup({
           />
           <div className="popup-save">
             {user ? (
-              <button
-                type="button"
-                className={`popup-save__btn${savedId ? " popup-save__btn--saved" : ""}`}
-                onClick={handleSave}
-                disabled={isSaving || loading}
-              >
-                {savedId ? "Saved" : "Save location"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={`popup-save__btn${savedId ? " popup-save__btn--saved" : ""}`}
+                  onClick={handleSave}
+                  disabled={isSaving || loading}
+                >
+                  {savedId ? "Saved" : "Save location"}
+                </button>
+                {saveError && (
+                  <p className="popup-save__error">Failed to save — try again</p>
+                )}
+              </>
             ) : (
               <p className="popup-save__prompt">
-                <a href="/login">Log in</a> to save locations
+                <Link to="/login">Log in</Link> to save locations
               </p>
             )}
           </div>

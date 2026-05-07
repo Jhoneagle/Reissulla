@@ -116,21 +116,25 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
         return badRequest("No fields to update");
       }
 
-      // If setting as primary, clear other primaries first
-      if (updates.isPrimary) {
-        await db
-          .update(savedLocations)
-          .set({ isPrimary: false, updatedAt: new Date() })
-          .where(eq(savedLocations.userId, userId));
-      }
+      const location = await db.transaction(async (tx) => {
+        // If setting as primary, clear other primaries first
+        if (updates.isPrimary) {
+          await tx
+            .update(savedLocations)
+            .set({ isPrimary: false, updatedAt: new Date() })
+            .where(eq(savedLocations.userId, userId));
+        }
 
-      const [location] = await db
-        .update(savedLocations)
-        .set({ ...updates, updatedAt: new Date() })
-        .where(
-          and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)),
-        )
-        .returning();
+        const [updated] = await tx
+          .update(savedLocations)
+          .set({ ...updates, updatedAt: new Date() })
+          .where(
+            and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)),
+          )
+          .returning();
+
+        return updated;
+      });
 
       if (!location) {
         return reply.status(404).send({
@@ -158,12 +162,33 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
       const userId = request.session!.user.id;
       const { id } = request.params;
 
-      const [deleted] = await db
-        .delete(savedLocations)
-        .where(
-          and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)),
-        )
-        .returning();
+      const deleted = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .delete(savedLocations)
+          .where(
+            and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)),
+          )
+          .returning();
+
+        // If we deleted the primary, promote the first remaining location
+        if (row?.isPrimary) {
+          const [next] = await tx
+            .select({ id: savedLocations.id })
+            .from(savedLocations)
+            .where(eq(savedLocations.userId, userId))
+            .orderBy(savedLocations.sortOrder, savedLocations.createdAt)
+            .limit(1);
+
+          if (next) {
+            await tx
+              .update(savedLocations)
+              .set({ isPrimary: true, updatedAt: new Date() })
+              .where(eq(savedLocations.id, next.id));
+          }
+        }
+
+        return row;
+      });
 
       if (!deleted) {
         return reply.status(404).send({
