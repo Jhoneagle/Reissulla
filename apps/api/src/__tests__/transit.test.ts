@@ -64,6 +64,16 @@ const mockSearchStopsResponse = {
         platformCode: null,
       },
     ],
+    stations: [
+      {
+        gtfsId: "HSL:1000003",
+        name: "Rautatientori",
+        lat: 60.171,
+        lon: 24.9435,
+        vehicleMode: "SUBWAY",
+        stops: [{ vehicleMode: "SUBWAY" }],
+      },
+    ],
   },
 };
 
@@ -77,7 +87,7 @@ const mockDeparturesResponse = {
           realtimeDeparture: 43230,
           departureDelay: 30,
           realtime: true,
-          serviceDay: "20260507",
+          serviceDay: 1778101200,
           headsign: "Westendinasema",
           trip: {
             route: {
@@ -92,7 +102,7 @@ const mockDeparturesResponse = {
           realtimeDeparture: 43500,
           departureDelay: 0,
           realtime: false,
-          serviceDay: "20260507",
+          serviceDay: 1778101200,
           headsign: "Kamppi",
           trip: {
             route: {
@@ -117,15 +127,15 @@ const mockPlanResponse = {
       edges: [
         {
           node: {
-            startTime: "2026-05-07T12:00:00+03:00",
-            endTime: "2026-05-07T12:30:00+03:00",
+            startTime: 1778166000000,
+            endTime: 1778167800000,
             numberOfTransfers: 0,
             walkDistance: 450,
             legs: [
               {
                 mode: "WALK",
-                startTime: "2026-05-07T12:00:00+03:00",
-                endTime: "2026-05-07T12:05:00+03:00",
+                startTime: 1778166000000,
+                endTime: 1778166300000,
                 duration: 300,
                 distance: 250,
                 from: { name: "Origin", lat: 60.17, lon: 24.94, stop: null },
@@ -140,8 +150,8 @@ const mockPlanResponse = {
               },
               {
                 mode: "BUS",
-                startTime: "2026-05-07T12:05:00+03:00",
-                endTime: "2026-05-07T12:25:00+03:00",
+                startTime: 1778166300000,
+                endTime: 1778167500000,
                 duration: 1200,
                 distance: 5000,
                 from: {
@@ -344,6 +354,9 @@ describe("GET /api/v1/transit/stops/search", () => {
     const body = res.json();
     expect(body.data).toHaveLength(1);
     expect(body.data[0].name).toBe("Rautatientori");
+    expect(body.data[0].vehicleModes).toContain("BUS");
+    expect(body.data[0].vehicleModes).toContain("SUBWAY");
+    expect(body.data[0].isStation).toBe(true);
     expect(body.cached).toBe(false);
   });
 

@@ -1,0 +1,67 @@
+/**
+ * Convert serviceDay (epoch seconds at midnight) + seconds-from-midnight into epoch ms.
+ * Handles overnight services where secondsFromMidnight > 86400.
+ */
+export function departureToEpoch(
+  serviceDay: number,
+  secondsFromMidnight: number,
+): number {
+  return serviceDay * 1000 + secondsFromMidnight * 1000;
+}
+
+/** Format epoch ms as "HH:MM" in local time. */
+export function formatDepartureTime(epochMs: number): string {
+  const d = new Date(epochMs);
+  return d.toLocaleTimeString("fi-FI", { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Format relative time: "now", "in 1 min", "in 12 min", "3 min ago".
+ */
+export function formatRelativeTime(epochMs: number): string {
+  const diffMs = epochMs - Date.now();
+  const mins = Math.round(diffMs / 60_000);
+  if (mins <= 0 && mins > -1) return "now";
+  if (mins < 0) return `${Math.abs(mins)} min ago`;
+  return `in ${mins} min`;
+}
+
+/** Format duration in seconds: "1 h 23 min" or "5 min". */
+export function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  if (h > 0) return `${h} h ${m} min`;
+  return `${m} min`;
+}
+
+/** Format walk distance: "1.2 km" or "350 m". */
+export function formatWalkDistance(meters: number): string {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
+  return `${Math.round(meters)} m`;
+}
+
+/** Human-readable vehicle mode label. */
+export function vehicleModeLabel(mode: string): string {
+  const labels: Record<string, string> = {
+    BUS: "Bus",
+    TRAM: "Tram",
+    RAIL: "Train",
+    SUBWAY: "Metro",
+    FERRY: "Ferry",
+    WALK: "Walk",
+  };
+  return labels[mode] ?? mode;
+}
+
+/** Color for vehicle mode badges. */
+export function vehicleModeColor(mode: string): string {
+  const colors: Record<string, string> = {
+    BUS: "#2563eb",
+    TRAM: "#059669",
+    RAIL: "#7c3aed",
+    SUBWAY: "#ea580c",
+    FERRY: "#0891b2",
+    WALK: "#64748b",
+  };
+  return colors[mode] ?? "#64748b";
+}

@@ -90,8 +90,10 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
     },
   );
 
-  // GET /api/v1/transit/departures — departures at a stop
-  server.get<{ Querystring: { stopId: string; count?: string } }>(
+  // GET /api/v1/transit/departures — departures at a stop or station
+  server.get<{
+    Querystring: { stopId: string; count?: string; isStation?: string };
+  }>(
     "/api/v1/transit/departures",
     {
       schema: {
@@ -101,6 +103,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           properties: {
             stopId: { type: "string" },
             count: { type: "string" },
+            isStation: { type: "string" },
           },
         },
       },
@@ -121,7 +124,8 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       }
 
       try {
-        const { data, cached } = await getStopDepartures(stopId, count);
+        const isStation = request.query.isStation === "true";
+        const { data, cached } = await getStopDepartures(stopId, count, isStation);
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to fetch departures");

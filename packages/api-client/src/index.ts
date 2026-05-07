@@ -184,9 +184,10 @@ export const transitApi = {
       `/transit/stops/search?q=${encodeURIComponent(query)}`,
     );
   },
-  departures(stopId: string, count?: number) {
+  departures(stopId: string, count?: number, isStation?: boolean) {
     const params = new URLSearchParams({ stopId });
     if (count) params.set("count", String(count));
+    if (isStation) params.set("isStation", "true");
     return request<ApiResponse<TransitDeparturesResult>>(
       `/transit/departures?${params}`,
     );

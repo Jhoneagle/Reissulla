@@ -140,8 +140,8 @@ export async function getNearbyStops(
 // Search stops by name
 // ---------------------------------------------------------------------------
 
-const SEARCH_STOPS_QUERY = `
-  query SearchStops($name: String!) {
+const SEARCH_STOPS_AND_STATIONS_QUERY = `
+  query SearchStopsAndStations($name: String!) {
     stops(name: $name) {
       gtfsId
       name
@@ -151,10 +151,20 @@ const SEARCH_STOPS_QUERY = `
       vehicleMode
       platformCode
     }
+    stations(name: $name) {
+      gtfsId
+      name
+      lat
+      lon
+      vehicleMode
+      stops {
+        vehicleMode
+      }
+    }
   }
 `;
 
-interface SearchStopsData {
+interface SearchStopsAndStationsData {
   stops: {
     gtfsId: string;
     name: string;
@@ -164,6 +174,97 @@ interface SearchStopsData {
     vehicleMode: string | null;
     platformCode: string | null;
   }[];
+  stations: {
+    gtfsId: string;
+    name: string;
+    lat: number;
+    lon: number;
+    vehicleMode: string | null;
+    stops: { vehicleMode: string | null }[];
+  }[];
+}
+
+/**
+ * Normalize stop name for grouping — strip platform suffixes like "(M)", "(A)", etc.
+ * "Itäkeskus (M)" → "itäkeskus", "Itäkeskus" → "itäkeskus"
+ */
+function normalizeStopName(name: string): string {
+  return name
+    .replace(/\s*\([^)]{1,3}\)\s*$/, "") // strip short parenthetical suffixes
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Group individual stops by normalized name and merge stations.
+ * Each unique name becomes one result with combined vehicleModes.
+ */
+function groupStopsByName(
+  stops: SearchStopsAndStationsData["stops"],
+  stations: SearchStopsAndStationsData["stations"],
+): TransitStop[] {
+  const grouped = new Map<
+    string,
+    { stop: TransitStop; modes: Set<string> }
+  >();
+
+  // Add stations first (they get priority — include train stations)
+  for (const st of stations) {
+    const key = normalizeStopName(st.name);
+    const modes = new Set<string>();
+    if (st.vehicleMode) modes.add(st.vehicleMode);
+    for (const child of st.stops) {
+      if (child.vehicleMode) modes.add(child.vehicleMode);
+    }
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        stop: {
+          gtfsId: st.gtfsId,
+          name: st.name,
+          code: null,
+          lat: st.lat,
+          lon: st.lon,
+          vehicleMode: st.vehicleMode,
+          platformCode: null,
+          isStation: true,
+        },
+        modes,
+      });
+    } else {
+      const existing = grouped.get(key)!;
+      for (const m of modes) existing.modes.add(m);
+    }
+  }
+
+  // Add stops, grouping by normalized name
+  for (const s of stops) {
+    const key = normalizeStopName(s.name);
+    if (grouped.has(key)) {
+      const existing = grouped.get(key)!;
+      if (s.vehicleMode) existing.modes.add(s.vehicleMode);
+    } else {
+      const modes = new Set<string>();
+      if (s.vehicleMode) modes.add(s.vehicleMode);
+      grouped.set(key, {
+        stop: {
+          gtfsId: s.gtfsId,
+          name: s.name,
+          code: s.code,
+          lat: s.lat,
+          lon: s.lon,
+          vehicleMode: s.vehicleMode,
+          platformCode: s.platformCode,
+          isStation: false,
+        },
+        modes,
+      });
+    }
+  }
+
+  return Array.from(grouped.values()).map(({ stop, modes }) => ({
+    ...stop,
+    vehicleModes: Array.from(modes).sort(),
+  }));
 }
 
 export async function searchStops(
@@ -173,19 +274,12 @@ export async function searchStops(
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
-  const raw = await digitransitGraphQL<SearchStopsData>(SEARCH_STOPS_QUERY, {
-    name: query,
-  });
+  const raw = await digitransitGraphQL<SearchStopsAndStationsData>(
+    SEARCH_STOPS_AND_STATIONS_QUERY,
+    { name: query },
+  );
 
-  const data: TransitStop[] = raw.stops.map((s) => ({
-    gtfsId: s.gtfsId,
-    name: s.name,
-    code: s.code,
-    lat: s.lat,
-    lon: s.lon,
-    vehicleMode: s.vehicleMode,
-    platformCode: s.platformCode,
-  }));
+  const data = groupStopsByName(raw.stops, raw.stations);
 
   await tryCache(() => cacheSet(key, data, STOPS_CACHE_TTL));
   return { data, cached: false };
@@ -195,7 +289,7 @@ export async function searchStops(
 // Departures at a stop
 // ---------------------------------------------------------------------------
 
-const DEPARTURES_QUERY = `
+const STOP_DEPARTURES_QUERY = `
   query StopDepartures($id: String!, $n: Int!) {
     stop(id: $id) {
       name
@@ -218,30 +312,71 @@ const DEPARTURES_QUERY = `
   }
 `;
 
-interface DeparturesData {
-  stop: {
-    name: string;
-    stoptimesWithoutPatterns: {
-      scheduledDeparture: number;
-      realtimeDeparture: number;
-      departureDelay: number;
-      realtime: boolean;
-      serviceDay: string;
-      headsign: string;
-      trip: {
-        route: {
-          shortName: string;
-          longName: string;
-          mode: string;
-        };
-      };
-    }[];
-  } | null;
+const STATION_DEPARTURES_QUERY = `
+  query StationDepartures($id: String!, $n: Int!) {
+    station(id: $id) {
+      name
+      stoptimesWithoutPatterns(numberOfDepartures: $n) {
+        scheduledDeparture
+        realtimeDeparture
+        departureDelay
+        realtime
+        serviceDay
+        headsign
+        trip {
+          route {
+            shortName
+            longName
+            mode
+          }
+        }
+      }
+    }
+  }
+`;
+
+interface StoptimeData {
+  scheduledDeparture: number;
+  realtimeDeparture: number;
+  departureDelay: number;
+  realtime: boolean;
+  serviceDay: number;
+  headsign: string;
+  trip: {
+    route: {
+      shortName: string;
+      longName: string;
+      mode: string;
+    };
+  };
+}
+
+interface StopDeparturesData {
+  stop: { name: string; stoptimesWithoutPatterns: StoptimeData[] } | null;
+}
+
+interface StationDeparturesData {
+  station: { name: string; stoptimesWithoutPatterns: StoptimeData[] } | null;
+}
+
+function mapStoptimes(stoptimes: StoptimeData[]): TransitDeparture[] {
+  return stoptimes.map((st) => ({
+    routeShortName: st.trip.route.shortName,
+    routeLongName: st.trip.route.longName,
+    headsign: st.headsign,
+    scheduledDeparture: st.scheduledDeparture,
+    realtimeDeparture: st.realtimeDeparture,
+    departureDelay: st.departureDelay,
+    realtime: st.realtime,
+    serviceDay: st.serviceDay,
+    vehicleMode: st.trip.route.mode,
+  }));
 }
 
 export async function getStopDepartures(
   stopId: string,
   count = 20,
+  isStation = false,
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
   const key = `transit:departures:${stopId}`;
   const cached = await tryCache(
@@ -249,12 +384,30 @@ export async function getStopDepartures(
   );
   if (cached) return { data: cached, cached: true };
 
-  const raw = await digitransitGraphQL<DeparturesData>(DEPARTURES_QUERY, {
-    id: stopId,
-    n: count,
-  });
+  let stopName: string | null = null;
+  let stoptimes: StoptimeData[] = [];
 
-  if (!raw.stop) {
+  if (isStation) {
+    const raw = await digitransitGraphQL<StationDeparturesData>(
+      STATION_DEPARTURES_QUERY,
+      { id: stopId, n: count },
+    );
+    if (raw.station) {
+      stopName = raw.station.name;
+      stoptimes = raw.station.stoptimesWithoutPatterns;
+    }
+  } else {
+    const raw = await digitransitGraphQL<StopDeparturesData>(
+      STOP_DEPARTURES_QUERY,
+      { id: stopId, n: count },
+    );
+    if (raw.stop) {
+      stopName = raw.stop.name;
+      stoptimes = raw.stop.stoptimesWithoutPatterns;
+    }
+  }
+
+  if (!stopName) {
     const data: TransitDeparturesResult = {
       stopName: null,
       departures: [],
@@ -264,21 +417,10 @@ export async function getStopDepartures(
     return { data, cached: false };
   }
 
-  const departures: TransitDeparture[] =
-    raw.stop.stoptimesWithoutPatterns.map((st) => ({
-      routeShortName: st.trip.route.shortName,
-      routeLongName: st.trip.route.longName,
-      headsign: st.headsign,
-      scheduledDeparture: st.scheduledDeparture,
-      realtimeDeparture: st.realtimeDeparture,
-      departureDelay: st.departureDelay,
-      realtime: st.realtime,
-      serviceDay: st.serviceDay,
-      vehicleMode: st.trip.route.mode,
-    }));
+  const departures = mapStoptimes(stoptimes);
 
   const data: TransitDeparturesResult = {
-    stopName: raw.stop.name,
+    stopName,
     departures,
   };
 
@@ -290,21 +432,23 @@ export async function getStopDepartures(
 // Route planning
 // ---------------------------------------------------------------------------
 
-const PLAN_QUERY = `
-  query PlanRoute(
-    $fromLat: Float!
-    $fromLon: Float!
-    $toLat: Float!
-    $toLon: Float!
-    $n: Int!
-  ) {
+// CoordinateValue is a custom scalar in OTP2 — cannot use Float variables.
+// Build the query with inlined coordinate values instead.
+function buildPlanQuery(
+  fromLat: number,
+  fromLon: number,
+  toLat: number,
+  toLon: number,
+  n: number,
+): string {
+  return `{
     planConnection(
-      origin: { location: { coordinate: { latitude: $fromLat, longitude: $fromLon } } }
-      destination: { location: { coordinate: { latitude: $toLat, longitude: $toLon } } }
-      first: $n
+      origin: { location: { coordinate: { latitude: ${fromLat}, longitude: ${fromLon} } } }
+      destination: { location: { coordinate: { latitude: ${toLat}, longitude: ${toLon} } } }
+      first: ${n}
       modes: {
-        directMode: WALK
-        transitMode: { transit: [{ mode: BUS }, { mode: RAIL }, { mode: TRAM }, { mode: SUBWAY }, { mode: FERRY }] }
+        direct: [WALK]
+        transit: { transit: [{ mode: BUS }, { mode: RAIL }, { mode: TRAM }, { mode: SUBWAY }, { mode: FERRY }] }
       }
     ) {
       edges {
@@ -337,21 +481,21 @@ const PLAN_QUERY = `
         }
       }
     }
-  }
-`;
+  }`;
+}
 
 interface PlanConnectionData {
   planConnection: {
     edges: {
       node: {
-        startTime: string;
-        endTime: string;
+        startTime: number;
+        endTime: number;
         numberOfTransfers: number;
         walkDistance: number;
         legs: {
           mode: string;
-          startTime: string;
-          endTime: string;
+          startTime: number;
+          endTime: number;
           duration: number;
           distance: number;
           from: {
@@ -385,13 +529,8 @@ export async function planRoute(
   const cached = await tryCache(() => cacheGet<TransitPlanResult>(key));
   if (cached) return { data: cached, cached: true };
 
-  const raw = await digitransitGraphQL<PlanConnectionData>(PLAN_QUERY, {
-    fromLat,
-    fromLon,
-    toLat,
-    toLon,
-    n: numItineraries,
-  });
+  const query = buildPlanQuery(fromLat, fromLon, toLat, toLon, numItineraries);
+  const raw = await digitransitGraphQL<PlanConnectionData>(query, {});
 
   const edges = raw.planConnection?.edges ?? [];
 
@@ -408,8 +547,8 @@ export async function planRoute(
     const node = edge.node;
     const legs: TransitItineraryLeg[] = node.legs.map((leg) => ({
       mode: leg.mode,
-      startTime: new Date(leg.startTime).getTime(),
-      endTime: new Date(leg.endTime).getTime(),
+      startTime: leg.startTime,
+      endTime: leg.endTime,
       duration: leg.duration,
       distance: leg.distance,
       from: {
@@ -429,8 +568,8 @@ export async function planRoute(
     }));
 
     return {
-      startTime: new Date(node.startTime).getTime(),
-      endTime: new Date(node.endTime).getTime(),
+      startTime: node.startTime,
+      endTime: node.endTime,
       duration: legs.reduce((sum, l) => sum + l.duration, 0),
       walkDistance: node.walkDistance,
       transfers: node.numberOfTransfers,

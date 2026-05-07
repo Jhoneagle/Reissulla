@@ -1,0 +1,783 @@
+/* ============================================================
+   Transit Page — Cartographic Timetable
+   ============================================================ */
+
+/* --- Layout ------------------------------------------------ */
+.transit-page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 4rem;
+}
+
+.transit-page [hidden] {
+  display: none !important;
+}
+
+/* --- Tab toggle (segmented pill, static position) ---------- */
+.transit-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  width: fit-content;
+  margin: 0 auto 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .transit-tabs {
+    background: rgba(30, 41, 59, 0.85);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.35),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+}
+
+.transit-tabs button {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-footer-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.transit-tabs button:hover:not([aria-selected="true"]) {
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .transit-tabs button:hover:not([aria-selected="true"]) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.transit-tabs button[aria-selected="true"] {
+  background: #b45309;
+  color: #fffbeb;
+  box-shadow:
+    0 2px 8px rgba(180, 83, 9, 0.3),
+    0 1px 2px rgba(180, 83, 9, 0.2);
+}
+
+/* --- Stop search ------------------------------------------- */
+.stop-search {
+  position: relative;
+}
+
+.stop-search__icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-footer-text);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stop-search input {
+  width: 100%;
+  padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.stop-search input:focus {
+  outline: none;
+  border-color: #b45309;
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
+}
+
+.stop-search__results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  list-style: none;
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: 0.25rem;
+  z-index: 100;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stop-search__results {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.stop-search__results li {
+  padding: 0.625rem 0.75rem;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.stop-search__results li[aria-selected="true"],
+.stop-search__results li:hover {
+  background: rgba(180, 83, 9, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .stop-search__results li[aria-selected="true"],
+  .stop-search__results li:hover {
+    background: rgba(217, 119, 6, 0.12);
+  }
+}
+
+.stop-search__status {
+  color: var(--color-footer-text);
+  cursor: default !important;
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
+.stop-search__name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.stop-search__meta {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.stop-search__code {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-footer-text);
+  background: var(--color-border);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+.stop-search__mode {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-footer-text);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* --- Departure board --------------------------------------- */
+.departure-board__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--color-footer-text);
+}
+
+.departure-board__empty svg {
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.departure-board__empty p {
+  font-size: 0.9375rem;
+  max-width: 20rem;
+  line-height: 1.5;
+}
+
+/* --- Departure table --------------------------------------- */
+.departure-table-wrapper {
+  margin-top: 1.25rem;
+}
+
+.departure-table__header {
+  margin-bottom: 1rem;
+}
+
+.departure-table__stop-name {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.departure-table__meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.departure-table__code {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.08);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .departure-table__code {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+  }
+}
+
+.departure-table__mode {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-footer-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.departure-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.25rem;
+}
+
+.departure-table thead th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-footer-text);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.departure-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.departure-table tbody tr:hover {
+  background: rgba(180, 83, 9, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .departure-table tbody tr:hover {
+    background: rgba(217, 119, 6, 0.06);
+  }
+}
+
+.departure-table tbody td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+/* --- Vehicle mode badge ------------------------------------ */
+.mode-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.3125rem;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.mode-badge--sm {
+  padding: 0.0625rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+/* --- Departure row cells ----------------------------------- */
+.departure-row__line {
+  width: 4rem;
+}
+
+.departure-row__dest {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.departure-row__time {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.departure-row__scheduled {
+  text-decoration: line-through;
+  color: var(--color-footer-text);
+  font-size: 0.75rem;
+  margin-right: 0.375rem;
+}
+
+.departure-row__actual {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.departure-row__actual--late {
+  color: #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+  .departure-row__actual--late {
+    color: #fbbf24;
+  }
+}
+
+.departure-row__actual--early {
+  color: #059669;
+}
+
+.departure-row__relative {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-footer-text);
+  margin-top: 0.0625rem;
+}
+
+.departure-row__rt {
+  width: 2rem;
+  text-align: center;
+}
+
+/* --- Realtime indicator dot -------------------------------- */
+.rt-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.rt-dot--live {
+  background: #22c55e;
+  box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+  animation: rt-pulse 2.5s ease-out infinite;
+}
+
+@keyframes rt-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+}
+
+/* --- Departure loading/error/empty states ------------------ */
+.departure-table__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.departure-skel-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.departure-table__error,
+.departure-table__empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--color-footer-text);
+  font-size: 0.875rem;
+}
+
+.departure-table__timestamp {
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--color-footer-text);
+  letter-spacing: 0.01em;
+}
+
+/* --- Retry button (shared) --------------------------------- */
+.retry-btn {
+  margin-top: 0.75rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.retry-btn:hover {
+  border-color: #b45309;
+  background: rgba(180, 83, 9, 0.06);
+}
+
+/* --- Route planner ----------------------------------------- */
+.route-planner__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.route-planner__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.route-planner__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-footer-text);
+}
+
+/* Style the LocationSearch inputs within the route planner */
+.route-planner__field .search-box {
+  position: relative;
+}
+
+.route-planner__field .search-box .search-icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-footer-text);
+  pointer-events: none;
+}
+
+.route-planner__field .search-box input {
+  width: 100%;
+  padding: 0.625rem 0.875rem 0.625rem 2.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.625rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.route-planner__field .search-box input:focus {
+  outline: none;
+  border-color: #b45309;
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
+}
+
+.route-planner__field .search-box .search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.625rem;
+  background: var(--color-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  list-style: none;
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: 0.25rem;
+  z-index: 100;
+}
+
+.route-planner__field .search-box .search-results li {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  border-radius: 0.375rem;
+  transition: background 0.15s ease;
+}
+
+.route-planner__field .search-box .search-results li[aria-selected="true"],
+.route-planner__field .search-box .search-results li:hover {
+  background: rgba(180, 83, 9, 0.08);
+}
+
+/* Hide the visually-hidden label inside LocationSearch when we provide our own */
+.route-planner__field .search-box > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.route-planner__hint,
+.route-planner__empty,
+.route-planner__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-footer-text);
+}
+
+.route-planner__hint svg {
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.route-planner__hint p,
+.route-planner__empty p,
+.route-planner__error p {
+  font-size: 0.9375rem;
+  max-width: 24rem;
+  line-height: 1.5;
+}
+
+.route-planner__results {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.route-planner__loading {
+  margin-top: 1.5rem;
+}
+
+.itinerary-skel__card {
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+/* --- Itinerary card ---------------------------------------- */
+.itinerary-card {
+  border: 1px solid var(--color-border);
+  border-radius: 0.875rem;
+  background: var(--color-bg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Warm gradient top-bar, matching weather cards */
+.itinerary-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #b45309, #d97706, #f59e0b);
+  opacity: 0.7;
+}
+
+@media (prefers-color-scheme: dark) {
+  .itinerary-card {
+    background: var(--color-nav-bg);
+  }
+}
+
+.itinerary-card__header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.itinerary-card__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-footer-text);
+}
+
+.itinerary-card__times {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.itinerary-card__time {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.itinerary-card__arrow {
+  color: var(--color-footer-text);
+  font-size: 0.875rem;
+}
+
+.itinerary-card__meta {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-footer-text);
+}
+
+.itinerary-card__meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.itinerary-card__legs {
+  padding: 1rem 1.25rem;
+}
+
+/* --- Itinerary leg ----------------------------------------- */
+.leg {
+  display: flex;
+  gap: 0.75rem;
+  min-height: 2.5rem;
+}
+
+.leg__timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 1rem;
+  flex-shrink: 0;
+  padding-top: 0.25rem;
+}
+
+.leg__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2.5px solid #b45309;
+  background: var(--color-bg);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .leg__dot {
+    border-color: #fbbf24;
+    background: var(--color-nav-bg);
+  }
+}
+
+.leg__line {
+  flex: 1;
+  border-left: 2.5px solid #b45309;
+  min-height: 1rem;
+}
+
+.leg__line--dashed {
+  border-left-style: dashed;
+  opacity: 0.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .leg__line {
+    border-left-color: #fbbf24;
+  }
+}
+
+.leg__content {
+  flex: 1;
+  padding-bottom: 0.75rem;
+}
+
+.leg__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.leg__mode-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.leg__arrow {
+  color: var(--color-footer-text);
+  font-size: 0.75rem;
+}
+
+.leg__headsign {
+  font-size: 0.8125rem;
+}
+
+.leg__detail {
+  font-size: 0.75rem;
+  color: var(--color-footer-text);
+  margin-top: 0.125rem;
+}
+
+.leg--walk .leg__mode-label {
+  color: var(--color-footer-text);
+}
+
+/* --- Responsive -------------------------------------------- */
+@media (max-width: 480px) {
+  .transit-page {
+    padding: 0.75rem 0.75rem 4rem;
+  }
+
+  .departure-table thead th:nth-child(2),
+  .departure-table tbody td:nth-child(2) {
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .departure-table tbody td {
+    padding: 0.5rem;
+  }
+
+  .itinerary-card__header {
+    padding: 0.75rem 1rem;
+  }
+
+  .itinerary-card__legs {
+    padding: 0.75rem 1rem;
+  }
+}
