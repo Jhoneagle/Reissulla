@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { geocodingApi } from "@reissulla/api-client";
 import type { GeocodingResult } from "@reissulla/shared";
 import { useDebounce } from "../hooks/useDebounce";
+import { formatAddress, formatAddressShort } from "../lib/format-address";
+import { useGeolocationStore } from "../stores/geolocation";
 
 interface LocationSearchProps {
   id?: string;
@@ -21,12 +23,17 @@ export function LocationSearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const debouncedQuery = useDebounce(query.trim(), 300);
+  const geoPosition = useGeolocationStore((s) => s.position);
 
   const listboxId = `${id}-listbox`;
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["geocoding-search", debouncedQuery],
-    queryFn: () => geocodingApi.search(debouncedQuery),
+    queryFn: () =>
+      geocodingApi.search(
+        debouncedQuery,
+        geoPosition ?? undefined,
+      ),
     enabled: debouncedQuery.length >= 2,
   });
 
@@ -36,11 +43,18 @@ export function LocationSearch({
     onResults?.(results);
   }, [results, onResults]);
 
+  const prevResultsLength = useRef(0);
   useEffect(() => {
-    if (debouncedQuery.length >= 2 && results.length > 0) {
+    // Open dropdown when new results arrive and input is focused
+    if (
+      results.length > 0 &&
+      prevResultsLength.current === 0 &&
+      debouncedQuery.length >= 2
+    ) {
       setOpen(true);
     }
-  }, [debouncedQuery, results]);
+    prevResultsLength.current = results.length;
+  }, [results.length, debouncedQuery.length]);
 
   useEffect(() => {
     return () => {
@@ -50,7 +64,7 @@ export function LocationSearch({
 
   const selectResult = useCallback(
     (result: GeocodingResult) => {
-      setQuery(result.displayName);
+      setQuery(formatAddressShort(result));
       setOpen(false);
       setActiveIndex(-1);
       onSelect(result);
@@ -123,6 +137,7 @@ export function LocationSearch({
         aria-autocomplete="list"
         aria-controls={listboxId}
         aria-activedescendant={activeDescendant}
+        autoComplete="off"
         placeholder="Search for a location..."
         value={query}
         onChange={(e) => {
@@ -145,34 +160,42 @@ export function LocationSearch({
           className="search-results"
         >
           {isLoading && (
-            <li className="search-status" aria-disabled="true">
+            <li role="option" aria-selected={false} aria-disabled="true" className="search-status">
               Searching...
             </li>
           )}
           {isError && (
-            <li className="search-status" aria-disabled="true">
+            <li role="option" aria-selected={false} aria-disabled="true" className="search-status">
               Search temporarily unavailable
             </li>
           )}
           {!isLoading && !isError && results.length === 0 && (
-            <li className="search-status" aria-disabled="true">
+            <li role="option" aria-selected={false} aria-disabled="true" className="search-status">
               No locations found
             </li>
           )}
-          {results.map((result, index) => (
-            <li
-              key={result.placeId}
-              id={`${id}-result-${index}`}
-              role="option"
-              aria-selected={index === activeIndex}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                selectResult(result);
-              }}
-            >
-              {result.displayName}
-            </li>
-          ))}
+          {results.map((result, index) => {
+            const addr = formatAddress(result);
+            return (
+              <li
+                key={result.placeId}
+                id={`${id}-result-${index}`}
+                role="option"
+                aria-selected={index === activeIndex}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  selectResult(result);
+                }}
+              >
+                <span className="search-result-primary">{addr.primary}</span>
+                {addr.secondary && (
+                  <span className="search-result-secondary">
+                    {addr.secondary}
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 

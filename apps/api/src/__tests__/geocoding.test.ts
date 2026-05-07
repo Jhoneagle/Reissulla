@@ -10,50 +10,68 @@ import {
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
 import { cacheDel } from "../cache/cache.js";
-import { _resetThrottle } from "../services/geocoding.service.js";
 import type { FastifyInstance } from "fastify";
 
-const mockSearchResponse = [
-  {
-    place_id: 123456,
-    display_name:
-      "Mannerheimintie, Etu-Töölö, Eteläinen suurpiiri, Helsinki, Helsingin seutukunta, Uusimaa, Etelä-Suomen aluehallintovirasto, Manner-Suomi, 00100, Suomi / Finland",
-    name: "Mannerheimintie",
-    lat: "60.1699",
-    lon: "24.9384",
-    type: "road",
-    importance: 0.6,
-  },
-  {
-    place_id: 789012,
-    display_name:
-      "Mannerheimintie, Keskusta, Tampereen keskustaajama, Tampere, Pirkanmaa, Suomi / Finland",
-    name: "Mannerheimintie",
-    lat: "61.4978",
-    lon: "23.7610",
-    type: "road",
-    importance: 0.4,
-  },
-];
+/** Pelias GeoJSON search response mock. */
+const mockSearchResponse = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [24.9384, 60.1699] },
+      properties: {
+        id: "way/123",
+        gid: "openstreetmap:street:way/123",
+        layer: "street",
+        source: "openstreetmap",
+        name: "Mannerheimintie",
+        label: "Mannerheimintie, Helsinki",
+        confidence: 0.9,
+        locality: "Helsinki",
+        neighbourhood: "Etu-Töölö",
+      },
+    },
+    {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [23.761, 61.4978] },
+      properties: {
+        id: "way/456",
+        gid: "openstreetmap:street:way/456",
+        layer: "street",
+        source: "openstreetmap",
+        name: "Mannerheimintie",
+        label: "Mannerheimintie, Tampere",
+        confidence: 0.7,
+        locality: "Tampere",
+      },
+    },
+  ],
+};
 
+/** Pelias GeoJSON reverse response mock. */
 const mockReverseResponse = {
-  place_id: 654321,
-  display_name:
-    "Rautatientori, Kluuvi, Eteläinen suurpiiri, Helsinki, Uusimaa, 00100, Suomi / Finland",
-  name: "Rautatientori",
-  lat: "60.1710",
-  lon: "24.9414",
-  address: {
-    road: "Rautatientori",
-    house_number: undefined,
-    city: "Helsinki",
-    municipality: undefined,
-    county: "Helsingin seutukunta",
-    state: "Uusimaa",
-    postcode: "00100",
-    country: "Suomi / Finland",
-    country_code: "fi",
-  },
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [24.9414, 60.171] },
+      properties: {
+        id: "node/654",
+        gid: "openstreetmap:venue:node/654",
+        layer: "venue",
+        source: "openstreetmap",
+        name: "Rautatientori",
+        label: "Rautatientori, Helsinki",
+        confidence: 1.0,
+        locality: "Helsinki",
+        neighbourhood: "Kluuvi",
+        street: "Rautatientori",
+        postalcode: "00100",
+        country: "Suomi",
+        region: "Uusimaa",
+      },
+    },
+  ],
 };
 
 let server: FastifyInstance;
@@ -124,7 +142,6 @@ describe("GET /api/v1/geocoding/search", () => {
   beforeEach(async () => {
     await cacheDel("geocoding:search:mannerheimintie");
     vi.restoreAllMocks();
-    _resetThrottle();
   });
 
   it("returns results for a Finnish address", async () => {
@@ -139,16 +156,19 @@ describe("GET /api/v1/geocoding/search", () => {
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    const first = mockSearchResponse[0]!;
-    expect(body.data).toHaveLength(mockSearchResponse.length);
-    expect(body.data[0].name).toBe(first.name);
-    expect(body.data[0].latitude).toBe(Number(first.lat));
+    expect(body.data).toHaveLength(2);
+    expect(body.data[0].name).toBe("Mannerheimintie");
+    expect(body.data[0].latitude).toBe(60.1699);
+    expect(body.data[0].locality).toBe("Helsinki");
     expect(body.cached).toBe(false);
   });
 
   it("returns empty array for no results", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify([]), { status: 200 }),
+      new Response(
+        JSON.stringify({ type: "FeatureCollection", features: [] }),
+        { status: 200 },
+      ),
     );
 
     const res = await server.inject({
@@ -183,7 +203,7 @@ describe("GET /api/v1/geocoding/search", () => {
     expect(res.json().cached).toBe(true);
   });
 
-  it("returns 502 when Nominatim is down", async () => {
+  it("returns 502 when Digitransit is down", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response("Service Unavailable", { status: 503 }),
     );
@@ -200,9 +220,8 @@ describe("GET /api/v1/geocoding/search", () => {
 
 describe("GET /api/v1/geocoding/reverse", () => {
   beforeEach(async () => {
-    await cacheDel("geocoding:reverse:60.17:24.94");
+    await cacheDel("geocoding:reverse:60.1710:24.9414");
     vi.restoreAllMocks();
-    _resetThrottle();
   });
 
   it("returns address for Helsinki coordinates", async () => {
@@ -217,11 +236,9 @@ describe("GET /api/v1/geocoding/reverse", () => {
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.data.name).toBe(mockReverseResponse.name);
-    expect(body.data.address.city).toBe(mockReverseResponse.address.city);
-    expect(body.data.address.countryCode).toBe(
-      mockReverseResponse.address.country_code,
-    );
+    expect(body.data.name).toBe("Rautatientori");
+    expect(body.data.address.city).toBe("Helsinki");
+    expect(body.data.address.neighbourhood).toBe("Kluuvi");
     expect(body.cached).toBe(false);
   });
 
@@ -246,7 +263,7 @@ describe("GET /api/v1/geocoding/reverse", () => {
     expect(res.json().cached).toBe(true);
   });
 
-  it("returns 502 when Nominatim is down", async () => {
+  it("returns 502 when Digitransit is down", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
       new Error("Network error"),
     );
@@ -260,11 +277,12 @@ describe("GET /api/v1/geocoding/reverse", () => {
     expect(res.json().error.code).toBe("GEOCODING_UNAVAILABLE");
   });
 
-  it("returns 502 for non-geocodable coordinates", async () => {
+  it("returns 502 for empty reverse results", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: "Unable to geocode" }), {
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({ type: "FeatureCollection", features: [] }),
+        { status: 200 },
+      ),
     );
 
     const res = await server.inject({
@@ -274,44 +292,5 @@ describe("GET /api/v1/geocoding/reverse", () => {
 
     expect(res.statusCode).toBe(502);
     expect(res.json().error.code).toBe("GEOCODING_UNAVAILABLE");
-  });
-});
-
-describe("Rate limiting", () => {
-  beforeEach(async () => {
-    await cacheDel("geocoding:search:test1");
-    await cacheDel("geocoding:search:test2");
-    vi.restoreAllMocks();
-    _resetThrottle();
-  });
-
-  it("throttles rapid requests to respect 1 req/sec", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockImplementation(() =>
-        Promise.resolve(new Response(JSON.stringify([]), { status: 200 })),
-      );
-
-    const start = Date.now();
-
-    // Two uncached searches back-to-back
-    await server.inject({
-      method: "GET",
-      url: "/api/v1/geocoding/search?q=test1",
-    });
-    await server.inject({
-      method: "GET",
-      url: "/api/v1/geocoding/search?q=test2",
-    });
-
-    const elapsed = Date.now() - start;
-
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
-    // Second request should have been throttled by ~1100ms
-    expect(elapsed).toBeGreaterThanOrEqual(1000);
-
-    // Clean up
-    await cacheDel("geocoding:search:test1");
-    await cacheDel("geocoding:search:test2");
   });
 });

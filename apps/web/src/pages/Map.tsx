@@ -10,8 +10,12 @@ import { MapResizeHandler } from "../components/map/MapResizeHandler";
 import { LocationPopup } from "../components/map/LocationPopup";
 import { LocationSearch } from "../components/LocationSearch";
 import { LocationListView } from "../components/LocationListView";
+import { CurrentWeatherCard } from "../components/weather/CurrentWeatherCard";
+import { ForecastStrip } from "../components/weather/ForecastStrip";
+import { useCurrentWeather, useWeatherForecast } from "../hooks/useWeather";
 import { useGeolocationStore } from "../stores/geolocation";
 import { useMapStore } from "../stores/map";
+import "../components/weather/Weather.css";
 import "./Map.css";
 
 const HELSINKI = { lat: 60.1699, lon: 24.9384 };
@@ -30,6 +34,19 @@ export function MapPage() {
   const setSearchResults = useMapStore((s) => s.setSearchResults);
 
   const defaultCenter = geoPosition ?? HELSINKI;
+
+  // Weather is shown for: selected location > GPS position > null
+  const weatherTarget = selectedLocation ?? geoPosition;
+
+  const currentWeather = useCurrentWeather(
+    weatherTarget?.lat ?? null,
+    weatherTarget?.lon ?? null,
+  );
+
+  const forecast = useWeatherForecast(
+    weatherTarget?.lat ?? null,
+    weatherTarget?.lon ?? null,
+  );
 
   const reverseQuery = useQuery({
     queryKey: [
@@ -64,6 +81,15 @@ export function MapPage() {
     selectedLocation?.name ??
     reverseQuery.data?.data.displayName ??
     (reverseQuery.isLoading ? undefined : "Selected location");
+
+  // Short label for the weather panel heading
+  const weatherLocationName = selectedLocation
+    ? selectedLocation.name?.split(",")[0] ??
+      reverseQuery.data?.data.name ??
+      "Selected location"
+    : geoPosition
+      ? "Your location"
+      : null;
 
   return (
     <div className="page-full-width map-page">
@@ -126,6 +152,29 @@ export function MapPage() {
             onResults={view === "map" ? setSearchResults : undefined}
           />
         </div>
+
+        {/* Weather panel — top right overlay on map */}
+        {weatherTarget && (
+          <div className="weather-panel" aria-label="Weather for active location">
+            {weatherLocationName && (
+              <p className="weather-panel__heading">{weatherLocationName}</p>
+            )}
+            <CurrentWeatherCard
+              data={currentWeather.data?.data}
+              isLoading={currentWeather.isLoading}
+              isError={currentWeather.isError}
+              isStale={currentWeather.isStale}
+              dataUpdatedAt={currentWeather.dataUpdatedAt}
+              onRetry={() => currentWeather.refetch()}
+            />
+            <ForecastStrip
+              days={forecast.data?.data.daily}
+              isLoading={forecast.isLoading}
+              isError={forecast.isError}
+            />
+          </div>
+        )}
+
         <LeafletMap center={[defaultCenter.lat, defaultCenter.lon]} zoom={13}>
           <MapResizeHandler visible={view === "map"} />
           {selectedLocation && (

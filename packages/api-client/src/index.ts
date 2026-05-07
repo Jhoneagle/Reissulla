@@ -7,12 +7,12 @@ import type {
 
 const BASE_URL = "/api/v1";
 
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   data: T;
   cached: boolean;
 }
 
-interface WeatherApiResponse<T> extends ApiResponse<T> {
+export interface WeatherApiResponse<T> extends ApiResponse<T> {
   coordinates: { latitude: number; longitude: number };
 }
 
@@ -52,9 +52,14 @@ export const weatherApi = {
 };
 
 export const geocodingApi = {
-  search(query: string) {
+  search(query: string, focus?: { lat: number; lon: number }) {
+    const params = new URLSearchParams({ q: query });
+    if (focus) {
+      params.set("lat", String(focus.lat));
+      params.set("lon", String(focus.lon));
+    }
     return request<ApiResponse<GeocodingResult[]>>(
-      `/geocoding/search?q=${encodeURIComponent(query)}`,
+      `/geocoding/search?${params}`,
     );
   },
   reverse(lat: number, lon: number) {

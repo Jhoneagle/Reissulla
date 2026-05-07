@@ -1,4 +1,6 @@
 import { Marker, Popup } from "react-leaflet";
+import { useCurrentWeather } from "../../hooks/useWeather";
+import { PopupWeather } from "../weather/PopupWeather";
 
 interface LocationPopupProps {
   position: [number, number];
@@ -13,6 +15,11 @@ export function LocationPopup({
   loading,
   onClose,
 }: LocationPopupProps) {
+  const { data, isLoading, isError } = useCurrentWeather(
+    position[0],
+    position[1],
+  );
+
   return (
     <Marker position={position}>
       <Popup eventHandlers={{ remove: onClose }}>
@@ -25,6 +32,11 @@ export function LocationPopup({
           <p className="popup-coords">
             {position[0].toFixed(4)}, {position[1].toFixed(4)}
           </p>
+          <PopupWeather
+            data={data?.data}
+            isLoading={isLoading}
+            isError={isError}
+          />
         </div>
       </Popup>
     </Marker>

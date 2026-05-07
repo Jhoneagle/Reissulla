@@ -6,14 +6,20 @@ import {
 import { badRequest, parseCoordinates } from "../utils/validation.js";
 
 export const geocodingRoutes: FastifyPluginAsync = async (server) => {
-  server.get<{ Querystring: { q: string } }>(
+  server.get<{
+    Querystring: { q: string; lat?: string; lon?: string };
+  }>(
     "/api/v1/geocoding/search",
     {
       schema: {
         querystring: {
           type: "object",
           required: ["q"],
-          properties: { q: { type: "string" } },
+          properties: {
+            q: { type: "string" },
+            lat: { type: "string" },
+            lon: { type: "string" },
+          },
         },
       },
     },
@@ -23,8 +29,23 @@ export const geocodingRoutes: FastifyPluginAsync = async (server) => {
         return badRequest("q must not be empty");
       }
 
+      // Optional focus point for location-biased results
+      const focusLat = request.query.lat
+        ? Number(request.query.lat)
+        : undefined;
+      const focusLon = request.query.lon
+        ? Number(request.query.lon)
+        : undefined;
+      const focus =
+        focusLat !== undefined &&
+        focusLon !== undefined &&
+        !Number.isNaN(focusLat) &&
+        !Number.isNaN(focusLon)
+          ? { lat: focusLat, lon: focusLon }
+          : undefined;
+
       try {
-        const { data, cached } = await searchGeocode(q);
+        const { data, cached } = await searchGeocode(q, focus);
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to search geocoding");

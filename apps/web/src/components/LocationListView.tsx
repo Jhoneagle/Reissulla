@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
 import type { GeocodingResult } from "@reissulla/shared";
+import { ListRowWeather } from "./weather/ListRowWeather";
+import { ListRowForecast } from "./weather/ListRowForecast";
+import { formatAddress } from "../lib/format-address";
 
 interface LocationListViewProps {
   results: GeocodingResult[];
@@ -27,7 +30,10 @@ function haversineKm(
 }
 
 interface ListRow {
-  name: string;
+  name?: string;
+  displayName: string;
+  locality?: string;
+  neighbourhood?: string;
   lat: number;
   lon: number;
   distance: number | null;
@@ -52,7 +58,10 @@ export function LocationListView({
 
   const rows = useMemo<ListRow[]>(() => {
     const items: ListRow[] = results.map((r) => ({
-      name: r.displayName,
+      name: r.name,
+      displayName: r.displayName,
+      locality: r.locality,
+      neighbourhood: r.neighbourhood,
       lat: r.latitude,
       lon: r.longitude,
       distance: userPosition
@@ -69,7 +78,7 @@ export function LocationListView({
       )
     ) {
       items.unshift({
-        name: selectedLocation.name ?? "Selected location",
+        displayName: selectedLocation.name ?? "Selected location",
         lat: selectedLocation.lat,
         lon: selectedLocation.lon,
         distance: userPosition
@@ -91,7 +100,7 @@ export function LocationListView({
         else if (b.distance === null) cmp = -1;
         else cmp = a.distance - b.distance;
       } else {
-        cmp = a.name.localeCompare(b.name);
+        cmp = a.displayName.localeCompare(b.displayName);
       }
       return sortAsc ? cmp : -cmp;
     });
@@ -154,6 +163,8 @@ export function LocationListView({
                 {sortField === "name" ? (sortAsc ? "\u2191" : "\u2193") : ""}
               </button>
             </th>
+            <th scope="col">Weather</th>
+            <th scope="col">Forecast</th>
             <th
               scope="col"
               aria-sort={ariaSortValue("distance", sortField, sortAsc)}
@@ -167,19 +178,33 @@ export function LocationListView({
                   : ""}
               </button>
             </th>
-            <th scope="col">Coordinates</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, i) => (
-            <tr key={`${row.lat}-${row.lon}-${i}`}>
-              <td className="cell-name">{row.name}</td>
-              <td className="cell-distance">{formatDistance(row.distance)}</td>
-              <td className="cell-coords">
-                {row.lat.toFixed(4)}, {row.lon.toFixed(4)}
-              </td>
-            </tr>
-          ))}
+          {rows.map((row, i) => {
+            const addr = formatAddress(row);
+            return (
+              <tr key={`${row.lat}-${row.lon}-${i}`}>
+                <td className="cell-name">
+                  <span className="cell-name__primary">{addr.primary}</span>
+                  {addr.secondary && (
+                    <span className="cell-name__secondary">
+                      {addr.secondary}
+                    </span>
+                  )}
+                </td>
+                <td className="cell-weather">
+                  <ListRowWeather lat={row.lat} lon={row.lon} />
+                </td>
+                <td className="cell-forecast">
+                  <ListRowForecast lat={row.lat} lon={row.lon} />
+                </td>
+                <td className="cell-distance">
+                  {formatDistance(row.distance)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

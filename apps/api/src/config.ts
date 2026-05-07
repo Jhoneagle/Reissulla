@@ -1,4 +1,9 @@
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+import { resolve } from "node:path";
+
+// Load .env from repo root — Turborepo runs tasks from each package dir,
+// so "dotenv/config" alone would look in apps/api/ instead of the repo root.
+dotenvConfig({ path: resolve(import.meta.dirname, "../../../.env") });
 
 export const config = {
   port: Number(process.env.PORT ?? 3000),
@@ -12,4 +17,5 @@ export const config = {
   authSecret: process.env.AUTH_SECRET ?? "dev-secret-change-in-production",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  digitransitApiKey: process.env.DIGITRANSIT_API_KEY ?? "",
 };
