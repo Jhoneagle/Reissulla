@@ -43,7 +43,7 @@ interface FocusPoint {
   lon: number;
 }
 
-function headers(): Record<string, string> {
+function reqHeaders(): Record<string, string> {
   const h: Record<string, string> = {};
   if (config.digitransitApiKey) {
     h["digitransit-subscription-key"] = config.digitransitApiKey;
@@ -65,11 +65,12 @@ function toResult(f: PeliasFeature): GeocodingResult {
   };
 }
 
-/** Remove duplicates with the same name + locality (e.g. same street listed twice). */
+/** Remove duplicates by name + locality, keeping the first occurrence. */
 function dedup(results: GeocodingResult[]): GeocodingResult[] {
   const seen = new Set<string>();
   return results.filter((r) => {
-    const key = `${r.name}::${r.locality ?? ""}::${r.type}`;
+    // Collapse entries with same name in same city (e.g. multiple "Helsinki" stations)
+    const key = `${r.name}::${r.locality ?? ""}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -81,44 +82,77 @@ function looksLikeAddress(query: string): boolean {
   return /\d/.test(query);
 }
 
-export async function searchGeocode(
-  query: string,
-  focus?: FocusPoint,
-): Promise<{ data: GeocodingResult[]; cached: boolean }> {
-  const focusSuffix = focus ? `:${focus.lat.toFixed(1)}:${focus.lon.toFixed(1)}` : "";
-  const key = `geocoding:search:${query.toLowerCase()}${focusSuffix}`;
-  const cached = await tryCache(() => cacheGet<GeocodingResult[]>(key));
-  if (cached) return { data: cached, cached: true };
-
-  const params = new URLSearchParams({
-    text: query,
-    size: "10",
-    "boundary.country": "FI",
-    lang: "fi",
-  });
-
-  if (focus) {
-    params.set("focus.point.lat", String(focus.lat));
-    params.set("focus.point.lon", String(focus.lon));
-  }
-
-  // Use /search for address-like queries (better at matching house numbers),
-  // /autocomplete for everything else (better partial/prefix matching).
-  const endpoint = looksLikeAddress(query) ? "search" : "autocomplete";
+async function peliasRequest(
+  endpoint: string,
+  params: URLSearchParams,
+): Promise<PeliasFeature[]> {
   const url = `${DIGITRANSIT_BASE}/${endpoint}?${params}`;
-
   const res = await fetch(url, {
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    headers: headers(),
+    headers: reqHeaders(),
   });
   if (!res.ok) {
     throw new Error(
       `Digitransit geocoding error: ${res.status} ${res.statusText}`,
     );
   }
-
   const raw: PeliasResponse = await res.json();
-  const data = dedup(raw.features.map(toResult));
+  return raw.features;
+}
+
+export async function searchGeocode(
+  query: string,
+  focus?: FocusPoint,
+): Promise<{ data: GeocodingResult[]; cached: boolean }> {
+  const focusSuffix = focus
+    ? `:${focus.lat.toFixed(1)}:${focus.lon.toFixed(1)}`
+    : "";
+  const key = `geocoding:search:${query.toLowerCase()}${focusSuffix}`;
+  const cached = await tryCache(() => cacheGet<GeocodingResult[]>(key));
+  if (cached) return { data: cached, cached: true };
+
+  const baseParams = new URLSearchParams({
+    text: query,
+    "boundary.country": "FI",
+    lang: "fi",
+  });
+  if (focus) {
+    baseParams.set("focus.point.lat", String(focus.lat));
+    baseParams.set("focus.point.lon", String(focus.lon));
+  }
+
+  let data: GeocodingResult[];
+
+  if (looksLikeAddress(query)) {
+    // Address queries: /search is better at matching house numbers
+    const params = new URLSearchParams(baseParams);
+    params.set("size", "10");
+    const features = await peliasRequest("search", params);
+    data = dedup(features.map(toResult));
+  } else {
+    // Non-address queries: fire two requests in parallel —
+    // one general autocomplete and one for localities/venues only.
+    // This ensures cities like "Helsinki" appear alongside street results
+    // when typing "Hels", similar to how Google Maps mixes result types.
+    const generalParams = new URLSearchParams(baseParams);
+    generalParams.set("size", "8");
+
+    const placesParams = new URLSearchParams(baseParams);
+    placesParams.set("size", "3");
+    placesParams.set("layers", "localadmin,station");
+
+    const [generalFeatures, placeFeatures] = await Promise.all([
+      peliasRequest("autocomplete", generalParams),
+      peliasRequest("autocomplete", placesParams).catch(() => []),
+    ]);
+
+    // Merge: place results first, then general results, deduplicated
+    const merged = [
+      ...placeFeatures.map(toResult),
+      ...generalFeatures.map(toResult),
+    ];
+    data = dedup(merged).slice(0, 10);
+  }
 
   await tryCache(() => cacheSet(key, data, CACHE_TTL));
   return { data, cached: false };
@@ -138,25 +172,14 @@ export async function reverseGeocode(
     size: "1",
     lang: "fi",
   });
-  const url = `${DIGITRANSIT_BASE}/reverse?${params}`;
 
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    headers: headers(),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `Digitransit reverse geocoding error: ${res.status} ${res.statusText}`,
-    );
-  }
+  const features = await peliasRequest("reverse", params);
 
-  const raw: PeliasResponse = await res.json();
-
-  if (raw.features.length === 0) {
+  if (features.length === 0) {
     throw new Error("No results for reverse geocoding");
   }
 
-  const f = raw.features[0]!;
+  const f = features[0]!;
   const p = f.properties;
 
   const data: ReverseGeocodingResult = {
