@@ -168,6 +168,9 @@ export function StopSearch({
               >
                 <span className="stop-search__name">{stop.name}</span>
                 <span className="stop-search__meta">
+                  {stop.city && (
+                    <span className="stop-search__city">{stop.city}</span>
+                  )}
                   {stop.vehicleMode && (
                     <span className="stop-search__mode">
                       {vehicleModeLabel(stop.vehicleMode)}

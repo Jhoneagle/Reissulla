@@ -20,6 +20,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 const STOPS_CACHE_TTL = 3600; // 1 hour
 const DEPARTURES_CACHE_TTL = 60; // 1 minute
 const PLAN_CACHE_TTL = 300; // 5 minutes
+const GEOCODE_CACHE_TTL = 86400; // 24 hours (cities don't move)
 
 // ---------------------------------------------------------------------------
 // GraphQL helper
@@ -66,6 +67,74 @@ async function digitransitGraphQL<T>(
   }
 
   return json.data;
+}
+
+// ---------------------------------------------------------------------------
+// Reverse geocoding (Digitransit / Pelias)
+// ---------------------------------------------------------------------------
+
+const GEOCODING_URL = "https://api.digitransit.fi/geocoding/v1/reverse";
+
+async function reverseGeocodeCity(
+  lat: number,
+  lon: number,
+): Promise<string | undefined> {
+  // Round to ~100 m for cache deduplication
+  const rLat = lat.toFixed(3);
+  const rLon = lon.toFixed(3);
+  const key = `transit:geocode:${rLat}:${rLon}`;
+
+  const cached = await tryCache(() => cacheGet<string>(key));
+  if (cached) return cached;
+
+  try {
+    const url = new URL(GEOCODING_URL);
+    url.searchParams.set("point.lat", rLat);
+    url.searchParams.set("point.lon", rLon);
+    url.searchParams.set("size", "1");
+
+    const res = await fetch(url, {
+      headers: config.digitransitApiKey
+        ? { "digitransit-subscription-key": config.digitransitApiKey }
+        : {},
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) return undefined;
+
+    const json = await res.json();
+    const city: string | undefined =
+      json?.features?.[0]?.properties?.locality ??
+      json?.features?.[0]?.properties?.name;
+
+    if (city) {
+      await tryCache(() => cacheSet(key, city, GEOCODE_CACHE_TTL));
+    }
+    return city;
+  } catch {
+    return undefined;
+  }
+}
+
+async function enrichStopsWithCity(stops: TransitStop[]): Promise<void> {
+  // Deduplicate by rounded coordinates to minimise API calls
+  const coordToStops = new Map<string, TransitStop[]>();
+  for (const stop of stops) {
+    const coordKey = `${stop.lat.toFixed(3)}:${stop.lon.toFixed(3)}`;
+    const list = coordToStops.get(coordKey) ?? [];
+    list.push(stop);
+    coordToStops.set(coordKey, list);
+  }
+
+  await Promise.all(
+    Array.from(coordToStops.entries()).map(async ([, group]) => {
+      const city = await reverseGeocodeCity(group[0]!.lat, group[0]!.lon);
+      if (city) {
+        for (const stop of group) {
+          stop.city = city;
+        }
+      }
+    }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -342,7 +411,15 @@ export async function searchStops(
     { name: query },
   );
 
-  const data = groupStopsByNameAndMode(raw.stops, raw.stations);
+  const grouped = groupStopsByNameAndMode(raw.stops, raw.stations);
+
+  // Only keep stops with recognized transport modes
+  const KNOWN_MODES = new Set(["BUS", "TRAM", "RAIL", "SUBWAY", "FERRY"]);
+  const data = grouped.filter(
+    (s) => s.vehicleMode !== null && KNOWN_MODES.has(s.vehicleMode),
+  );
+
+  await enrichStopsWithCity(data);
 
   await tryCache(() => cacheSet(key, data, STOPS_CACHE_TTL));
   return { data, cached: false };

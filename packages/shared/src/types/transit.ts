@@ -13,6 +13,8 @@ export interface TransitStop {
   lon: number;
   vehicleMode: string | null;
   platformCode: string | null;
+  /** City / locality from reverse geocoding. */
+  city?: string;
   /** Distance in meters from search point (nearby searches only). */
   distance?: number;
   /** All vehicle modes available at this stop/station (for grouped results). */

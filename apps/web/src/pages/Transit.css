@@ -189,6 +189,11 @@
   border-radius: 0.25rem;
 }
 
+.stop-search__city {
+  font-size: 0.6875rem;
+  color: var(--color-footer-text);
+}
+
 .stop-search__mode {
   font-size: 0.6875rem;
   font-weight: 600;
