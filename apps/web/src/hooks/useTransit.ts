@@ -26,7 +26,7 @@ export function useDepartures(
         ? transitApi.multiDepartures(ids, subStops, 10, 40, stationId)
         : transitApi.departures(ids[0]!, 30, isStation),
     enabled: ids.length > 0,
-    staleTime: 30 * 1000,
+    staleTime: 35 * 1000,
     gcTime: 60 * 1000,
     refetchInterval: 30_000,
   });

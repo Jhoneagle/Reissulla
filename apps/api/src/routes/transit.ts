@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import type { TransitSubStop } from "@reissulla/shared";
 import {
   getNearbyStops,
@@ -9,11 +9,18 @@ import {
 } from "../services/transit.service.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
 
+function transitUnavailable(reply: FastifyReply) {
+  return reply.status(502).send({
+    error: {
+      code: "TRANSIT_UNAVAILABLE",
+      message:
+        "Transit service temporarily unavailable — please try again shortly",
+    },
+  });
+}
+
 export const transitRoutes: FastifyPluginAsync = async (server) => {
-  // GET /api/v1/transit/stops — nearby stops by coordinates
-  server.get<{
-    Querystring: { lat: string; lon: string; radius?: string };
-  }>(
+  server.get<{ Querystring: { lat: string; lon: string; radius?: string } }>(
     "/api/v1/transit/stops",
     {
       schema: {
@@ -45,18 +52,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to fetch nearby stops");
-        return reply.status(502).send({
-          error: {
-            code: "TRANSIT_UNAVAILABLE",
-            message:
-              "Transit service temporarily unavailable — please try again shortly",
-          },
-        });
+        return transitUnavailable(reply);
       }
     },
   );
 
-  // GET /api/v1/transit/stops/search — search stops by name
   server.get<{ Querystring: { q: string } }>(
     "/api/v1/transit/stops/search",
     {
@@ -81,18 +81,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to search stops");
-        return reply.status(502).send({
-          error: {
-            code: "TRANSIT_UNAVAILABLE",
-            message:
-              "Transit service temporarily unavailable — please try again shortly",
-          },
-        });
+        return transitUnavailable(reply);
       }
     },
   );
 
-  // GET /api/v1/transit/departures — departures at a stop or station
   server.get<{
     Querystring: { stopId: string; count?: string; isStation?: string };
   }>(
@@ -131,18 +124,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to fetch departures");
-        return reply.status(502).send({
-          error: {
-            code: "TRANSIT_UNAVAILABLE",
-            message:
-              "Transit service temporarily unavailable — please try again shortly",
-          },
-        });
+        return transitUnavailable(reply);
       }
     },
   );
 
-  // GET /api/v1/transit/departures/multi — departures from multiple sub-stops
   server.get<{
     Querystring: {
       stopIds: string;
@@ -184,7 +170,17 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       let subStops: TransitSubStop[] = [];
       if (request.query.subStops) {
         try {
-          subStops = JSON.parse(request.query.subStops);
+          const parsed = JSON.parse(request.query.subStops);
+          if (!Array.isArray(parsed)) {
+            return badRequest("subStops must be a JSON array");
+          }
+          subStops = parsed.map((s: Record<string, unknown>) => ({
+            gtfsId: String(s.gtfsId ?? ""),
+            code: s.code != null ? String(s.code) : null,
+            platformCode: s.platformCode != null ? String(s.platformCode) : null,
+            vehicleMode: s.vehicleMode != null ? String(s.vehicleMode) : null,
+          }));
+          subStops = subStops.filter((s) => s.gtfsId !== "");
         } catch {
           return badRequest("subStops must be valid JSON");
         }
@@ -221,18 +217,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to fetch multi-stop departures");
-        return reply.status(502).send({
-          error: {
-            code: "TRANSIT_UNAVAILABLE",
-            message:
-              "Transit service temporarily unavailable — please try again shortly",
-          },
-        });
+        return transitUnavailable(reply);
       }
     },
   );
 
-  // GET /api/v1/transit/plan — route planning
   server.get<{
     Querystring: {
       fromLat: string;
@@ -276,13 +265,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to plan route");
-        return reply.status(502).send({
-          error: {
-            code: "TRANSIT_UNAVAILABLE",
-            message:
-              "Transit service temporarily unavailable — please try again shortly",
-          },
-        });
+        return transitUnavailable(reply);
       }
     },
   );

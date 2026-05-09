@@ -269,6 +269,22 @@ describe("Transit routes - input validation", () => {
     });
     expect(res.statusCode).toBe(400);
   });
+
+  it("GET /transit/departures/multi returns 400 for non-array subStops", async () => {
+    const res = await server.inject({
+      method: "GET",
+      url: '/api/v1/transit/departures/multi?stopIds=HSL:1040602&subStops={"bad":"data"}',
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("GET /transit/departures/multi returns 400 for invalid subStops JSON", async () => {
+    const res = await server.inject({
+      method: "GET",
+      url: "/api/v1/transit/departures/multi?stopIds=HSL:1040602&subStops=not-json",
+    });
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -396,7 +412,7 @@ describe("GET /api/v1/transit/stops/search", () => {
 
 describe("GET /api/v1/transit/departures", () => {
   beforeEach(async () => {
-    await cacheDel("transit:departures:HSL:1040602");
+    await cacheDel("transit:departures:HSL:1040602:20:false");
     vi.restoreAllMocks();
   });
 

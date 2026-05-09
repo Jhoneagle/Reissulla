@@ -81,6 +81,7 @@ export function StopSearch({
   };
 
   const handleBlur = () => {
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
     blurTimerRef.current = setTimeout(() => setOpen(false), 200);
   };
 
