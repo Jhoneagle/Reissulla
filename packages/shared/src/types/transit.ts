@@ -1,3 +1,10 @@
+export interface TransitSubStop {
+  gtfsId: string;
+  code: string | null;
+  platformCode: string | null;
+  vehicleMode: string | null;
+}
+
 export interface TransitStop {
   gtfsId: string;
   name: string;
@@ -12,6 +19,8 @@ export interface TransitStop {
   vehicleModes?: string[];
   /** True if this is a station (use station query for departures). */
   isStation?: boolean;
+  /** Child stops within this station/cluster for the given mode. */
+  subStops?: TransitSubStop[];
 }
 
 export interface TransitDeparture {
@@ -24,12 +33,18 @@ export interface TransitDeparture {
   realtime: boolean;
   serviceDay: number;
   vehicleMode: string;
+  /** Which sub-stop this departure came from (for multi-stop queries). */
+  stopId?: string;
+  /** Platform code of the sub-stop (for display in platform filter). */
+  platformCode?: string | null;
 }
 
 export interface TransitDeparturesResult {
   stopName: string | null;
   departures: TransitDeparture[];
   message?: string;
+  /** Sub-stop metadata for building the platform filter UI. */
+  subStops?: TransitSubStop[];
 }
 
 export interface TransitItineraryLeg {

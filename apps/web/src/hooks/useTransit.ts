@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { TransitSubStop } from "@reissulla/shared";
 import { transitApi } from "@reissulla/api-client";
 
 export function useStopSearch(query: string) {
@@ -10,14 +11,24 @@ export function useStopSearch(query: string) {
   });
 }
 
-export function useDepartures(stopId: string | null, isStation = false) {
+export function useDepartures(
+  subStops: TransitSubStop[],
+  isStation = false,
+  stationId?: string,
+) {
+  const ids = subStops.map((s) => s.gtfsId).sort();
+  const isMulti = ids.length > 1;
+
   return useQuery({
-    queryKey: ["transit-departures", stopId, isStation],
-    queryFn: () => transitApi.departures(stopId!, 15, isStation),
-    enabled: stopId !== null,
+    queryKey: ["transit-departures", ...ids],
+    queryFn: () =>
+      isMulti
+        ? transitApi.multiDepartures(ids, subStops, 10, 40, stationId)
+        : transitApi.departures(ids[0]!, 30, isStation),
+    enabled: ids.length > 0,
     staleTime: 30 * 1000,
     gcTime: 60 * 1000,
-    refetchInterval: 30_000, // auto-refresh every 30s
+    refetchInterval: 30_000,
   });
 }
 

@@ -1,8 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
+import type { TransitSubStop } from "@reissulla/shared";
 import {
   getNearbyStops,
   searchStops,
   getStopDepartures,
+  getMultiStopDepartures,
   planRoute,
 } from "../services/transit.service.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
@@ -129,6 +131,96 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to fetch departures");
+        return reply.status(502).send({
+          error: {
+            code: "TRANSIT_UNAVAILABLE",
+            message:
+              "Transit service temporarily unavailable — please try again shortly",
+          },
+        });
+      }
+    },
+  );
+
+  // GET /api/v1/transit/departures/multi — departures from multiple sub-stops
+  server.get<{
+    Querystring: {
+      stopIds: string;
+      subStops?: string;
+      stationId?: string;
+      countPerStop?: string;
+      totalCount?: string;
+    };
+  }>(
+    "/api/v1/transit/departures/multi",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          required: ["stopIds"],
+          properties: {
+            stopIds: { type: "string" },
+            subStops: { type: "string" },
+            stationId: { type: "string" },
+            countPerStop: { type: "string" },
+            totalCount: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const ids = request.query.stopIds
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      if (ids.length === 0) {
+        return badRequest("stopIds must not be empty");
+      }
+      if (ids.length > 20) {
+        return badRequest("stopIds must contain at most 20 IDs");
+      }
+
+      let subStops: TransitSubStop[] = [];
+      if (request.query.subStops) {
+        try {
+          subStops = JSON.parse(request.query.subStops);
+        } catch {
+          return badRequest("subStops must be valid JSON");
+        }
+      }
+
+      let countPerStop = 10;
+      if (request.query.countPerStop) {
+        const parsed = Number(request.query.countPerStop);
+        if (Number.isNaN(parsed) || parsed < 1 || parsed > 30) {
+          return badRequest("countPerStop must be a number between 1 and 30");
+        }
+        countPerStop = parsed;
+      }
+
+      let totalCount = 40;
+      if (request.query.totalCount) {
+        const parsed = Number(request.query.totalCount);
+        if (Number.isNaN(parsed) || parsed < 1 || parsed > 100) {
+          return badRequest("totalCount must be a number between 1 and 100");
+        }
+        totalCount = parsed;
+      }
+
+      const stationId = request.query.stationId?.trim() || undefined;
+
+      try {
+        const { data, cached } = await getMultiStopDepartures(
+          ids,
+          subStops,
+          countPerStop,
+          totalCount,
+          stationId,
+        );
+        return { data, cached };
+      } catch (err) {
+        request.log.error(err, "Failed to fetch multi-stop departures");
         return reply.status(502).send({
           error: {
             code: "TRANSIT_UNAVAILABLE",

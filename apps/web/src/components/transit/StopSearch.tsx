@@ -155,15 +155,9 @@ export function StopSearch({
               No stops found
             </li>
           )}
-          {results.map((stop, index) => {
-            const modes = stop.vehicleModes?.length
-              ? stop.vehicleModes
-              : stop.vehicleMode
-                ? [stop.vehicleMode]
-                : [];
-            return (
+          {results.map((stop, index) => (
               <li
-                key={stop.gtfsId}
+                key={`${stop.gtfsId}-${stop.vehicleMode ?? "unknown"}`}
                 id={`${id}-result-${index}`}
                 role="option"
                 aria-selected={index === activeIndex}
@@ -174,18 +168,14 @@ export function StopSearch({
               >
                 <span className="stop-search__name">{stop.name}</span>
                 <span className="stop-search__meta">
-                  {stop.code && (
-                    <span className="stop-search__code">{stop.code}</span>
-                  )}
-                  {modes.map((m) => (
-                    <span key={m} className="stop-search__mode">
-                      {vehicleModeLabel(m)}
+                  {stop.vehicleMode && (
+                    <span className="stop-search__mode">
+                      {vehicleModeLabel(stop.vehicleMode)}
                     </span>
-                  ))}
+                  )}
                 </span>
               </li>
-            );
-          })}
+          ))}
         </ul>
       )}
 

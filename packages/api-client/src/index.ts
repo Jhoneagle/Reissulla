@@ -7,6 +7,7 @@ import type {
   CreateLocationInput,
   UpdateLocationInput,
   TransitStop,
+  TransitSubStop,
   TransitDeparturesResult,
   TransitPlanResult,
 } from "@reissulla/shared";
@@ -190,6 +191,22 @@ export const transitApi = {
     if (isStation) params.set("isStation", "true");
     return request<ApiResponse<TransitDeparturesResult>>(
       `/transit/departures?${params}`,
+    );
+  },
+  multiDepartures(
+    stopIds: string[],
+    subStops?: TransitSubStop[],
+    countPerStop?: number,
+    totalCount?: number,
+    stationId?: string,
+  ) {
+    const params = new URLSearchParams({ stopIds: stopIds.join(",") });
+    if (subStops) params.set("subStops", JSON.stringify(subStops));
+    if (stationId) params.set("stationId", stationId);
+    if (countPerStop) params.set("countPerStop", String(countPerStop));
+    if (totalCount) params.set("totalCount", String(totalCount));
+    return request<ApiResponse<TransitDeparturesResult>>(
+      `/transit/departures/multi?${params}`,
     );
   },
   plan(fromLat: number, fromLon: number, toLat: number, toLon: number) {

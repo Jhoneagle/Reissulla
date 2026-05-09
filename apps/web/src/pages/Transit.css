@@ -268,6 +268,72 @@
   letter-spacing: 0.04em;
 }
 
+/* --- Platform filter --------------------------------------- */
+.departure-table__filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.departure-table__filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-footer-text);
+}
+
+.departure-table__filter-select {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.departure-table__filter-select:focus {
+  outline: none;
+  border-color: #b45309;
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .departure-table__filter-select {
+    background: var(--color-nav-bg);
+  }
+}
+
+/* --- Platform badge in departure row ----------------------- */
+.departure-row__platform {
+  width: 4rem;
+  text-align: center;
+}
+
+.platform-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.08);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .platform-badge {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+  }
+}
+
 .departure-table {
   width: 100%;
   border-collapse: separate;

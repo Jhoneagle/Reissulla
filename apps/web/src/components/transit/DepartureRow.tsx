@@ -8,9 +8,10 @@ import {
 
 interface DepartureRowProps {
   departure: TransitDeparture;
+  showPlatform?: boolean;
 }
 
-export function DepartureRow({ departure: d }: DepartureRowProps) {
+export function DepartureRow({ departure: d, showPlatform }: DepartureRowProps) {
   const realtimeEpoch = departureToEpoch(d.serviceDay, d.realtimeDeparture);
   const scheduledEpoch = departureToEpoch(d.serviceDay, d.scheduledDeparture);
   const isDelayed = d.departureDelay > 30;
@@ -27,6 +28,13 @@ export function DepartureRow({ departure: d }: DepartureRowProps) {
         </span>
       </td>
       <td className="departure-row__dest">{d.headsign}</td>
+      {showPlatform && (
+        <td className="departure-row__platform">
+          {d.platformCode && (
+            <span className="platform-badge">{d.platformCode}</span>
+          )}
+        </td>
+      )}
       <td className="departure-row__time">
         {isDelayed && (
           <span className="departure-row__scheduled">

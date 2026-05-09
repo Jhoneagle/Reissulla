@@ -1,5 +1,6 @@
 import type {
   TransitStop,
+  TransitSubStop,
   TransitDeparture,
   TransitDeparturesResult,
   TransitItinerary,
@@ -10,8 +11,10 @@ import { config } from "../config.js";
 import { cacheGet, cacheSet } from "../cache/cache.js";
 import { tryCache } from "../utils/resilience.js";
 
-const ROUTING_URL =
+const ROUTING_URL_FINLAND =
   "https://api.digitransit.fi/routing/v2/finland/gtfs/v1";
+const ROUTING_URL_HSL =
+  "https://api.digitransit.fi/routing/v2/hsl/gtfs/v1";
 const FETCH_TIMEOUT_MS = 10_000;
 
 const STOPS_CACHE_TTL = 3600; // 1 hour
@@ -27,11 +30,16 @@ interface GraphQLResponse<T> {
   errors?: { message: string }[];
 }
 
+function routingUrlForId(gtfsId: string): string {
+  return gtfsId.startsWith("HSL:") ? ROUTING_URL_HSL : ROUTING_URL_FINLAND;
+}
+
 async function digitransitGraphQL<T>(
   query: string,
   variables: Record<string, unknown>,
+  url = ROUTING_URL_FINLAND,
 ): Promise<T> {
-  const res = await fetch(ROUTING_URL, {
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -158,11 +166,23 @@ const SEARCH_STOPS_AND_STATIONS_QUERY = `
       lon
       vehicleMode
       stops {
+        gtfsId
+        name
+        code
+        platformCode
         vehicleMode
       }
     }
   }
 `;
+
+interface StationChildStop {
+  gtfsId: string;
+  name: string;
+  code: string | null;
+  platformCode: string | null;
+  vehicleMode: string | null;
+}
 
 interface SearchStopsAndStationsData {
   stops: {
@@ -180,7 +200,7 @@ interface SearchStopsAndStationsData {
     lat: number;
     lon: number;
     vehicleMode: string | null;
-    stops: { vehicleMode: string | null }[];
+    stops: StationChildStop[];
   }[];
 }
 
@@ -195,56 +215,91 @@ function normalizeStopName(name: string): string {
     .trim();
 }
 
+interface GroupedEntry {
+  stop: TransitStop;
+  subStops: Map<string, TransitSubStop>; // keyed by gtfsId to deduplicate
+}
+
 /**
- * Group individual stops by normalized name and merge stations.
- * Each unique name becomes one result with combined vehicleModes.
+ * Group stops and stations by normalized name AND vehicle mode.
+ * Each (name, mode) pair becomes one search result entry.
+ * Stations are split into separate entries per child-stop mode.
  */
-function groupStopsByName(
+function groupStopsByNameAndMode(
   stops: SearchStopsAndStationsData["stops"],
   stations: SearchStopsAndStationsData["stations"],
 ): TransitStop[] {
-  const grouped = new Map<
-    string,
-    { stop: TransitStop; modes: Set<string> }
-  >();
+  const grouped = new Map<string, GroupedEntry>();
 
-  // Add stations first (they get priority — include train stations)
+  // Process stations: create one entry per (name, mode) from child stops
   for (const st of stations) {
-    const key = normalizeStopName(st.name);
-    const modes = new Set<string>();
-    if (st.vehicleMode) modes.add(st.vehicleMode);
+    const normalizedName = normalizeStopName(st.name);
+
+    // Group child stops by their vehicleMode
+    const childrenByMode = new Map<string, StationChildStop[]>();
     for (const child of st.stops) {
-      if (child.vehicleMode) modes.add(child.vehicleMode);
+      const mode = child.vehicleMode ?? "UNKNOWN";
+      const list = childrenByMode.get(mode) ?? [];
+      list.push(child);
+      childrenByMode.set(mode, list);
     }
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        stop: {
-          gtfsId: st.gtfsId,
-          name: st.name,
-          code: null,
-          lat: st.lat,
-          lon: st.lon,
-          vehicleMode: st.vehicleMode,
-          platformCode: null,
-          isStation: true,
-        },
-        modes,
-      });
-    } else {
-      const existing = grouped.get(key)!;
-      for (const m of modes) existing.modes.add(m);
+
+    // If station has no child stops, create entry with station's own mode
+    if (childrenByMode.size === 0 && st.vehicleMode) {
+      const key = `${normalizedName}|${st.vehicleMode}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          stop: {
+            gtfsId: st.gtfsId,
+            name: st.name,
+            code: null,
+            lat: st.lat,
+            lon: st.lon,
+            vehicleMode: st.vehicleMode,
+            platformCode: null,
+            isStation: true,
+            vehicleModes: [st.vehicleMode],
+          },
+          subStops: new Map(),
+        });
+      }
+    }
+
+    for (const [mode, children] of childrenByMode) {
+      const key = `${normalizedName}|${mode}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          stop: {
+            gtfsId: st.gtfsId,
+            name: st.name,
+            code: null,
+            lat: st.lat,
+            lon: st.lon,
+            vehicleMode: mode,
+            platformCode: null,
+            isStation: true,
+            vehicleModes: [mode],
+          },
+          subStops: new Map(),
+        });
+      }
+      const entry = grouped.get(key)!;
+      for (const child of children) {
+        entry.subStops.set(child.gtfsId, {
+          gtfsId: child.gtfsId,
+          code: child.code,
+          platformCode: child.platformCode,
+          vehicleMode: child.vehicleMode,
+        });
+      }
     }
   }
 
-  // Add stops, grouping by normalized name
+  // Process individual stops: merge into existing groups or create standalone
   for (const s of stops) {
-    const key = normalizeStopName(s.name);
-    if (grouped.has(key)) {
-      const existing = grouped.get(key)!;
-      if (s.vehicleMode) existing.modes.add(s.vehicleMode);
-    } else {
-      const modes = new Set<string>();
-      if (s.vehicleMode) modes.add(s.vehicleMode);
+    const mode = s.vehicleMode ?? "UNKNOWN";
+    const key = `${normalizeStopName(s.name)}|${mode}`;
+    if (!grouped.has(key)) {
       grouped.set(key, {
         stop: {
           gtfsId: s.gtfsId,
@@ -255,15 +310,23 @@ function groupStopsByName(
           vehicleMode: s.vehicleMode,
           platformCode: s.platformCode,
           isStation: false,
+          vehicleModes: [mode],
         },
-        modes,
+        subStops: new Map(),
       });
     }
+    const entry = grouped.get(key)!;
+    entry.subStops.set(s.gtfsId, {
+      gtfsId: s.gtfsId,
+      code: s.code,
+      platformCode: s.platformCode,
+      vehicleMode: s.vehicleMode,
+    });
   }
 
-  return Array.from(grouped.values()).map(({ stop, modes }) => ({
+  return Array.from(grouped.values()).map(({ stop, subStops }) => ({
     ...stop,
-    vehicleModes: Array.from(modes).sort(),
+    subStops: Array.from(subStops.values()),
   }));
 }
 
@@ -279,7 +342,7 @@ export async function searchStops(
     { name: query },
   );
 
-  const data = groupStopsByName(raw.stops, raw.stations);
+  const data = groupStopsByNameAndMode(raw.stops, raw.stations);
 
   await tryCache(() => cacheSet(key, data, STOPS_CACHE_TTL));
   return { data, cached: false };
@@ -323,6 +386,11 @@ const STATION_DEPARTURES_QUERY = `
         realtime
         serviceDay
         headsign
+        stop {
+          gtfsId
+          platformCode
+          code
+        }
         trip {
           route {
             shortName
@@ -342,6 +410,11 @@ interface StoptimeData {
   realtime: boolean;
   serviceDay: number;
   headsign: string;
+  stop?: {
+    gtfsId: string;
+    platformCode: string | null;
+    code: string | null;
+  };
   trip: {
     route: {
       shortName: string;
@@ -370,6 +443,8 @@ function mapStoptimes(stoptimes: StoptimeData[]): TransitDeparture[] {
     realtime: st.realtime,
     serviceDay: st.serviceDay,
     vehicleMode: st.trip.route.mode,
+    stopId: st.stop?.gtfsId,
+    platformCode: st.stop?.platformCode ?? st.stop?.code ?? null,
   }));
 }
 
@@ -387,10 +462,13 @@ export async function getStopDepartures(
   let stopName: string | null = null;
   let stoptimes: StoptimeData[] = [];
 
+  const url = routingUrlForId(stopId);
+
   if (isStation) {
     const raw = await digitransitGraphQL<StationDeparturesData>(
       STATION_DEPARTURES_QUERY,
       { id: stopId, n: count },
+      url,
     );
     if (raw.station) {
       stopName = raw.station.name;
@@ -400,6 +478,7 @@ export async function getStopDepartures(
     const raw = await digitransitGraphQL<StopDeparturesData>(
       STOP_DEPARTURES_QUERY,
       { id: stopId, n: count },
+      url,
     );
     if (raw.stop) {
       stopName = raw.stop.name;
@@ -422,6 +501,125 @@ export async function getStopDepartures(
   const data: TransitDeparturesResult = {
     stopName,
     departures,
+  };
+
+  await tryCache(() => cacheSet(key, data, DEPARTURES_CACHE_TTL));
+  return { data, cached: false };
+}
+
+// ---------------------------------------------------------------------------
+// Multi-stop departures (aggregate from multiple sub-stop IDs)
+// ---------------------------------------------------------------------------
+
+const MAX_PARALLEL_STOP_QUERIES = 10;
+
+export async function getMultiStopDepartures(
+  stopIds: string[],
+  subStops: TransitSubStop[],
+  countPerStop = 10,
+  totalCount = 40,
+  stationId?: string,
+): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
+  const sortedIds = [...stopIds].sort();
+  const key = `transit:departures-multi:${sortedIds.join(",")}`;
+  const cached = await tryCache(
+    () => cacheGet<TransitDeparturesResult>(key),
+  );
+  if (cached) return { data: cached, cached: true };
+
+  // Build a lookup from gtfsId to sub-stop metadata
+  const subStopMap = new Map<string, TransitSubStop>();
+  for (const ss of subStops) {
+    subStopMap.set(ss.gtfsId, ss);
+  }
+
+  // Query each sub-stop in parallel, capped at MAX_PARALLEL_STOP_QUERIES
+  let allDepartures: TransitDeparture[] = [];
+  let stopName: string | null = null;
+
+  for (let i = 0; i < sortedIds.length; i += MAX_PARALLEL_STOP_QUERIES) {
+    const batch = sortedIds.slice(i, i + MAX_PARALLEL_STOP_QUERIES);
+    const results = await Promise.all(
+      batch.map(async (id) => {
+        try {
+          const raw = await digitransitGraphQL<StopDeparturesData>(
+            STOP_DEPARTURES_QUERY,
+            { id, n: countPerStop },
+            routingUrlForId(id),
+          );
+          return { id, data: raw.stop };
+        } catch {
+          return { id, data: null };
+        }
+      }),
+    );
+
+    for (const result of results) {
+      if (!result.data) continue;
+      if (!stopName) stopName = result.data.name;
+      const meta = subStopMap.get(result.id);
+      const deps = mapStoptimes(result.data.stoptimesWithoutPatterns);
+      for (const dep of deps) {
+        dep.stopId = dep.stopId ?? result.id;
+        dep.platformCode = dep.platformCode ?? meta?.platformCode ?? meta?.code ?? null;
+      }
+      allDepartures.push(...deps);
+    }
+  }
+
+  // Fallback: if individual stop queries returned nothing and we have a stationId,
+  // use the station-level query (some stops like train platforms only work this way)
+  if (allDepartures.length === 0 && stationId) {
+    try {
+      const raw = await digitransitGraphQL<StationDeparturesData>(
+        STATION_DEPARTURES_QUERY,
+        { id: stationId, n: totalCount },
+        routingUrlForId(stationId),
+      );
+      if (raw.station) {
+        stopName = raw.station.name;
+        // Station query now includes stop info per departure (stopId, platformCode)
+        const deps = mapStoptimes(raw.station.stoptimesWithoutPatterns);
+        // Filter to only departures from our sub-stop IDs (mode-specific)
+        const subStopIdSet = new Set(sortedIds);
+        for (const dep of deps) {
+          if (dep.stopId && subStopIdSet.has(dep.stopId)) {
+            allDepartures.push(dep);
+          }
+        }
+        // If filtering yielded nothing (sub-stops may have different IDs than expected),
+        // include all departures with whatever stop info is available
+        if (allDepartures.length === 0) {
+          allDepartures = deps;
+        }
+      }
+    } catch {
+      // Station query also failed — will fall through to "not found"
+    }
+  }
+
+  if (!stopName) {
+    const data: TransitDeparturesResult = {
+      stopName: null,
+      departures: [],
+      subStops,
+      message: "Stop not found or outside transit coverage area",
+    };
+    return { data, cached: false };
+  }
+
+  // Sort by departure time and truncate
+  allDepartures.sort(
+    (a, b) =>
+      a.serviceDay * 1000 + a.realtimeDeparture * 1000 -
+      (b.serviceDay * 1000 + b.realtimeDeparture * 1000),
+  );
+  allDepartures = allDepartures.slice(0, totalCount);
+
+  const data: TransitDeparturesResult = {
+    stopName,
+    departures: allDepartures,
+    subStops,
   };
 
   await tryCache(() => cacheSet(key, data, DEPARTURES_CACHE_TTL));

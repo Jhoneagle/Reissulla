@@ -32,12 +32,12 @@ export function DepartureBoard() {
 
       {selectedStop && (
         <DepartureTable
-          stopId={selectedStop.gtfsId}
+          key={`${selectedStop.gtfsId}-${selectedStop.vehicleMode}`}
           stopName={selectedStop.name}
-          stopCode={selectedStop.code}
           vehicleMode={selectedStop.vehicleMode}
-          vehicleModes={selectedStop.vehicleModes}
+          subStops={selectedStop.subStops ?? []}
           isStation={selectedStop.isStation}
+          stationId={selectedStop.isStation ? selectedStop.gtfsId : undefined}
         />
       )}
     </div>

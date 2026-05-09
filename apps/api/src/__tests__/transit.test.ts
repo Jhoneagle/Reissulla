@@ -71,7 +71,15 @@ const mockSearchStopsResponse = {
         lat: 60.171,
         lon: 24.9435,
         vehicleMode: "SUBWAY",
-        stops: [{ vehicleMode: "SUBWAY" }],
+        stops: [
+          {
+            gtfsId: "HSL:1000003_1",
+            name: "Rautatientori",
+            code: "M112",
+            platformCode: "1",
+            vehicleMode: "SUBWAY",
+          },
+        ],
       },
     ],
   },
@@ -352,11 +360,18 @@ describe("GET /api/v1/transit/stops/search", () => {
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.data).toHaveLength(1);
-    expect(body.data[0].name).toBe("Rautatientori");
-    expect(body.data[0].vehicleModes).toContain("BUS");
-    expect(body.data[0].vehicleModes).toContain("SUBWAY");
-    expect(body.data[0].isStation).toBe(true);
+    expect(body.data).toHaveLength(2);
+    // Results are split by mode — one for SUBWAY (station), one for BUS (stop)
+    const subway = body.data.find((d: { vehicleMode: string }) => d.vehicleMode === "SUBWAY");
+    const bus = body.data.find((d: { vehicleMode: string }) => d.vehicleMode === "BUS");
+    expect(subway).toBeDefined();
+    expect(subway.name).toBe("Rautatientori");
+    expect(subway.isStation).toBe(true);
+    expect(subway.vehicleModes).toEqual(["SUBWAY"]);
+    expect(subway.subStops).toHaveLength(1);
+    expect(bus).toBeDefined();
+    expect(bus.name).toBe("Rautatientori");
+    expect(bus.subStops).toHaveLength(1);
     expect(body.cached).toBe(false);
   });
 
