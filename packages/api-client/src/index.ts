@@ -6,6 +6,10 @@ import type {
   SavedLocation,
   CreateLocationInput,
   UpdateLocationInput,
+  TransitStop,
+  TransitSubStop,
+  TransitDeparturesResult,
+  TransitPlanResult,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -164,6 +168,51 @@ export const authApi = {
   },
   getSession() {
     return authRequest<{ user: AuthUser }>("/get-session");
+  },
+};
+
+export const transitApi = {
+  nearbyStops(lat: number, lon: number, radius?: number) {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lon),
+    });
+    if (radius) params.set("radius", String(radius));
+    return request<ApiResponse<TransitStop[]>>(`/transit/stops?${params}`);
+  },
+  searchStops(query: string) {
+    return request<ApiResponse<TransitStop[]>>(
+      `/transit/stops/search?q=${encodeURIComponent(query)}`,
+    );
+  },
+  departures(stopId: string, count?: number, isStation?: boolean) {
+    const params = new URLSearchParams({ stopId });
+    if (count) params.set("count", String(count));
+    if (isStation) params.set("isStation", "true");
+    return request<ApiResponse<TransitDeparturesResult>>(
+      `/transit/departures?${params}`,
+    );
+  },
+  multiDepartures(
+    stopIds: string[],
+    subStops?: TransitSubStop[],
+    countPerStop?: number,
+    totalCount?: number,
+    stationId?: string,
+  ) {
+    const params = new URLSearchParams({ stopIds: stopIds.join(",") });
+    if (subStops) params.set("subStops", JSON.stringify(subStops));
+    if (stationId) params.set("stationId", stationId);
+    if (countPerStop) params.set("countPerStop", String(countPerStop));
+    if (totalCount) params.set("totalCount", String(totalCount));
+    return request<ApiResponse<TransitDeparturesResult>>(
+      `/transit/departures/multi?${params}`,
+    );
+  },
+  plan(fromLat: number, fromLon: number, toLat: number, toLon: number) {
+    return request<ApiResponse<TransitPlanResult>>(
+      `/transit/plan?fromLat=${fromLat}&fromLon=${fromLon}&toLat=${toLat}&toLon=${toLon}`,
+    );
   },
 };
 
