@@ -42,10 +42,7 @@ export function useRoutePlan(
     queryKey: ["transit-plan", fromLat, fromLon, toLat, toLon],
     queryFn: () => transitApi.plan(fromLat!, fromLon!, toLat!, toLon!),
     enabled:
-      fromLat !== null &&
-      fromLon !== null &&
-      toLat !== null &&
-      toLon !== null,
+      fromLat !== null && fromLon !== null && toLat !== null && toLon !== null,
     staleTime: 5 * 60 * 1000, // 5 min
   });
 }

@@ -13,8 +13,7 @@ import { tryCache } from "../utils/resilience.js";
 
 const ROUTING_URL_FINLAND =
   "https://api.digitransit.fi/routing/v2/finland/gtfs/v1";
-const ROUTING_URL_HSL =
-  "https://api.digitransit.fi/routing/v2/hsl/gtfs/v1";
+const ROUTING_URL_HSL = "https://api.digitransit.fi/routing/v2/hsl/gtfs/v1";
 const FETCH_TIMEOUT_MS = 10_000;
 
 const STOPS_CACHE_TTL = 3600;
@@ -63,9 +62,7 @@ async function digitransitGraphQL<T>(
   const json: GraphQLResponse<T> = await res.json();
 
   if (json.errors?.length) {
-    throw new Error(
-      `Digitransit GraphQL error: ${json.errors[0]!.message}`,
-    );
+    throw new Error(`Digitransit GraphQL error: ${json.errors[0]!.message}`);
   }
 
   return json.data;
@@ -509,9 +506,7 @@ export async function getStopDepartures(
   isStation = false,
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
   const key = `transit:departures:${stopId}:${count}:${isStation}`;
-  const cached = await tryCache(
-    () => cacheGet<TransitDeparturesResult>(key),
-  );
+  const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
   if (cached) return { data: cached, cached: true };
 
   let stopName: string | null = null;
@@ -545,8 +540,7 @@ export async function getStopDepartures(
     const data: TransitDeparturesResult = {
       stopName: null,
       departures: [],
-      message:
-        "Stop not found or outside transit coverage area",
+      message: "Stop not found or outside transit coverage area",
     };
     return { data, cached: false };
   }
@@ -573,9 +567,7 @@ export async function getMultiStopDepartures(
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
   const sortedIds = [...stopIds].sort();
   const key = `transit:departures-multi:${sortedIds.join(",")}:${countPerStop}:${totalCount}`;
-  const cached = await tryCache(
-    () => cacheGet<TransitDeparturesResult>(key),
-  );
+  const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
   if (cached) return { data: cached, cached: true };
 
   const subStopMap = new Map<string, TransitSubStop>();
@@ -610,7 +602,8 @@ export async function getMultiStopDepartures(
       const deps = mapStoptimes(result.data.stoptimesWithoutPatterns);
       for (const dep of deps) {
         dep.stopId = dep.stopId ?? result.id;
-        dep.platformCode = dep.platformCode ?? meta?.platformCode ?? meta?.code ?? null;
+        dep.platformCode =
+          dep.platformCode ?? meta?.platformCode ?? meta?.code ?? null;
       }
       allDepartures.push(...deps);
     }
@@ -654,8 +647,7 @@ export async function getMultiStopDepartures(
 
   allDepartures.sort(
     (a, b) =>
-      a.serviceDay + a.realtimeDeparture -
-      (b.serviceDay + b.realtimeDeparture),
+      a.serviceDay + a.realtimeDeparture - (b.serviceDay + b.realtimeDeparture),
   );
   allDepartures = allDepartures.slice(0, totalCount);
 

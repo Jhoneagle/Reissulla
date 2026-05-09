@@ -29,7 +29,9 @@ export function ItineraryCard({ itinerary, index }: ItineraryCardProps) {
         </div>
         <div className="itinerary-card__meta">
           <span>{formatDuration(itinerary.duration)}</span>
-          <span aria-label={`${itinerary.transfers} transfer${itinerary.transfers !== 1 ? "s" : ""}`}>
+          <span
+            aria-label={`${itinerary.transfers} transfer${itinerary.transfers !== 1 ? "s" : ""}`}
+          >
             {itinerary.transfers === 0
               ? "Direct"
               : `${itinerary.transfers} transfer${itinerary.transfers !== 1 ? "s" : ""}`}

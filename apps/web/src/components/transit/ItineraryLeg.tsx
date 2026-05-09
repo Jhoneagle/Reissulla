@@ -29,7 +29,8 @@ export function ItineraryLeg({ leg }: ItineraryLegProps) {
           <p className="leg__summary">
             <span className="leg__mode-label">Walk</span>{" "}
             <span className="leg__detail">
-              {formatDuration(leg.duration)} ({formatWalkDistance(leg.distance)})
+              {formatDuration(leg.duration)} ({formatWalkDistance(leg.distance)}
+              )
             </span>
           </p>
         ) : (
@@ -49,13 +50,12 @@ export function ItineraryLeg({ leg }: ItineraryLegProps) {
               <span className="leg__arrow" aria-hidden="true">
                 →
               </span>
-              <span className="leg__headsign">
-                {leg.to.name}
-              </span>
+              <span className="leg__headsign">{leg.to.name}</span>
             </p>
             <p className="leg__detail">
               {formatDuration(leg.duration)}
-              {stopsCount > 0 && ` · ${stopsCount} stop${stopsCount !== 1 ? "s" : ""}`}
+              {stopsCount > 0 &&
+                ` · ${stopsCount} stop${stopsCount !== 1 ? "s" : ""}`}
             </p>
           </>
         )}

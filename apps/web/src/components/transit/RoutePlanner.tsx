@@ -50,9 +50,26 @@ export function RoutePlanner() {
           <div className="itinerary-skel">
             {Array.from({ length: 2 }, (_, i) => (
               <div key={i} className="itinerary-skel__card">
-                <div className="skel" style={{ width: "60%", height: "1.25rem" }} />
-                <div className="skel" style={{ width: "40%", height: "0.875rem", marginTop: "0.5rem" }} />
-                <div className="skel" style={{ width: "80%", height: "0.875rem", marginTop: "0.375rem" }} />
+                <div
+                  className="skel"
+                  style={{ width: "60%", height: "1.25rem" }}
+                />
+                <div
+                  className="skel"
+                  style={{
+                    width: "40%",
+                    height: "0.875rem",
+                    marginTop: "0.5rem",
+                  }}
+                />
+                <div
+                  className="skel"
+                  style={{
+                    width: "80%",
+                    height: "0.875rem",
+                    marginTop: "0.375rem",
+                  }}
+                />
               </div>
             ))}
           </div>
@@ -62,17 +79,24 @@ export function RoutePlanner() {
       {plan.isError && (
         <div className="route-planner__error">
           <p>Route planning temporarily unavailable</p>
-          <button type="button" className="retry-btn" onClick={() => plan.refetch()}>
+          <button
+            type="button"
+            className="retry-btn"
+            onClick={() => plan.refetch()}
+          >
             Try again
           </button>
         </div>
       )}
 
-      {!plan.isLoading && !plan.isError && message && itineraries.length === 0 && (
-        <div className="route-planner__empty">
-          <p>{message}</p>
-        </div>
-      )}
+      {!plan.isLoading &&
+        !plan.isError &&
+        message &&
+        itineraries.length === 0 && (
+          <div className="route-planner__empty">
+            <p>{message}</p>
+          </div>
+        )}
 
       {!origin && !destination && !plan.isLoading && (
         <div className="route-planner__hint">

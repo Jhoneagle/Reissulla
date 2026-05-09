@@ -9,10 +9,7 @@ interface StopSearchProps {
   onSelect: (stop: TransitStop) => void;
 }
 
-export function StopSearch({
-  id = "stop-search",
-  onSelect,
-}: StopSearchProps) {
+export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -142,43 +139,58 @@ export function StopSearch({
           className="stop-search__results"
         >
           {isLoading && (
-            <li role="option" aria-selected={false} aria-disabled="true" className="stop-search__status">
+            <li
+              role="option"
+              aria-selected={false}
+              aria-disabled="true"
+              className="stop-search__status"
+            >
               Searching...
             </li>
           )}
           {isError && (
-            <li role="option" aria-selected={false} aria-disabled="true" className="stop-search__status">
+            <li
+              role="option"
+              aria-selected={false}
+              aria-disabled="true"
+              className="stop-search__status"
+            >
               Search temporarily unavailable
             </li>
           )}
           {!isLoading && !isError && results.length === 0 && (
-            <li role="option" aria-selected={false} aria-disabled="true" className="stop-search__status">
+            <li
+              role="option"
+              aria-selected={false}
+              aria-disabled="true"
+              className="stop-search__status"
+            >
               No stops found
             </li>
           )}
           {results.map((stop, index) => (
-              <li
-                key={`${stop.gtfsId}-${stop.vehicleMode ?? "unknown"}`}
-                id={`${id}-result-${index}`}
-                role="option"
-                aria-selected={index === activeIndex}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectResult(stop);
-                }}
-              >
-                <span className="stop-search__name">{stop.name}</span>
-                <span className="stop-search__meta">
-                  {stop.city && (
-                    <span className="stop-search__city">{stop.city}</span>
-                  )}
-                  {stop.vehicleMode && (
-                    <span className="stop-search__mode">
-                      {vehicleModeLabel(stop.vehicleMode)}
-                    </span>
-                  )}
-                </span>
-              </li>
+            <li
+              key={`${stop.gtfsId}-${stop.vehicleMode ?? "unknown"}`}
+              id={`${id}-result-${index}`}
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                selectResult(stop);
+              }}
+            >
+              <span className="stop-search__name">{stop.name}</span>
+              <span className="stop-search__meta">
+                {stop.city && (
+                  <span className="stop-search__city">{stop.city}</span>
+                )}
+                {stop.vehicleMode && (
+                  <span className="stop-search__mode">
+                    {vehicleModeLabel(stop.vehicleMode)}
+                  </span>
+                )}
+              </span>
+            </li>
           ))}
         </ul>
       )}

@@ -120,7 +120,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
 
       try {
         const isStation = request.query.isStation === "true";
-        const { data, cached } = await getStopDepartures(stopId, count, isStation);
+        const { data, cached } = await getStopDepartures(
+          stopId,
+          count,
+          isStation,
+        );
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to fetch departures");
@@ -177,7 +181,8 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           subStops = parsed.map((s: Record<string, unknown>) => ({
             gtfsId: String(s.gtfsId ?? ""),
             code: s.code != null ? String(s.code) : null,
-            platformCode: s.platformCode != null ? String(s.platformCode) : null,
+            platformCode:
+              s.platformCode != null ? String(s.platformCode) : null,
             vehicleMode: s.vehicleMode != null ? String(s.vehicleMode) : null,
           }));
           subStops = subStops.filter((s) => s.gtfsId !== "");

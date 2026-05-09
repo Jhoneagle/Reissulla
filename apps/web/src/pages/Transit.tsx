@@ -14,7 +14,11 @@ export function Transit() {
         Transit
       </h2>
 
-      <div role="tablist" aria-label="Transit sections" className="transit-tabs">
+      <div
+        role="tablist"
+        aria-label="Transit sections"
+        className="transit-tabs"
+      >
         <button
           id="tab-departures"
           role="tab"

@@ -174,8 +174,13 @@ const mockPlanResponse = {
                   lon: 24.96,
                   stop: { gtfsId: "HSL:2040601", code: "2041" },
                 },
-                route: { shortName: "550", longName: "Itäkeskus-Westendinasema" },
-                intermediateStops: [{ name: "Hakaniemi", gtfsId: "HSL:1050601" }],
+                route: {
+                  shortName: "550",
+                  longName: "Itäkeskus-Westendinasema",
+                },
+                intermediateStops: [
+                  { name: "Hakaniemi", gtfsId: "HSL:1050601" },
+                ],
               },
             ],
           },
@@ -378,8 +383,12 @@ describe("GET /api/v1/transit/stops/search", () => {
     const body = res.json();
     expect(body.data).toHaveLength(2);
     // Results are split by mode — one for SUBWAY (station), one for BUS (stop)
-    const subway = body.data.find((d: { vehicleMode: string }) => d.vehicleMode === "SUBWAY");
-    const bus = body.data.find((d: { vehicleMode: string }) => d.vehicleMode === "BUS");
+    const subway = body.data.find(
+      (d: { vehicleMode: string }) => d.vehicleMode === "SUBWAY",
+    );
+    const bus = body.data.find(
+      (d: { vehicleMode: string }) => d.vehicleMode === "BUS",
+    );
     expect(subway).toBeDefined();
     expect(subway.name).toBe("Rautatientori");
     expect(subway.isStation).toBe(true);

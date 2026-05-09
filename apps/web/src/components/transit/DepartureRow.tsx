@@ -11,7 +11,10 @@ interface DepartureRowProps {
   showPlatform?: boolean;
 }
 
-export function DepartureRow({ departure: d, showPlatform }: DepartureRowProps) {
+export function DepartureRow({
+  departure: d,
+  showPlatform,
+}: DepartureRowProps) {
   const realtimeEpoch = departureToEpoch(d.serviceDay, d.realtimeDeparture);
   const scheduledEpoch = departureToEpoch(d.serviceDay, d.scheduledDeparture);
   const isDelayed = d.departureDelay > 30;

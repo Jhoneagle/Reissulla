@@ -1,7 +1,18 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 import type { TransitSubStop } from "@reissulla/shared";
 import { useDepartures } from "../../hooks/useTransit";
-import { vehicleModeLabel, formatRelativeTime, departureToEpoch } from "../../lib/transit-utils";
+import {
+  vehicleModeLabel,
+  formatRelativeTime,
+  departureToEpoch,
+} from "../../lib/transit-utils";
 import { DepartureRow } from "./DepartureRow";
 
 interface DepartureTableProps {
@@ -25,19 +36,33 @@ export function DepartureTable({
   isStation,
   stationId,
 }: DepartureTableProps) {
-  const { data, isLoading, isError, dataUpdatedAt, refetch } =
-    useDepartures(subStops, isStation, stationId);
+  const { data, isLoading, isError, dataUpdatedAt, refetch } = useDepartures(
+    subStops,
+    isStation,
+    stationId,
+  );
   const prevAnnouncementRef = useRef("");
   const [filterStopId, setFilterStopId] = useState<string | null>(null);
 
   const result = data?.data;
   const message = result?.message;
 
+  // Track elapsed time since last data update via external store (avoids impure calls in render)
+  const subscribe = useCallback(
+    (cb: () => void) => {
+      if (dataUpdatedAt <= 0) return () => {};
+      const id = setInterval(cb, 1000);
+      return () => clearInterval(id);
+    },
+    [dataUpdatedAt],
+  );
+  const updatedAgo = useSyncExternalStore(subscribe, () =>
+    dataUpdatedAt > 0 ? Math.round((Date.now() - dataUpdatedAt) / 1000) : 0,
+  );
+
   const departures = useMemo(() => {
     const all = result?.departures ?? [];
-    return filterStopId
-      ? all.filter((d) => d.stopId === filterStopId)
-      : all;
+    return filterStopId ? all.filter((d) => d.stopId === filterStopId) : all;
   }, [result?.departures, filterStopId]);
 
   const showFilter = subStops.length > 1;
@@ -49,13 +74,13 @@ export function DepartureTable({
       : "";
 
   // Only announce when the text actually changes
-  const shouldAnnounce =
-    announcement !== "" && announcement !== prevAnnouncementRef.current;
+  const [liveAnnouncement, setLiveAnnouncement] = useState("");
   useEffect(() => {
-    if (shouldAnnounce) {
+    if (announcement !== "" && announcement !== prevAnnouncementRef.current) {
       prevAnnouncementRef.current = announcement;
+      setLiveAnnouncement(announcement);
     }
-  }, [shouldAnnounce, announcement]);
+  }, [announcement]);
 
   return (
     <div className="departure-table-wrapper">
@@ -72,7 +97,10 @@ export function DepartureTable({
 
       {showFilter && (
         <div className="departure-table__filter">
-          <label htmlFor="platform-filter" className="departure-table__filter-label">
+          <label
+            htmlFor="platform-filter"
+            className="departure-table__filter-label"
+          >
             Platform
           </label>
           <select
@@ -95,7 +123,10 @@ export function DepartureTable({
         <div className="departure-table__skeleton">
           {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="departure-skel-row">
-              <div className="skel" style={{ width: "3rem", height: "1.25rem" }} />
+              <div
+                className="skel"
+                style={{ width: "3rem", height: "1.25rem" }}
+              />
               <div className="skel" style={{ width: "8rem", height: "1rem" }} />
               <div className="skel" style={{ width: "4rem", height: "1rem" }} />
             </div>
@@ -134,9 +165,7 @@ export function DepartureTable({
               <tr>
                 <th scope="col">Line</th>
                 <th scope="col">Destination</th>
-                {showFilter && !filterStopId && (
-                  <th scope="col">Platform</th>
-                )}
+                {showFilter && !filterStopId && <th scope="col">Platform</th>}
                 <th scope="col">Departs</th>
                 <th scope="col">
                   <span className="visually-hidden">Status</span>
@@ -156,14 +185,14 @@ export function DepartureTable({
 
           {dataUpdatedAt > 0 && (
             <p className="departure-table__timestamp">
-              Updated {Math.round((Date.now() - dataUpdatedAt) / 1000)}s ago
+              Updated {updatedAgo}s ago
             </p>
           )}
         </>
       )}
 
       <div aria-live="polite" className="visually-hidden">
-        {shouldAnnounce ? announcement : ""}
+        {liveAnnouncement}
       </div>
     </div>
   );
