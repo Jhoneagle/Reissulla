@@ -203,6 +203,26 @@ export const authApi = {
   },
 };
 
+export const meApi = {
+  /** Update the authenticated user's profile name (ID-7). */
+  updateName(name: string) {
+    return mutationRequest<{
+      user: { id: string; email: string; name: string; emailVerified: boolean };
+    }>("/me", "PATCH", { name });
+  },
+};
+
+export const accountApi = {
+  /** GDPR-style export of every user-owned table. */
+  export() {
+    return request<Record<string, unknown>>("/account/export");
+  },
+  /** Hard-delete the account and everything it owns (ID-11). */
+  remove() {
+    return mutationRequest<void>("/account", "DELETE");
+  },
+};
+
 export const transitApi = {
   nearbyStops(lat: number, lon: number, radius?: number) {
     const params = new URLSearchParams({

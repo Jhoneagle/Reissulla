@@ -5,6 +5,7 @@ import rateLimit from "@fastify/rate-limit";
 import { config } from "./config.js";
 import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
+import { accountRoutes } from "./routes/account.js";
 import { meRoutes } from "./routes/me.js";
 import { weatherRoutes } from "./routes/weather.js";
 import { geocodingRoutes } from "./routes/geocoding.js";
@@ -103,6 +104,7 @@ export async function buildServer() {
 
   await server.register(healthRoutes);
   await server.register(authRoutes);
+  await server.register(accountRoutes);
   await server.register(meRoutes);
   await server.register(weatherRoutes);
   await server.register(geocodingRoutes);
