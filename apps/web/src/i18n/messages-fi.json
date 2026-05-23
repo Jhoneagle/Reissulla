@@ -140,6 +140,7 @@
   "settings.account.deleting": "Poistetaan…",
   "settings.account.deletedAnnouncement": "Tili poistettu.",
   "settings.saveError": "Tallennus epäonnistui. Yritä uudelleen.",
+  "settings.savedToast": "Tallennettu",
 
   "dashboard.heading": "Etusivu",
   "dashboard.placeholder": "Sää ja joukkoliikenne yhdellä silmäyksellä.",

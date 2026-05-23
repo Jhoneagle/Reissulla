@@ -4,6 +4,7 @@ import { routes, navRoutes } from "../routes";
 import { useAuthStore } from "../stores/auth";
 import { Wordmark } from "./Wordmark";
 import { PageHeading } from "./PageHeading";
+import { Toast } from "./Toast";
 
 export function Layout() {
   const user = useAuthStore((s) => s.user);
@@ -110,6 +111,7 @@ export function Layout() {
           />
         </p>
       </footer>
+      <Toast />
     </>
   );
 }

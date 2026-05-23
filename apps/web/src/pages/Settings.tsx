@@ -12,6 +12,7 @@ import { SavedLocationsManager } from "../components/SavedLocationsManager";
 import { RecentPlacesList } from "../components/RecentPlacesList";
 import { useConfirm } from "../hooks/useConfirm";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { showToast } from "../stores/toast";
 
 const PERSONA_FLAGS: ReadonlyArray<{
   key: keyof Persona;
@@ -31,7 +32,6 @@ export function Settings() {
   const preferencesQuery = usePreferences();
   const updatePreferences = useUpdatePreferences();
   const intl = useIntl();
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const prefs = preferencesQuery.data;
   const [searchParams, setSearchParams] = useSearchParams();
@@ -74,15 +74,18 @@ export function Settings() {
   async function patch(
     update: Parameters<typeof updatePreferences.mutateAsync>[0],
   ) {
-    setSaveError(null);
     try {
       await updatePreferences.mutateAsync(update);
+      showToast({
+        message: intl.formatMessage({ id: "settings.savedToast" }),
+        kind: "success",
+      });
     } catch (err) {
-      setSaveError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : intl.formatMessage({ id: "settings.saveError" }),
-      );
+          : intl.formatMessage({ id: "settings.saveError" });
+      showToast({ message, kind: "error" });
     }
   }
 
@@ -140,12 +143,6 @@ export function Settings() {
       <h2 id="settings-heading">
         <FormattedMessage id="settings.heading" />
       </h2>
-
-      {saveError && (
-        <div role="alert" className="form-error">
-          {saveError}
-        </div>
-      )}
 
       <ProfileSection currentName={user.name} />
 
@@ -333,21 +330,23 @@ export function Settings() {
 function ProfileSection({ currentName }: { currentName: string }) {
   const [name, setName] = useState(currentName);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const intl = useIntl();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
     setSaving(true);
     try {
       await meApi.updateName(name);
+      showToast({
+        message: intl.formatMessage({ id: "settings.savedToast" }),
+        kind: "success",
+      });
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : intl.formatMessage({ id: "settings.saveError" }),
-      );
+          : intl.formatMessage({ id: "settings.saveError" });
+      showToast({ message, kind: "error" });
     } finally {
       setSaving(false);
     }
@@ -371,11 +370,6 @@ function ProfileSection({ currentName }: { currentName: string }) {
           maxLength={255}
           required
         />
-        {error && (
-          <div role="alert" className="form-error">
-            {error}
-          </div>
-        )}
         <button
           type="submit"
           disabled={saving || name === currentName}

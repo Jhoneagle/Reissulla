@@ -10,6 +10,7 @@ import { ApiError } from "@reissulla/api-client";
 import { shareLocation } from "../lib/share-location";
 import { useConfirm } from "../hooks/useConfirm";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { showToast } from "../stores/toast";
 
 const CATEGORIES: ReadonlyArray<SavedLocationCategory> = [
   "home",
@@ -27,8 +28,6 @@ export function SavedLocationsManager() {
   const deleteLocation = useDeleteLocation();
   const intl = useIntl();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [shareNotice, setShareNotice] = useState<string | null>(null);
   const { confirm, dialogProps } = useConfirm();
 
   if (isLoading) return null;
@@ -45,15 +44,14 @@ export function SavedLocationsManager() {
   async function patch(
     update: Parameters<typeof updateLocation.mutateAsync>[0],
   ) {
-    setError(null);
     try {
       await updateLocation.mutateAsync(update);
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : intl.formatMessage({ id: "settings.saveError" }),
-      );
+          : intl.formatMessage({ id: "settings.saveError" });
+      showToast({ message, kind: "error" });
     }
   }
 
@@ -93,45 +91,39 @@ export function SavedLocationsManager() {
       destructive: true,
     });
     if (!ok) return;
-    setError(null);
     try {
       await deleteLocation.mutateAsync(loc.id);
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : intl.formatMessage({ id: "settings.saveError" }),
-      );
+          : intl.formatMessage({ id: "settings.saveError" });
+      showToast({ message, kind: "error" });
     }
   }
 
   async function share(loc: SavedLocation) {
-    setShareNotice(null);
     try {
       const shared = await shareLocation(
         { lat: loc.latitude, lon: loc.longitude, name: loc.name },
         loc.name,
       );
       if (shared) {
-        setShareNotice(intl.formatMessage({ id: "locations.shared" }));
+        showToast({
+          message: intl.formatMessage({ id: "locations.shared" }),
+          kind: "success",
+        });
       }
     } catch {
-      setShareNotice(intl.formatMessage({ id: "locations.shareError" }));
+      showToast({
+        message: intl.formatMessage({ id: "locations.shareError" }),
+        kind: "error",
+      });
     }
   }
 
   return (
     <div className="saved-locations-manager">
-      {error && (
-        <div role="alert" className="form-error">
-          {error}
-        </div>
-      )}
-      {shareNotice && (
-        <div role="status" className="form-status">
-          {shareNotice}
-        </div>
-      )}
       <ul className="saved-locations-list">
         {locations.map((loc, index) => {
           const isFirst = index === 0;

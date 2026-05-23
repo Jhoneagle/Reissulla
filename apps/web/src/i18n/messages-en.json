@@ -140,6 +140,7 @@
   "settings.account.deleting": "Deleting…",
   "settings.account.deletedAnnouncement": "Account deleted.",
   "settings.saveError": "Couldn't save. Please try again.",
+  "settings.savedToast": "Saved",
 
   "dashboard.heading": "Dashboard",
   "dashboard.placeholder": "Your weather and transit overview at a glance.",
