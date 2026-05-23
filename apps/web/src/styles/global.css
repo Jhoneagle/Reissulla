@@ -213,12 +213,49 @@ html {
 
 body {
   font-family: var(--font-body);
-  background: var(--color-paper);
+  background-color: var(--color-paper);
+  /* Subtle paper noise. SVG fractal-noise filter at 4% opacity — feels
+     like newsprint texture without being a visible pattern. See
+     docs/design-system.md §11. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
   color: var(--color-ink);
   line-height: 1.6;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern", "liga";
   transition: background-color 1.5s ease;
+}
+
+/* Strip paper noise when contrast or transparency is reduced. */
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  body {
+    background-image: none;
+  }
+}
+body[data-high-contrast="true"] {
+  background-image: none;
+}
+
+/* Tabular numerals on every column-aligned numeric slot. */
+.stops-board__distance,
+.dashboard-card__temp,
+.dashboard-kicker__date,
+.recent-place-visits {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Finnish typography polish — compound words overflow narrow columns
+   without help. Scoped to body-text contexts; never applied to the
+   hero numeral, the kicker, or the wordmark (tracked layout, not
+   flowing text). */
+html[lang="fi"] :is(
+    .dashboard-card__lede,
+    .stops-board__name,
+    .recent-place-name,
+    .saved-location-name
+  ) {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 /* ── Weather-aware ambient paper ──
