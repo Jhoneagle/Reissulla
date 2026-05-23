@@ -16,11 +16,15 @@
     "format:check": "prettier --check .",
     "type-check": "turbo type-check",
     "test": "turbo test",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium",
     "clean": "turbo clean",
     "prepare": "lefthook install"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
     "eslint": "^10.3.0",
