@@ -31,3 +31,9 @@ coverage/
 # Docker volumes
 postgres-data/
 redis-data/
+
+# Misc
+*.bak
+*.tmp
+.playwright*/
+.cache/
