@@ -6,7 +6,7 @@ import {
   getStopDepartures,
   getMultiStopDepartures,
   planRoute,
-} from "../services/transit.service.js";
+} from "../services/transit/index.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
 
 function transitUnavailable(reply: FastifyReply) {

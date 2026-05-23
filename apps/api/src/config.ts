@@ -18,4 +18,6 @@ export const config = {
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   digitransitApiKey: process.env.DIGITRANSIT_API_KEY ?? "",
+  feedFinlandEnabled: process.env.FEED_FINLAND_ENABLED !== "false",
+  feedHslEnabled: process.env.FEED_HSL_ENABLED !== "false",
 };
