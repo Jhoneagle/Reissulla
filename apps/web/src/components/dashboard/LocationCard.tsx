@@ -4,6 +4,7 @@ import { useCurrentWeather } from "../../hooks/useWeather";
 import { useNearbyStops } from "../../hooks/useTransit";
 import { WeatherIcon } from "../weather/WeatherIcon";
 import { buildWeatherLede } from "../../lib/lede";
+import { useWeatherTheme } from "../../hooks/useWeatherTheme";
 
 /**
  * Composite card for a single location: weather snippet + nearest stops +
@@ -46,6 +47,14 @@ export function LocationCard({
   const weather = useCurrentWeather(lat, lon);
   const stops = useNearbyStops(lat, lon, NEARBY_RADIUS_M);
   const intl = useIntl();
+
+  // Only the primary card drives the page-level ambient theme — having
+  // every secondary card overwrite the body attribute would race. The
+  // primary card is also the one whose weather the user is reading.
+  useWeatherTheme(
+    isPrimary ? weather.data?.data.weatherCode : undefined,
+    isPrimary ? weather.data?.data.isDay : undefined,
+  );
 
   const tempRounded = weather.data
     ? Math.round(weather.data.data.temperature)

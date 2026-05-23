@@ -218,6 +218,80 @@ body {
   line-height: 1.6;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern", "liga";
+  transition: background-color 1.5s ease;
+}
+
+/* ── Weather-aware ambient paper ──
+   `<body data-weather="…">` is set by useWeatherTheme based on the
+   primary card's current conditions. The page background shifts
+   within the active theme — never overrides the user's light/dark
+   choice. See docs/design-system.md §8.
+
+   Each condition shifts the base background only. Decorative overlays
+   (rain streaks, snow dots, fog radials) live in W4b.6's polish pass;
+   here we keep it to flat colour so the contrast verification stays
+   tractable. */
+body[data-weather="clear-day"] {
+  background: #f8f4e5;
+}
+body[data-weather="clear-night"] {
+  background: #eceae3;
+}
+body[data-weather="cloudy"] {
+  background: #edebe3;
+}
+body[data-weather="rain"] {
+  background: #e8ebef;
+}
+body[data-weather="snow"] {
+  background: #f8f8f6;
+}
+body[data-weather="fog"] {
+  background: #e5e5e1;
+}
+body[data-weather="thunder"] {
+  background: #ddd9d0;
+}
+
+@media (prefers-color-scheme: dark) {
+  body[data-weather="clear-day"] {
+    background: #11151e;
+  }
+  body[data-weather="clear-night"] {
+    background: #0c0e15;
+  }
+  body[data-weather="cloudy"] {
+    background: #12141a;
+  }
+  body[data-weather="rain"] {
+    background: #0e1218;
+  }
+  body[data-weather="snow"] {
+    background: #1a1d24;
+  }
+  body[data-weather="fog"] {
+    background: #14161c;
+  }
+  body[data-weather="thunder"] {
+    background: #1f2128;
+  }
+}
+
+/* Accessibility overrides — high-contrast and high-contrast-toggle
+   users get the calm default paper, no weather tinting. */
+@media (prefers-contrast: more) {
+  body[data-weather] {
+    background-color: var(--color-paper) !important;
+  }
+}
+body[data-high-contrast="true"][data-weather] {
+  background-color: var(--color-paper) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
 }
 
 #root {
@@ -1203,7 +1277,8 @@ footer a {
   font-weight: 700;
   font-size: var(--text-xs);
   letter-spacing: 0.05em;
-  padding: var(--space-1) var(--space-2) var(--space-1) calc(var(--space-2) + 6px);
+  padding: var(--space-1) var(--space-2) var(--space-1)
+    calc(var(--space-2) + 6px);
   border-radius: var(--radius-xs);
   /* Default mode background — overridden per mode below. */
   background: var(--mode-bus);
@@ -1226,16 +1301,36 @@ footer a {
   border-radius: var(--radius-xs) 0 0 var(--radius-xs);
 }
 
-.stops-board__mode.mode-bus { background: var(--mode-bus); }
-.stops-board__mode.mode-bus::before { background: var(--mode-bus-strong); }
-.stops-board__mode.mode-tram { background: var(--mode-tram); }
-.stops-board__mode.mode-tram::before { background: var(--mode-tram-strong); }
-.stops-board__mode.mode-rail { background: var(--mode-rail); }
-.stops-board__mode.mode-rail::before { background: var(--mode-rail-strong); }
-.stops-board__mode.mode-subway { background: var(--mode-subway); }
-.stops-board__mode.mode-subway::before { background: var(--mode-subway-strong); }
-.stops-board__mode.mode-ferry { background: var(--mode-ferry); }
-.stops-board__mode.mode-ferry::before { background: var(--mode-ferry-strong); }
+.stops-board__mode.mode-bus {
+  background: var(--mode-bus);
+}
+.stops-board__mode.mode-bus::before {
+  background: var(--mode-bus-strong);
+}
+.stops-board__mode.mode-tram {
+  background: var(--mode-tram);
+}
+.stops-board__mode.mode-tram::before {
+  background: var(--mode-tram-strong);
+}
+.stops-board__mode.mode-rail {
+  background: var(--mode-rail);
+}
+.stops-board__mode.mode-rail::before {
+  background: var(--mode-rail-strong);
+}
+.stops-board__mode.mode-subway {
+  background: var(--mode-subway);
+}
+.stops-board__mode.mode-subway::before {
+  background: var(--mode-subway-strong);
+}
+.stops-board__mode.mode-ferry {
+  background: var(--mode-ferry);
+}
+.stops-board__mode.mode-ferry::before {
+  background: var(--mode-ferry-strong);
+}
 
 .stops-board__name {
   font-family: var(--font-body);
@@ -1260,9 +1355,15 @@ footer a {
       ".   .    distance";
     row-gap: var(--space-1);
   }
-  .stops-board__num { grid-area: num; }
-  .stops-board__mode { grid-area: mode; }
-  .stops-board__name { grid-area: name; }
+  .stops-board__num {
+    grid-area: num;
+  }
+  .stops-board__mode {
+    grid-area: mode;
+  }
+  .stops-board__name {
+    grid-area: name;
+  }
   .stops-board__distance {
     grid-area: distance;
     text-align: left;
