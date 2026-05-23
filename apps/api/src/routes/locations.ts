@@ -4,6 +4,7 @@ import { db } from "../db/index.js";
 import { savedLocations } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { badRequest } from "../utils/validation.js";
+import { ConflictError, NotFoundError } from "../utils/error-envelope.js";
 
 const MAX_SAVED_LOCATIONS = 20;
 
@@ -57,12 +58,10 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
       const existing = result[0]?.value ?? 0;
 
       if (existing >= MAX_SAVED_LOCATIONS) {
-        return reply.status(409).send({
-          error: {
-            code: "LIMIT_REACHED",
-            message: `You can save up to ${MAX_SAVED_LOCATIONS} locations`,
-          },
-        });
+        throw new ConflictError(
+          "LIMIT_REACHED",
+          `You can save up to ${MAX_SAVED_LOCATIONS} locations`,
+        );
       }
 
       // First saved location becomes primary
@@ -107,7 +106,7 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const userId = request.session!.user.id;
       const { id } = request.params;
       const updates = request.body;
@@ -137,9 +136,7 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
       });
 
       if (!location) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Location not found" },
-        });
+        throw new NotFoundError("Location not found");
       }
 
       return { data: toResponse(location) };
@@ -191,9 +188,7 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
       });
 
       if (!deleted) {
-        return reply.status(404).send({
-          error: { code: "NOT_FOUND", message: "Location not found" },
-        });
+        throw new NotFoundError("Location not found");
       }
 
       return reply.status(204).send();

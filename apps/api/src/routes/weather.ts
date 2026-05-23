@@ -1,9 +1,10 @@
-import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import {
   getCurrentWeather,
   getWeatherForecast,
 } from "../services/weather.service.js";
 import { parseCoordinates } from "../utils/validation.js";
+import { UpstreamError } from "../utils/error-envelope.js";
 
 interface CoordinateQuery {
   lat: string;
@@ -25,10 +26,7 @@ function createWeatherHandler(
     lon: number,
   ) => Promise<{ data: unknown; cached: boolean }>,
 ) {
-  return async (
-    request: FastifyRequest<{ Querystring: CoordinateQuery }>,
-    reply: FastifyReply,
-  ) => {
+  return async (request: FastifyRequest<{ Querystring: CoordinateQuery }>) => {
     const { lat, lon } = parseCoordinates(request.query);
 
     try {
@@ -40,13 +38,11 @@ function createWeatherHandler(
       };
     } catch (err) {
       request.log.error(err, "Failed to fetch weather data");
-      return reply.status(502).send({
-        error: {
-          code: "WEATHER_UNAVAILABLE",
-          message:
-            "Weather data temporarily unavailable — please try again shortly",
-        },
-      });
+      throw new UpstreamError(
+        "WEATHER_UNAVAILABLE",
+        "Weather data temporarily unavailable — please try again shortly",
+        "open-meteo",
+      );
     }
   };
 }
