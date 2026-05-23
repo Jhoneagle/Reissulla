@@ -4,6 +4,15 @@ import {
   reverseGeocode,
 } from "../services/geocoding.service.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
+import { UpstreamError } from "../utils/error-envelope.js";
+
+function geocodingUnavailable(): never {
+  throw new UpstreamError(
+    "GEOCODING_UNAVAILABLE",
+    "Geocoding service temporarily unavailable — please try again shortly",
+    "digitransit-pelias",
+  );
+}
 
 export const geocodingRoutes: FastifyPluginAsync = async (server) => {
   server.get<{
@@ -23,13 +32,12 @@ export const geocodingRoutes: FastifyPluginAsync = async (server) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const q = request.query.q.trim();
       if (q === "") {
         return badRequest("q must not be empty");
       }
 
-      // Optional focus point for location-biased results
       let focus: { lat: number; lon: number } | undefined;
       if (request.query.lat && request.query.lon) {
         const focusLat = Number(request.query.lat);
@@ -51,13 +59,7 @@ export const geocodingRoutes: FastifyPluginAsync = async (server) => {
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to search geocoding");
-        return reply.status(502).send({
-          error: {
-            code: "GEOCODING_UNAVAILABLE",
-            message:
-              "Geocoding service temporarily unavailable — please try again shortly",
-          },
-        });
+        return geocodingUnavailable();
       }
     },
   );
@@ -76,7 +78,7 @@ export const geocodingRoutes: FastifyPluginAsync = async (server) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { lat, lon } = parseCoordinates(request.query);
 
       try {
@@ -84,13 +86,7 @@ export const geocodingRoutes: FastifyPluginAsync = async (server) => {
         return { data, cached };
       } catch (err) {
         request.log.error(err, "Failed to reverse geocode");
-        return reply.status(502).send({
-          error: {
-            code: "GEOCODING_UNAVAILABLE",
-            message:
-              "Geocoding service temporarily unavailable — please try again shortly",
-          },
-        });
+        return geocodingUnavailable();
       }
     },
   );

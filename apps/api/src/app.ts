@@ -1,5 +1,7 @@
-import Fastify from "fastify";
+import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import { config } from "./config.js";
 import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
@@ -8,6 +10,13 @@ import { weatherRoutes } from "./routes/weather.js";
 import { geocodingRoutes } from "./routes/geocoding.js";
 import { locationRoutes } from "./routes/locations.js";
 import { transitRoutes } from "./routes/transit.js";
+import {
+  AppError,
+  UpstreamError,
+  errorReply,
+  type Source,
+} from "./utils/error-envelope.js";
+import { DigitransitError } from "./adapters/digitransit-routing/errors.js";
 
 export async function buildServer() {
   const server = Fastify({
@@ -17,6 +26,65 @@ export async function buildServer() {
   await server.register(cors, {
     origin: config.frontendUrl,
     credentials: true,
+  });
+
+  // CSP is configured at the nginx layer (FE/API share an origin behind nginx);
+  // disabling here keeps Fastify from setting a conflicting policy.
+  await server.register(helmet, { contentSecurityPolicy: false });
+
+  await server.register(rateLimit, {
+    max: config.rateLimitMax,
+    timeWindow: "1 minute",
+    allowList: (req) => req.url === "/api/v1/health",
+  });
+
+  server.setErrorHandler((err: FastifyError, request, reply) => {
+    if (err instanceof AppError) {
+      return errorReply(reply, err);
+    }
+    if (err instanceof DigitransitError) {
+      return errorReply(
+        reply,
+        new UpstreamError(
+          "TRANSIT_UNAVAILABLE",
+          "Transit service temporarily unavailable — please try again shortly",
+          err.source as Source,
+        ),
+      );
+    }
+    if (err.validation) {
+      return reply.status(400).send({
+        error: {
+          code: "BAD_REQUEST",
+          message: err.message,
+          source: "fastify" as Source,
+        },
+      });
+    }
+    // Fastify body-parser errors, rate-limit 429s, and other plugin-thrown
+    // FastifyErrors carry a statusCode + code we should preserve in the
+    // envelope rather than burying as 500.
+    if (
+      typeof err.statusCode === "number" &&
+      err.statusCode >= 400 &&
+      err.statusCode < 500
+    ) {
+      return reply.status(err.statusCode).send({
+        error: {
+          code: err.code ?? "BAD_REQUEST",
+          message: err.message,
+          source: "fastify" as Source,
+        },
+      });
+    }
+    request.log.error(err, "Unhandled error");
+    return reply.status(500).send({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Internal server error",
+        source: "self" as Source,
+      },
+    });
   });
 
   await server.register(healthRoutes);

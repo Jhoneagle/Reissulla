@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync, FastifyReply } from "fastify";
+import type { FastifyPluginAsync } from "fastify";
 import type { TransitSubStop } from "@reissulla/shared";
 import {
   getNearbyStops,
@@ -6,17 +6,22 @@ import {
   getStopDepartures,
   getMultiStopDepartures,
   planRoute,
-} from "../services/transit.service.js";
+} from "../services/transit/index.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
+import { parseJson } from "../utils/json.js";
 
-function transitUnavailable(reply: FastifyReply) {
-  return reply.status(502).send({
-    error: {
-      code: "TRANSIT_UNAVAILABLE",
-      message:
-        "Transit service temporarily unavailable — please try again shortly",
-    },
-  });
+function isSubStopArray(value: unknown): value is Record<string, unknown>[] {
+  if (!Array.isArray(value)) return false;
+  return value.every((v) => typeof v === "object" && v !== null);
+}
+
+function coerceSubStop(raw: Record<string, unknown>): TransitSubStop {
+  return {
+    gtfsId: String(raw.gtfsId ?? ""),
+    code: raw.code != null ? String(raw.code) : null,
+    platformCode: raw.platformCode != null ? String(raw.platformCode) : null,
+    vehicleMode: raw.vehicleMode != null ? String(raw.vehicleMode) : null,
+  };
 }
 
 export const transitRoutes: FastifyPluginAsync = async (server) => {
@@ -35,7 +40,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { lat, lon } = parseCoordinates(request.query);
 
       let radius = 500;
@@ -47,13 +52,8 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         radius = parsed;
       }
 
-      try {
-        const { data, cached } = await getNearbyStops(lat, lon, radius);
-        return { data, cached };
-      } catch (err) {
-        request.log.error(err, "Failed to fetch nearby stops");
-        return transitUnavailable(reply);
-      }
+      const { data, cached } = await getNearbyStops(lat, lon, radius);
+      return { data, cached };
     },
   );
 
@@ -64,25 +64,18 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         querystring: {
           type: "object",
           required: ["q"],
-          properties: {
-            q: { type: "string" },
-          },
+          properties: { q: { type: "string" } },
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const q = request.query.q.trim();
       if (q === "") {
         return badRequest("q must not be empty");
       }
 
-      try {
-        const { data, cached } = await searchStops(q);
-        return { data, cached };
-      } catch (err) {
-        request.log.error(err, "Failed to search stops");
-        return transitUnavailable(reply);
-      }
+      const { data, cached } = await searchStops(q);
+      return { data, cached };
     },
   );
 
@@ -103,7 +96,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const stopId = request.query.stopId.trim();
       if (stopId === "") {
         return badRequest("stopId must not be empty");
@@ -118,18 +111,13 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         count = parsed;
       }
 
-      try {
-        const isStation = request.query.isStation === "true";
-        const { data, cached } = await getStopDepartures(
-          stopId,
-          count,
-          isStation,
-        );
-        return { data, cached };
-      } catch (err) {
-        request.log.error(err, "Failed to fetch departures");
-        return transitUnavailable(reply);
-      }
+      const isStation = request.query.isStation === "true";
+      const { data, cached } = await getStopDepartures(
+        stopId,
+        count,
+        isStation,
+      );
+      return { data, cached };
     },
   );
 
@@ -158,7 +146,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const ids = request.query.stopIds
         .split(",")
         .map((s) => s.trim())
@@ -173,22 +161,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
 
       let subStops: TransitSubStop[] = [];
       if (request.query.subStops) {
-        try {
-          const parsed = JSON.parse(request.query.subStops);
-          if (!Array.isArray(parsed)) {
-            return badRequest("subStops must be a JSON array");
-          }
-          subStops = parsed.map((s: Record<string, unknown>) => ({
-            gtfsId: String(s.gtfsId ?? ""),
-            code: s.code != null ? String(s.code) : null,
-            platformCode:
-              s.platformCode != null ? String(s.platformCode) : null,
-            vehicleMode: s.vehicleMode != null ? String(s.vehicleMode) : null,
-          }));
-          subStops = subStops.filter((s) => s.gtfsId !== "");
-        } catch {
-          return badRequest("subStops must be valid JSON");
-        }
+        const raw = parseJson(
+          request.query.subStops,
+          isSubStopArray,
+          "subStops must be a JSON array of objects",
+        );
+        subStops = raw.map(coerceSubStop).filter((s) => s.gtfsId !== "");
       }
 
       let countPerStop = 10;
@@ -211,19 +189,14 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
 
       const stationId = request.query.stationId?.trim() || undefined;
 
-      try {
-        const { data, cached } = await getMultiStopDepartures(
-          ids,
-          subStops,
-          countPerStop,
-          totalCount,
-          stationId,
-        );
-        return { data, cached };
-      } catch (err) {
-        request.log.error(err, "Failed to fetch multi-stop departures");
-        return transitUnavailable(reply);
-      }
+      const { data, cached } = await getMultiStopDepartures(
+        ids,
+        subStops,
+        countPerStop,
+        totalCount,
+        stationId,
+      );
+      return { data, cached };
     },
   );
 
@@ -250,7 +223,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const from = parseCoordinates({
         lat: request.query.fromLat,
         lon: request.query.fromLon,
@@ -260,18 +233,13 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         lon: request.query.toLon,
       });
 
-      try {
-        const { data, cached } = await planRoute(
-          from.lat,
-          from.lon,
-          to.lat,
-          to.lon,
-        );
-        return { data, cached };
-      } catch (err) {
-        request.log.error(err, "Failed to plan route");
-        return transitUnavailable(reply);
-      }
+      const { data, cached } = await planRoute(
+        from.lat,
+        from.lon,
+        to.lat,
+        to.lon,
+      );
+      return { data, cached };
     },
   );
 };

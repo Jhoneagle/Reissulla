@@ -6,6 +6,7 @@ import { LeafletMap } from "../components/map/LeafletMap";
 import { MapFlyTo } from "../components/map/MapFlyTo";
 import { UserLocationMarker } from "../components/map/UserLocationMarker";
 import { MapClickHandler } from "../components/map/MapClickHandler";
+import { MapMoveHandler } from "../components/map/MapMoveHandler";
 import { MapResizeHandler } from "../components/map/MapResizeHandler";
 import { LocationPopup } from "../components/map/LocationPopup";
 import { SavedLocationMarkers } from "../components/map/SavedLocationMarkers";
@@ -15,12 +16,12 @@ import { CurrentWeatherCard } from "../components/weather/CurrentWeatherCard";
 import { ForecastStrip } from "../components/weather/ForecastStrip";
 import { useCurrentWeather, useWeatherForecast } from "../hooks/useWeather";
 import { useSavedLocations } from "../hooks/useSavedLocations";
+import { useDefaultCenter } from "../hooks/useDefaultCenter";
 import { useGeolocationStore } from "../stores/geolocation";
 import { useMapStore } from "../stores/map";
 import "../components/weather/Weather.css";
 import "./Map.css";
 
-const HELSINKI = { lat: 60.1699, lon: 24.9384 };
 const EMPTY_LOCATIONS: import("@reissulla/shared").SavedLocation[] = [];
 
 type ViewMode = "map" | "list";
@@ -36,7 +37,7 @@ export function MapPage() {
   const clearSelection = useMapStore((s) => s.clearSelection);
   const setSearchResults = useMapStore((s) => s.setSearchResults);
 
-  const defaultCenter = geoPosition ?? HELSINKI;
+  const { center: defaultCenter, zoom: defaultZoom } = useDefaultCenter();
   const savedLocations = useSavedLocations();
 
   // Weather is shown for: selected location > GPS position > null
@@ -213,8 +214,9 @@ export function MapPage() {
           </div>
         )}
 
-        <LeafletMap center={[defaultCenter.lat, defaultCenter.lon]} zoom={13}>
+        <LeafletMap center={defaultCenter} zoom={defaultZoom}>
           <MapResizeHandler visible={view === "map"} />
+          <MapMoveHandler />
           {selectedLocation && (
             <MapFlyTo lat={selectedLocation.lat} lon={selectedLocation.lon} />
           )}

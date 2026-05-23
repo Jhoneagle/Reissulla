@@ -1,25 +1,20 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyRequest } from "fastify";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "./auth.js";
+import { UnauthorizedError } from "../utils/error-envelope.js";
 
-export async function requireAuth(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
+export async function requireAuth(request: FastifyRequest) {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(request.headers),
   });
 
   if (!session) {
-    return reply.status(401).send({
-      error: { code: "UNAUTHORIZED", message: "Authentication required" },
-    });
+    throw new UnauthorizedError();
   }
 
   request.session = session;
 }
 
-// Extend Fastify request type
 declare module "fastify" {
   interface FastifyRequest {
     session?: Awaited<ReturnType<typeof auth.api.getSession>>;

@@ -298,7 +298,7 @@ describe("Transit routes - input validation", () => {
 
 describe("GET /api/v1/transit/stops", () => {
   beforeEach(async () => {
-    await cacheDel("transit:stops-nearby:60.170:24.940:500");
+    await cacheDel("transit:stops-nearby:v1:60.170:24.940:500");
     vi.restoreAllMocks();
   });
 
@@ -365,7 +365,7 @@ describe("GET /api/v1/transit/stops", () => {
 
 describe("GET /api/v1/transit/stops/search", () => {
   beforeEach(async () => {
-    await cacheDel("transit:stops-search:rautatientori");
+    await cacheDel("transit:stops-search:v1:rautatientori");
     vi.restoreAllMocks();
   });
 
@@ -421,7 +421,7 @@ describe("GET /api/v1/transit/stops/search", () => {
 
 describe("GET /api/v1/transit/departures", () => {
   beforeEach(async () => {
-    await cacheDel("transit:departures:HSL:1040602:20:false");
+    await cacheDel("transit:departures:v1:HSL:1040602:20:false");
     vi.restoreAllMocks();
   });
 
@@ -485,7 +485,7 @@ describe("GET /api/v1/transit/departures", () => {
 
 describe("GET /api/v1/transit/plan", () => {
   beforeEach(async () => {
-    await cacheDel("transit:plan:60.170:24.940:60.200:24.960");
+    await cacheDel("transit:plan:v1:60.170:24.940:60.200:24.960");
     vi.restoreAllMocks();
   });
 

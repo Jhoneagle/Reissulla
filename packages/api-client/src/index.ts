@@ -28,6 +28,7 @@ export class ApiError extends Error {
     public readonly code: string,
     message: string,
     public readonly status: number,
+    public readonly source?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -40,7 +41,12 @@ async function request<T>(path: string): Promise<T> {
     const body = await res
       .json()
       .catch(() => ({ error: { code: "UNKNOWN", message: res.statusText } }));
-    throw new ApiError(body.error.code, body.error.message, res.status);
+    throw new ApiError(
+      body.error.code,
+      body.error.message,
+      res.status,
+      body.error.source,
+    );
   }
   return res.json();
 }
@@ -60,7 +66,12 @@ async function mutationRequest<T>(
     const data = await res
       .json()
       .catch(() => ({ error: { code: "UNKNOWN", message: res.statusText } }));
-    throw new ApiError(data.error.code, data.error.message, res.status);
+    throw new ApiError(
+      data.error.code,
+      data.error.message,
+      res.status,
+      data.error.source,
+    );
   }
   if (res.status === 204) return undefined as T;
   return res.json();
@@ -144,7 +155,12 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
     }));
     const msg =
       body?.error?.message ?? body?.message ?? "Authentication failed";
-    throw new ApiError(body?.error?.code ?? "AUTH_ERROR", msg, res.status);
+    throw new ApiError(
+      body?.error?.code ?? "AUTH_ERROR",
+      msg,
+      res.status,
+      body?.error?.source,
+    );
   }
   const text = await res.text();
   return text ? JSON.parse(text) : ({} as T);

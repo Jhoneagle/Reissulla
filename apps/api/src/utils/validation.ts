@@ -1,7 +1,7 @@
+import { BadRequestError } from "./error-envelope.js";
+
 export function badRequest(message: string): never {
-  const err = new Error(message);
-  (err as Error & { statusCode: number }).statusCode = 400;
-  throw err;
+  throw new BadRequestError(message);
 }
 
 export function parseCoordinates(query: { lat: string; lon: string }): {

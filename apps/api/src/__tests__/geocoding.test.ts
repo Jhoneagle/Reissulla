@@ -140,8 +140,8 @@ describe("Geocoding reverse - input validation", () => {
 
 describe("GET /api/v1/geocoding/search", () => {
   beforeEach(async () => {
-    await cacheDel("geocoding:search:mannerheimintie");
-    await cacheDel("geocoding:search:helsinki");
+    await cacheDel("geocoding:search:v1:mannerheimintie");
+    await cacheDel("geocoding:search:v1:helsinki");
     vi.restoreAllMocks();
   });
 
@@ -226,7 +226,7 @@ describe("GET /api/v1/geocoding/search", () => {
 
 describe("GET /api/v1/geocoding/reverse", () => {
   beforeEach(async () => {
-    await cacheDel("geocoding:reverse:60.1710:24.9414");
+    await cacheDel("geocoding:reverse:v1:60.1710:24.9414");
     vi.restoreAllMocks();
   });
 

@@ -4,10 +4,11 @@ import type {
 } from "@reissulla/shared";
 import { config } from "../config.js";
 import { cacheGet, cacheSet } from "../cache/cache.js";
+import { cacheKey } from "../cache/key.js";
+import { GEOCODE_SEARCH_TTL, GEOCODE_REVERSE_TTL } from "../cache/ttl.js";
 import { tryCache } from "../utils/resilience.js";
 
 const DIGITRANSIT_BASE = "https://api.digitransit.fi/geocoding/v1";
-const CACHE_TTL = 24 * 60 * 60; // 24 hours
 const FETCH_TIMEOUT_MS = 10_000;
 
 /** Pelias GeoJSON feature shape (subset we use). */
@@ -104,10 +105,16 @@ export async function searchGeocode(
   query: string,
   focus?: FocusPoint,
 ): Promise<{ data: GeocodingResult[]; cached: boolean }> {
-  const focusSuffix = focus
-    ? `:${focus.lat.toFixed(1)}:${focus.lon.toFixed(1)}`
-    : "";
-  const key = `geocoding:search:${query.toLowerCase()}${focusSuffix}`;
+  const key = focus
+    ? cacheKey(
+        "geocoding",
+        "search",
+        1,
+        query.toLowerCase(),
+        focus.lat.toFixed(1),
+        focus.lon.toFixed(1),
+      )
+    : cacheKey("geocoding", "search", 1, query.toLowerCase());
   const cached = await tryCache(() => cacheGet<GeocodingResult[]>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -154,7 +161,7 @@ export async function searchGeocode(
     data = dedup(merged).slice(0, 10);
   }
 
-  await tryCache(() => cacheSet(key, data, CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, GEOCODE_SEARCH_TTL));
   return { data, cached: false };
 }
 
@@ -162,7 +169,13 @@ export async function reverseGeocode(
   lat: number,
   lon: number,
 ): Promise<{ data: ReverseGeocodingResult; cached: boolean }> {
-  const key = `geocoding:reverse:${lat.toFixed(4)}:${lon.toFixed(4)}`;
+  const key = cacheKey(
+    "geocoding",
+    "reverse",
+    1,
+    lat.toFixed(4),
+    lon.toFixed(4),
+  );
   const cached = await tryCache(() => cacheGet<ReverseGeocodingResult>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -199,6 +212,6 @@ export async function reverseGeocode(
     longitude: f.geometry.coordinates[0],
   };
 
-  await tryCache(() => cacheSet(key, data, CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, GEOCODE_REVERSE_TTL));
   return { data, cached: false };
 }

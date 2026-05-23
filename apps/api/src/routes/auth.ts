@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "../auth/auth.js";
+import { AppError } from "../utils/error-envelope.js";
 
 export const authRoutes: FastifyPluginAsync = async (server) => {
   server.route({
@@ -28,9 +29,7 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
         return reply.send(text || null);
       } catch (error) {
         request.log.error(error, "Authentication handler error");
-        return reply
-          .status(500)
-          .send({ error: { code: "AUTH_ERROR", message: "Internal error" } });
+        throw new AppError(500, "AUTH_ERROR", "Internal error", "self");
       }
     },
   });

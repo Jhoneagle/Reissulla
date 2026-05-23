@@ -1,13 +1,12 @@
 import type { FastifyPluginAsync } from "fastify";
-import { db } from "../db/index.js";
 import { redis } from "../cache/redis.js";
-import { sql } from "drizzle-orm";
+import * as healthRepo from "../db/repositories/health.repo.js";
 
 export const healthRoutes: FastifyPluginAsync = async (server) => {
   server.get("/api/v1/health", async () => {
     let dbStatus = "ok";
     try {
-      await db.execute(sql`SELECT 1`);
+      await healthRepo.ping();
     } catch {
       dbStatus = "error";
     }
