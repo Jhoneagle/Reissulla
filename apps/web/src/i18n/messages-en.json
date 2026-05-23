@@ -17,6 +17,21 @@
 
   "forms.errorSummary.heading": "Please fix:",
 
+  "personaWizard.heading": "Set up your accessibility profile",
+  "personaWizard.intro": "Three quick yes/no questions. We'll tailor routing and layout to your needs. You can change everything later in Settings.",
+  "personaWizard.step": "Step {current} of {total}",
+  "personaWizard.questions.wheelchair": "Do you use a wheelchair or need step-free routes?",
+  "personaWizard.questions.screenReader": "Do you use a screen reader?",
+  "personaWizard.questions.stroller": "Do you travel with a stroller or pram?",
+  "personaWizard.yes": "Yes",
+  "personaWizard.no": "No",
+  "personaWizard.previous": "Back",
+  "personaWizard.next": "Next",
+  "personaWizard.finish": "Save",
+  "personaWizard.skipAll": "Skip for now",
+  "personaWizard.openButton": "Set up accessibility profile",
+  "personaWizard.saveError": "Couldn't save. The choices are stored on this device for now.",
+
   "auth.error.unexpected": "An unexpected error occurred. Please try again.",
   "auth.error.sendLink": "Couldn't send the sign-in email. Please try again.",
   "auth.checkEmail.title": "Check your email",

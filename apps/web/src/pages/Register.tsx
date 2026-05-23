@@ -25,7 +25,10 @@ export function Register() {
     try {
       const outcome = await signUp(name, email, password);
       if (outcome.status === "signed-in") {
-        navigate("/");
+        // Drop them on Settings with the persona wizard auto-opened so the
+        // first thing they do is decide how routes get tailored. They can
+        // skip — the wizard's "skip for now" is the same as never running it.
+        navigate("/settings?wizard=1");
       } else {
         setView({ kind: "magic-link-sent", email: outcome.email });
       }

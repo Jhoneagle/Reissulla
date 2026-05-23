@@ -17,6 +17,21 @@
 
   "forms.errorSummary.heading": "Korjaa nämä:",
 
+  "personaWizard.heading": "Aseta saavutettavuusprofiili",
+  "personaWizard.intro": "Kolme nopeaa kyllä/ei -kysymystä. Räätälöimme reittiehdotukset ja asettelun tarpeisiisi. Voit muuttaa kaiken myöhemmin Asetuksissa.",
+  "personaWizard.step": "Vaihe {current} / {total}",
+  "personaWizard.questions.wheelchair": "Käytätkö pyörätuolia tai tarvitsetko portaattomia reittejä?",
+  "personaWizard.questions.screenReader": "Käytätkö ruudunlukijaa?",
+  "personaWizard.questions.stroller": "Liikutko lastenvaunujen tai rattaiden kanssa?",
+  "personaWizard.yes": "Kyllä",
+  "personaWizard.no": "Ei",
+  "personaWizard.previous": "Takaisin",
+  "personaWizard.next": "Seuraava",
+  "personaWizard.finish": "Tallenna",
+  "personaWizard.skipAll": "Ohita toistaiseksi",
+  "personaWizard.openButton": "Aseta saavutettavuusprofiili",
+  "personaWizard.saveError": "Tallennus epäonnistui. Valinnat tallennetaan toistaiseksi vain tälle laitteelle.",
+
   "auth.error.unexpected": "Tapahtui odottamaton virhe. Yritä uudelleen.",
   "auth.error.sendLink": "Kirjautumislinkin lähetys epäonnistui. Yritä uudelleen.",
   "auth.checkEmail.title": "Tarkista sähköpostisi",

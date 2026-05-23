@@ -400,6 +400,106 @@ footer a {
   color: var(--color-error-bg);
 }
 
+/* ── Modal dialog ──
+   Used by PersonaWizard. The backdrop click-through is handled in the
+   component (clicks on the dialog itself don't propagate to backdrop). */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1rem;
+}
+
+.modal-dialog {
+  max-width: 32rem;
+  width: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  outline: none;
+}
+
+.modal-dialog:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.persona-wizard h2 {
+  margin-bottom: 0.5rem;
+}
+
+.persona-wizard-intro {
+  font-size: 0.9375rem;
+  margin-bottom: 1rem;
+}
+
+.persona-wizard-step {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+  margin-bottom: 1rem;
+}
+
+.persona-wizard fieldset {
+  border: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+}
+
+.persona-wizard legend {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.persona-wizard-choice {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.persona-wizard-choice button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.persona-wizard-choice button.selected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  font-weight: 600;
+}
+
+.persona-wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.persona-wizard-nav-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.persona-wizard-nav button:not(.link-button) {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
 /* ── SR-optimised mode ──
    Marker class set on <body> by the settings page (PREF-9 / A11Y-1). CSS
    hooks here keep visual decorations out of the way and let components

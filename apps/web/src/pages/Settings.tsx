@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { useSearchParams } from "react-router";
 import { accountApi, ApiError, meApi } from "@reissulla/api-client";
 import type { Persona } from "@reissulla/shared";
 import { useAuthStore } from "../stores/auth";
 import { usePersonaStore } from "../stores/persona";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import { changeLocale, type Locale } from "../i18n";
+import { PersonaWizard } from "../components/PersonaWizard";
 
 const PERSONA_FLAGS: ReadonlyArray<{
   key: keyof Persona;
@@ -28,6 +30,21 @@ export function Settings() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const prefs = preferencesQuery.data;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [wizardOpen, setWizardOpen] = useState(
+    () => searchParams.get("wizard") === "1",
+  );
+
+  // Drop the `?wizard=1` flag once the user opens or skips the wizard so a
+  // back-button + refresh doesn't pop it again.
+  useEffect(() => {
+    if (searchParams.get("wizard")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("wizard");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync server-side persona into the local store when authenticated. The
   // local store is the wire-header source of truth, so this keeps both
@@ -258,6 +275,11 @@ export function Settings() {
         <legend>
           <FormattedMessage id="settings.section.persona" />
         </legend>
+        <div className="form-field">
+          <button type="button" onClick={() => setWizardOpen(true)}>
+            <FormattedMessage id="personaWizard.openButton" />
+          </button>
+        </div>
         {PERSONA_FLAGS.map(({ key, labelId }) => (
           <BooleanField
             key={key}
@@ -268,6 +290,8 @@ export function Settings() {
           />
         ))}
       </fieldset>
+
+      <PersonaWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />
 
       <AccountSection />
     </section>
@@ -406,24 +430,33 @@ function AnonymousPersonaSection({
   persona: Persona;
   onChange: (key: keyof Persona, value: boolean) => void;
 }) {
+  const [wizardOpen, setWizardOpen] = useState(false);
   return (
-    <fieldset>
-      <legend>
-        <FormattedMessage id="settings.section.persona" />
-      </legend>
-      <p className="help">
-        <FormattedMessage id="settings.persona.localOnly" />
-      </p>
-      {PERSONA_FLAGS.map(({ key, labelId }) => (
-        <BooleanField
-          key={key}
-          id={`persona-${key}`}
-          labelId={labelId}
-          value={Boolean(persona[key])}
-          onChange={(v) => onChange(key, v)}
-        />
-      ))}
-    </fieldset>
+    <>
+      <fieldset>
+        <legend>
+          <FormattedMessage id="settings.section.persona" />
+        </legend>
+        <p className="help">
+          <FormattedMessage id="settings.persona.localOnly" />
+        </p>
+        <div className="form-field">
+          <button type="button" onClick={() => setWizardOpen(true)}>
+            <FormattedMessage id="personaWizard.openButton" />
+          </button>
+        </div>
+        {PERSONA_FLAGS.map(({ key, labelId }) => (
+          <BooleanField
+            key={key}
+            id={`persona-${key}`}
+            labelId={labelId}
+            value={Boolean(persona[key])}
+            onChange={(v) => onChange(key, v)}
+          />
+        ))}
+      </fieldset>
+      <PersonaWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />
+    </>
   );
 }
 
