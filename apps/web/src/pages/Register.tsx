@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
+import { FormattedMessage, useIntl } from "react-intl";
 import { useAuthStore } from "../stores/auth";
 import { ApiError } from "@reissulla/api-client";
 
@@ -8,6 +9,7 @@ type ViewState = { kind: "form" } | { kind: "magic-link-sent"; email: string };
 export function Register() {
   const signUp = useAuthStore((s) => s.signUp);
   const navigate = useNavigate();
+  const intl = useIntl();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +33,7 @@ export function Register() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        setError(intl.formatMessage({ id: "auth.error.unexpected" }));
       }
     } finally {
       setSubmitting(false);
@@ -41,10 +43,14 @@ export function Register() {
   if (view.kind === "magic-link-sent") {
     return (
       <section aria-labelledby="register-heading" className="auth-page">
-        <h2 id="register-heading">Check your email</h2>
+        <h2 id="register-heading">
+          <FormattedMessage id="auth.checkEmail.title" />
+        </h2>
         <p role="status">
-          We sent a sign-in link to <strong>{view.email}</strong>. Open it on
-          this device — the link expires in 15 minutes.
+          <FormattedMessage
+            id="auth.checkEmail.body"
+            values={{ email: <strong>{view.email}</strong> }}
+          />
         </p>
         <p>
           <button
@@ -52,7 +58,7 @@ export function Register() {
             onClick={() => setView({ kind: "form" })}
             className="link-button"
           >
-            Use a different email
+            <FormattedMessage id="auth.checkEmail.useDifferentEmail" />
           </button>
         </p>
       </section>
@@ -61,7 +67,9 @@ export function Register() {
 
   return (
     <section aria-labelledby="register-heading" className="auth-page">
-      <h2 id="register-heading">Create an account</h2>
+      <h2 id="register-heading">
+        <FormattedMessage id="register.heading" />
+      </h2>
       <form onSubmit={handleSubmit} noValidate>
         {error && (
           <div role="alert" className="form-error">
@@ -69,7 +77,9 @@ export function Register() {
           </div>
         )}
         <div className="form-field">
-          <label htmlFor="register-name">Name</label>
+          <label htmlFor="register-name">
+            <FormattedMessage id="register.name" />
+          </label>
           <input
             id="register-name"
             type="text"
@@ -80,7 +90,9 @@ export function Register() {
           />
         </div>
         <div className="form-field">
-          <label htmlFor="register-email">Email</label>
+          <label htmlFor="register-email">
+            <FormattedMessage id="register.email" />
+          </label>
           <input
             id="register-email"
             type="email"
@@ -91,7 +103,9 @@ export function Register() {
           />
         </div>
         <div className="form-field">
-          <label htmlFor="register-password">Password</label>
+          <label htmlFor="register-password">
+            <FormattedMessage id="register.password" />
+          </label>
           <input
             id="register-password"
             type="password"
@@ -103,11 +117,16 @@ export function Register() {
           />
         </div>
         <button type="submit" disabled={submitting}>
-          {submitting ? "Creating account…" : "Create account"}
+          <FormattedMessage
+            id={submitting ? "register.submitting" : "register.submit"}
+          />
         </button>
       </form>
       <p className="auth-switch">
-        Already have an account? <Link to="/login">Log in</Link>
+        <FormattedMessage id="register.alreadyHaveAccount" />{" "}
+        <Link to="/login">
+          <FormattedMessage id="nav.logIn" />
+        </Link>
       </p>
     </section>
   );

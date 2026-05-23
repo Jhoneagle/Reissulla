@@ -3,6 +3,7 @@ import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
+import formatjs from "eslint-plugin-formatjs";
 import eslintConfigPrettier from "eslint-config-prettier";
 import globals from "globals";
 
@@ -28,6 +29,7 @@ export default tseslint.config(
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
       "jsx-a11y": jsxA11y,
+      formatjs,
     },
     languageOptions: {
       globals: globals.browser,
@@ -39,6 +41,11 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      // Flag hard-coded user-facing JSX text. Set to "warn" so migration
+      // can happen incrementally — once every component is migrated, bump
+      // to "error". Bypass per occurrence with
+      // `// eslint-disable-next-line formatjs/no-literal-string-in-jsx`.
+      "formatjs/no-literal-string-in-jsx": "warn",
     },
   },
 

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
+import { FormattedMessage, useIntl } from "react-intl";
 import { useAuthStore } from "../stores/auth";
 import { ApiError } from "@reissulla/api-client";
 
@@ -9,6 +10,7 @@ export function Login() {
   const signIn = useAuthStore((s) => s.signIn);
   const requestMagicLink = useAuthStore((s) => s.requestMagicLink);
   const navigate = useNavigate();
+  const intl = useIntl();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,7 +33,7 @@ export function Login() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        setError(intl.formatMessage({ id: "auth.error.unexpected" }));
       }
     } finally {
       setSubmitting(false);
@@ -48,7 +50,7 @@ export function Login() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Couldn't send the sign-in email. Please try again.");
+        setError(intl.formatMessage({ id: "auth.error.sendLink" }));
       }
     } finally {
       setSubmitting(false);
@@ -58,10 +60,14 @@ export function Login() {
   if (view.kind === "magic-link-sent") {
     return (
       <section aria-labelledby="login-heading" className="auth-page">
-        <h2 id="login-heading">Check your email</h2>
+        <h2 id="login-heading">
+          <FormattedMessage id="auth.checkEmail.title" />
+        </h2>
         <p role="status">
-          We sent a sign-in link to <strong>{view.email}</strong>. Open it on
-          this device — the link expires in 15 minutes.
+          <FormattedMessage
+            id="auth.checkEmail.body"
+            values={{ email: <strong>{view.email}</strong> }}
+          />
         </p>
         <p>
           <button
@@ -69,7 +75,7 @@ export function Login() {
             onClick={() => setView({ kind: "form" })}
             className="link-button"
           >
-            Use a different email
+            <FormattedMessage id="auth.checkEmail.useDifferentEmail" />
           </button>
         </p>
       </section>
@@ -78,7 +84,9 @@ export function Login() {
 
   return (
     <section aria-labelledby="login-heading" className="auth-page">
-      <h2 id="login-heading">Log in</h2>
+      <h2 id="login-heading">
+        <FormattedMessage id="login.heading" />
+      </h2>
       <form onSubmit={handleSubmit} noValidate>
         {error && (
           <div id="login-error" role="alert" className="form-error">
@@ -86,7 +94,9 @@ export function Login() {
           </div>
         )}
         <div className="form-field">
-          <label htmlFor="login-email">Email</label>
+          <label htmlFor="login-email">
+            <FormattedMessage id="login.email" />
+          </label>
           <input
             id="login-email"
             type="email"
@@ -98,7 +108,9 @@ export function Login() {
           />
         </div>
         <div className="form-field">
-          <label htmlFor="login-password">Password</label>
+          <label htmlFor="login-password">
+            <FormattedMessage id="login.password" />
+          </label>
           <input
             id="login-password"
             type="password"
@@ -109,22 +121,27 @@ export function Login() {
           />
         </div>
         <button type="submit" disabled={submitting}>
-          {submitting ? "Logging in…" : "Log in"}
+          <FormattedMessage
+            id={submitting ? "login.submitting" : "login.submit"}
+          />
         </button>
       </form>
       <p>
-        Forgot your password, or prefer email-only?{" "}
+        <FormattedMessage id="login.magicLinkPrompt" />{" "}
         <button
           type="button"
           onClick={handleMagicLinkOnly}
           disabled={submitting || !email}
           className="link-button"
         >
-          Email me a sign-in link
+          <FormattedMessage id="login.magicLinkAction" />
         </button>
       </p>
       <p className="auth-switch">
-        Don&apos;t have an account? <Link to="/register">Register</Link>
+        <FormattedMessage id="login.noAccount" />{" "}
+        <Link to="/register">
+          <FormattedMessage id="nav.register" />
+        </Link>
       </p>
     </section>
   );

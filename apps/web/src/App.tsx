@@ -5,6 +5,7 @@ import { Layout } from "./components/Layout";
 import { routes } from "./routes";
 import { useAuthStore } from "./stores/auth";
 import { useGeolocationStore } from "./stores/geolocation";
+import { I18nShell } from "./i18n";
 import "./styles/global.css";
 
 const queryClient = new QueryClient({
@@ -23,21 +24,23 @@ export function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            {routes.map(({ path, Component }) => (
-              <Route
-                key={path}
-                index={path === "/"}
-                path={path === "/" ? undefined : path.slice(1)}
-                element={<Component />}
-              />
-            ))}
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <I18nShell>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              {routes.map(({ path, Component }) => (
+                <Route
+                  key={path}
+                  index={path === "/"}
+                  path={path === "/" ? undefined : path.slice(1)}
+                  element={<Component />}
+                />
+              ))}
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </I18nShell>
   );
 }
