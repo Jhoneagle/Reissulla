@@ -288,10 +288,77 @@ body[data-high-contrast="true"][data-weather] {
   background-color: var(--color-paper) !important;
 }
 
+/* ── Motion ──
+   Three layers, gated by two independent controls:
+   - prefers-reduced-motion (OS)
+   - body[data-reduce-motion] (app-level — Settings reduceMotion pref).
+   "on" forces motion off even if OS allows it; "off" forces motion on
+   even if OS reduces it; "system" (no attribute) means follow OS.
+   See docs/design-system.md §9. */
+
+@keyframes card-entrance {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes stop-row-entrance {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes sun-spin {
+  to { transform: rotate(360deg); }
+}
+
+.dashboard-card {
+  animation: card-entrance 280ms ease-out backwards;
+}
+
+.dashboard-grid .dashboard-card:nth-child(1) { animation-delay: 80ms; }
+.dashboard-grid .dashboard-card:nth-child(2) { animation-delay: 160ms; }
+.dashboard-grid .dashboard-card:nth-child(3) { animation-delay: 240ms; }
+.dashboard-grid .dashboard-card:nth-child(n + 4) { animation-delay: 320ms; }
+
+.stops-board__row {
+  animation: stop-row-entrance 220ms ease-out backwards;
+}
+
+.stops-board__row:nth-child(1) { animation-delay: 280ms; }
+.stops-board__row:nth-child(2) { animation-delay: 320ms; }
+.stops-board__row:nth-child(3) { animation-delay: 360ms; }
+.stops-board__row:nth-child(4) { animation-delay: 400ms; }
+
+/* Hover lift on cards — 1px translation, no shadow elevation (shadows
+   compete with the editorial flatness). */
+.dashboard-card {
+  transition: transform 120ms ease-out;
+}
+.dashboard-card:hover {
+  transform: translateY(-1px);
+}
+
+/* OS-level OR app-level reduce: kill ambient and entrance motion.
+   Essential transitions (modal, page change) survive the reset. */
 @media (prefers-reduced-motion: reduce) {
-  body {
+  body:not([data-reduce-motion="false"]) {
     transition: none;
   }
+  body:not([data-reduce-motion="false"]) .dashboard-card,
+  body:not([data-reduce-motion="false"]) .stops-board__row {
+    animation: none;
+  }
+  body:not([data-reduce-motion="false"]) .dashboard-card:hover {
+    transform: none;
+  }
+}
+
+body[data-reduce-motion="true"] .dashboard-card,
+body[data-reduce-motion="true"] .stops-board__row {
+  animation: none;
+}
+
+body[data-reduce-motion="true"] .dashboard-card:hover {
+  transform: none;
 }
 
 #root {
