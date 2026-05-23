@@ -69,4 +69,19 @@ describe("error envelope", () => {
     expect(body.error.code).toBe("UNAUTHORIZED");
     expect(body.error.source).toBe("self");
   });
+
+  it("propagates Fastify body-parser errors as 400 with source 'fastify' instead of 500", async () => {
+    const res = await server.inject({
+      method: "POST",
+      url: "/api/v1/locations",
+      headers: { "content-type": "application/json" },
+      payload: "{not valid json",
+    });
+
+    expect(res.statusCode).toBeGreaterThanOrEqual(400);
+    expect(res.statusCode).toBeLessThan(500);
+    const body = res.json();
+    expect(body.error.source).toBe("fastify");
+    expect(typeof body.error.code).toBe("string");
+  });
 });

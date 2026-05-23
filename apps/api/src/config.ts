@@ -5,8 +5,23 @@ import { resolve } from "node:path";
 // so "dotenv/config" alone would look in apps/api/ instead of the repo root.
 dotenvConfig({ path: resolve(import.meta.dirname, "../../../.env") });
 
+function positiveIntEnv(
+  name: string,
+  defaultValue: number,
+): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return defaultValue;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
+    throw new Error(
+      `Invalid ${name}="${raw}" — expected a positive integer`,
+    );
+  }
+  return n;
+}
+
 export const config = {
-  port: Number(process.env.PORT ?? 3000),
+  port: positiveIntEnv("PORT", 3000),
   host: process.env.HOST ?? "0.0.0.0",
   nodeEnv: process.env.NODE_ENV ?? "development",
   databaseUrl:
@@ -20,5 +35,5 @@ export const config = {
   digitransitApiKey: process.env.DIGITRANSIT_API_KEY ?? "",
   feedFinlandEnabled: process.env.FEED_FINLAND_ENABLED !== "false",
   feedHslEnabled: process.env.FEED_HSL_ENABLED !== "false",
-  rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 200),
+  rateLimitMax: positiveIntEnv("RATE_LIMIT_MAX", 200),
 };

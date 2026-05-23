@@ -61,6 +61,22 @@ export async function buildServer() {
         },
       });
     }
+    // Fastify body-parser errors, rate-limit 429s, and other plugin-thrown
+    // FastifyErrors carry a statusCode + code we should preserve in the
+    // envelope rather than burying as 500.
+    if (
+      typeof err.statusCode === "number" &&
+      err.statusCode >= 400 &&
+      err.statusCode < 500
+    ) {
+      return reply.status(err.statusCode).send({
+        error: {
+          code: err.code ?? "BAD_REQUEST",
+          message: err.message,
+          source: "fastify" as Source,
+        },
+      });
+    }
     request.log.error(err, "Unhandled error");
     return reply.status(500).send({
       error: {

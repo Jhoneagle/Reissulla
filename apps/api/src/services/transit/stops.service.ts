@@ -9,6 +9,7 @@ import type { AdapterContext } from "../../adapters/types.js";
 import { groupStopsByNameAndMode } from "./grouping.js";
 
 const GEOCODE_TIMEOUT_MS = 5_000;
+const ENRICH_MAX_PARALLEL = 10;
 
 const GEOCODING_URL = "https://api.digitransit.fi/geocoding/v1/reverse";
 
@@ -30,10 +31,11 @@ async function reverseGeocodeCity(
 ): Promise<string | undefined> {
   const rLat = lat.toFixed(3);
   const rLon = lon.toFixed(3);
-  // Consolidate under the geocoding domain — this is the same Pelias
-  // reverse-geocode operation as services/geocoding.service.ts, just rounded
-  // to 3 decimals for the transit-side coordinate-batching use case.
-  const key = cacheKey("geocoding", "reverse", 1, rLat, rLon);
+  // Distinct entity from geocoding:reverse (which stores a full
+  // ReverseGeocodingResult) — this slot only ever holds the city name string.
+  // Same Pelias upstream, different cached value shape, so we never want a
+  // collision even if precisions converge.
+  const key = cacheKey("geocoding", "reverse-city", 1, rLat, rLon);
 
   const cached = await tryCache(() => cacheGet<string>(key));
   if (cached) return cached;
@@ -73,16 +75,22 @@ async function enrichStopsWithCity(stops: TransitStop[]): Promise<void> {
     coordToStops.set(coordKey, list);
   }
 
-  await Promise.all(
-    Array.from(coordToStops.entries()).map(async ([, group]) => {
-      const city = await reverseGeocodeCity(group[0]!.lat, group[0]!.lon);
-      if (city) {
-        for (const stop of group) {
-          stop.city = city;
+  // Cap parallelism so a large search doesn't fan out to dozens of
+  // simultaneous Pelias requests against a shared upstream.
+  const groups = Array.from(coordToStops.values());
+  for (let i = 0; i < groups.length; i += ENRICH_MAX_PARALLEL) {
+    const batch = groups.slice(i, i + ENRICH_MAX_PARALLEL);
+    await Promise.all(
+      batch.map(async (group) => {
+        const city = await reverseGeocodeCity(group[0]!.lat, group[0]!.lon);
+        if (city) {
+          for (const stop of group) {
+            stop.city = city;
+          }
         }
-      }
-    }),
-  );
+      }),
+    );
+  }
 }
 
 export async function getNearbyStops(
