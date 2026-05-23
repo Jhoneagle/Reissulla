@@ -1,15 +1,30 @@
-import { NavLink, Outlet, Link } from "react-router";
+import { NavLink, Outlet, Link, useLocation } from "react-router";
 import { FormattedMessage, useIntl } from "react-intl";
-import { navRoutes } from "../routes";
+import { routes, navRoutes } from "../routes";
 import { useAuthStore } from "../stores/auth";
-import { useFocusOnRouteChange } from "../hooks/useFocusOnRouteChange";
+import { Wordmark } from "./Wordmark";
+import { PageHeading } from "./PageHeading";
 
 export function Layout() {
   const user = useAuthStore((s) => s.user);
   const loading = useAuthStore((s) => s.loading);
   const signOut = useAuthStore((s) => s.signOut);
   const intl = useIntl();
-  useFocusOnRouteChange();
+  // PageHeading owns the route-change focus target now — it focuses the
+  // hidden h1 so SR announce the new page title. The legacy
+  // useFocusOnRouteChange() pointed at #main-content; PageHeading
+  // replaces it.
+
+  // Resolve the current route's title for the page-level h1. Wordmark
+  // is an SVG (role="img"), not a heading, so each route still needs
+  // its own h1 landmark for SR navigation.
+  const location = useLocation();
+  const activeRoute = routes.find((r) =>
+    r.path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(r.path),
+  );
+  const pageTitleId = activeRoute?.labelId ?? "app.title";
 
   return (
     <>
@@ -17,9 +32,7 @@ export function Layout() {
         <FormattedMessage id="app.skipToContent" />
       </a>
       <header>
-        <h1>
-          <FormattedMessage id="app.title" />
-        </h1>
+        <Wordmark />
         <nav aria-label={intl.formatMessage({ id: "nav.mainNav" })}>
           <ul>
             {navRoutes.map(({ path, labelId }) => (
@@ -58,6 +71,7 @@ export function Layout() {
         )}
       </header>
       <main id="main-content" tabIndex={-1}>
+        <PageHeading id={pageTitleId} />
         <Outlet />
       </main>
       <footer>

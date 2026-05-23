@@ -220,6 +220,49 @@ header h1 {
   white-space: nowrap;
 }
 
+/* ── Wordmark ──
+   Lowercase italic "reissulla" + upright primary-blue arrow, set in
+   Instrument Serif. The arrow translates +1px right / -1px up on hover
+   (motion gated by the global `prefers-reduced-motion` reset). */
+.wordmark-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  outline: none;
+}
+
+.wordmark-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.wordmark {
+  height: 2rem;
+  width: auto;
+}
+
+.wordmark__word {
+  font-family: var(--font-display);
+  font-size: 36px;
+  letter-spacing: 0.005em;
+  fill: var(--color-ink);
+}
+
+.wordmark__arrow {
+  font-family: var(--font-display);
+  font-size: 28px;
+  fill: var(--color-primary);
+  transition: transform 180ms ease-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.wordmark-link:hover .wordmark__arrow {
+  transform: translate(1px, -1px);
+}
+
 /* Nav */
 nav ul {
   display: flex;
