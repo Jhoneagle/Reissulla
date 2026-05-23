@@ -156,6 +156,59 @@ html {
   --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
   --font-mono:
     "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ── Spacing scale ──
+     4px geometric base. Use --space-2 (8px) for tight gaps, --space-3
+     (12px) for related-element gaps, --space-4 (16px) for the standard
+     block rhythm. See docs/design-system.md §4. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+  --space-11: 10rem;
+  --space-12: 12rem;
+
+  /* ── Border radius ──
+     Default radius is --radius-xs (2px). Sharp corners are the editorial
+     choice. --radius-md (8px) reserved for inputs/pills; --radius-none
+     for inner list cells; --radius-pill for tag chips. */
+  --radius-none: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-pill: 9999px;
+
+  /* ── Type scale ──
+     1.25 modular scale anchored on --text-base (16px). --text-hero and
+     --text-display use --font-display (Instrument Serif); everything
+     else uses --font-body (Atkinson). */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-display: 3.75rem;
+  --text-hero: 6rem;
+
+  /* ── Line height ──
+     --leading-editorial reserved for --text-display / --text-hero — the
+     hero numeral and kicker. */
+  --leading-tight: 1.1;
+  --leading-body: 1.6;
+  --leading-loose: 1.8;
+  --leading-editorial: 1.15;
+
+  /* ── Container widths ── */
+  --container-narrow: 34rem;
+  --container-form: 28rem;
+  --container-page: 72rem;
 }
 
 body {
