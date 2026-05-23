@@ -1032,91 +1032,135 @@ footer a {
   gap: 1.5rem;
 }
 
+/* ── Dashboard kicker ──
+   Masthead-style date line above the primary card. Plex Mono,
+   uppercase, tracked. See docs/design-system.md §6. */
+.dashboard-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-rule-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-ink-muted);
+}
+
+.dashboard-kicker__publication {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.dashboard-kicker__sep {
+  color: var(--color-rule);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .dashboard-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-rule);
-  border-radius: 0.5rem;
-  background: var(--color-paper);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
 }
 
+/* Editorial hero for the primary card — full-width with a 4px
+   primary-blue left-edge accent (newspaper section divider energy).
+   Secondary cards stay calmer. */
 .dashboard-card--primary {
-  border-color: var(--color-primary);
-  border-width: 2px;
+  position: relative;
+  padding-left: calc(var(--space-5) + 4px);
+}
+
+.dashboard-card--primary::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-primary);
 }
 
 .dashboard-card__header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .dashboard-card__header h3 {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
 }
 
 .dashboard-card__region {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-ink-muted);
 }
 
-.dashboard-card__weather {
+/* The hero column: italic serif temperature numeral + weather icon.
+   On desktop, primary cards lay this out two-column; secondary cards
+   keep it inline-row for compactness. */
+.dashboard-card__hero {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: baseline;
+  gap: var(--space-3);
 }
 
 .dashboard-card__temp {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.02em;
+  line-height: var(--leading-editorial);
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
 }
 
-.dashboard-card__weather-desc {
-  color: var(--color-ink-muted);
+.dashboard-card__deg {
+  font-style: normal;
+  margin-left: 0.05em;
+}
+
+.dashboard-card--primary .dashboard-card__temp {
+  font-size: var(--text-hero);
+  letter-spacing: -0.04em;
+}
+
+.dashboard-card__lede {
+  font-size: var(--text-base);
+  color: var(--color-ink);
+  line-height: var(--leading-body);
+}
+
+.dashboard-card--primary .dashboard-card__lede {
+  font-size: var(--text-lg);
 }
 
 .dashboard-card__weather-empty {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-ink-muted);
 }
 
 .dashboard-card__stops h4 {
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
-}
-
-.dashboard-card__stops ul {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.dashboard-card__stops li {
-  display: grid;
-  grid-template-columns: 3rem 1fr auto;
-  gap: 0.5rem;
-  align-items: baseline;
-}
-
-.dashboard-card__stops .stop-mode {
-  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   text-transform: uppercase;
+  letter-spacing: 0.15em;
   color: var(--color-ink-muted);
-}
-
-.dashboard-card__stops .stop-distance {
-  color: var(--color-ink-muted);
+  margin-bottom: var(--space-2);
 }
 
 .dashboard-card__actions {
