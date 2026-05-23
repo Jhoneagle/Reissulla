@@ -10,6 +10,7 @@ import { meRoutes } from "./routes/me.js";
 import { weatherRoutes } from "./routes/weather.js";
 import { geocodingRoutes } from "./routes/geocoding.js";
 import { locationRoutes } from "./routes/locations.js";
+import { recentPlacesRoutes } from "./routes/recent-places.js";
 import { transitRoutes } from "./routes/transit.js";
 import {
   AppError,
@@ -109,6 +110,7 @@ export async function buildServer() {
   await server.register(weatherRoutes);
   await server.register(geocodingRoutes);
   await server.register(locationRoutes);
+  await server.register(recentPlacesRoutes);
   await server.register(transitRoutes);
 
   return server;

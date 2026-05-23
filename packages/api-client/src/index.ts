@@ -6,6 +6,8 @@ import type {
   SavedLocation,
   CreateLocationInput,
   UpdateLocationInput,
+  RecentPlace,
+  RecordVisitInput,
   TransitStop,
   TransitSubStop,
   TransitDeparturesResult,
@@ -200,6 +202,34 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ email, recaptchaToken }),
     });
+  },
+};
+
+export const recentPlacesApi = {
+  list(limit?: number) {
+    const path = limit
+      ? `/recent-places?limit=${encodeURIComponent(String(limit))}`
+      : "/recent-places";
+    return request<{ data: RecentPlace[] }>(path);
+  },
+  /**
+   * Record a visit. Increments the existing row's visit count when called
+   * for coordinates the user has already visited (precision rounding lives
+   * in the repo). FE checks `visitCount >= 3` to show the "save this?"
+   * prompt (LOC-8).
+   */
+  recordVisit(input: RecordVisitInput) {
+    return mutationRequest<{ data: RecentPlace }>(
+      "/recent-places",
+      "POST",
+      input,
+    );
+  },
+  remove(id: string) {
+    return mutationRequest<void>(`/recent-places/${id}`, "DELETE");
+  },
+  clear() {
+    return mutationRequest<void>("/recent-places", "DELETE");
   },
 };
 

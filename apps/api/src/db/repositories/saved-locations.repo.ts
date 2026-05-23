@@ -28,6 +28,8 @@ export interface InsertInput {
   name: string;
   latitude: number;
   longitude: number;
+  region?: string | null;
+  category?: string | null;
 }
 
 /**
@@ -35,6 +37,9 @@ export interface InsertInput {
  * primary/sortOrder based on what already exists.
  *
  * Throws ConflictError("LIMIT_REACHED") when the user already has the maximum.
+ * The partial unique index on (user_id, category) WHERE category IN
+ * ('home','work') surfaces as a Postgres unique-violation; the service layer
+ * catches and translates that to CATEGORY_ALREADY_SET.
  */
 export async function insertWithLimitCheck(
   input: InsertInput,
@@ -57,6 +62,8 @@ export async function insertWithLimitCheck(
       longitude: input.longitude,
       isPrimary: existing === 0,
       sortOrder: existing,
+      region: input.region ?? null,
+      category: input.category ?? null,
     })
     .returning();
 
@@ -67,6 +74,8 @@ export interface UpdateInput {
   name?: string;
   isPrimary?: boolean;
   sortOrder?: number;
+  region?: string | null;
+  category?: string | null;
 }
 
 /**
