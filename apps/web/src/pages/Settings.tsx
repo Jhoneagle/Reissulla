@@ -8,6 +8,8 @@ import { usePersonaStore } from "../stores/persona";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import { changeLocale, type Locale } from "../i18n";
 import { PersonaWizard } from "../components/PersonaWizard";
+import { SavedLocationsManager } from "../components/SavedLocationsManager";
+import { RecentPlacesList } from "../components/RecentPlacesList";
 
 const PERSONA_FLAGS: ReadonlyArray<{
   key: keyof Persona;
@@ -292,6 +294,20 @@ export function Settings() {
       </fieldset>
 
       <PersonaWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />
+
+      <fieldset>
+        <legend>
+          <FormattedMessage id="settings.section.locations" />
+        </legend>
+        <SavedLocationsManager />
+      </fieldset>
+
+      <fieldset>
+        <legend>
+          <FormattedMessage id="settings.section.recentPlaces" />
+        </legend>
+        <RecentPlacesList />
+      </fieldset>
 
       <AccountSection />
     </section>

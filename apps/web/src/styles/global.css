@@ -400,6 +400,139 @@ footer a {
   color: var(--color-error-bg);
 }
 
+/* ── Saved locations manager ── */
+.saved-locations-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.saved-location-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+}
+
+.saved-location-row__primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.saved-location-name {
+  font-weight: 600;
+}
+
+.saved-location-region {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.saved-location-row__controls {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.saved-location-row__controls button,
+.saved-location-row__controls select {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.saved-location-rename {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.saved-location-rename input {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.form-status {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+/* ── Recent places list ── */
+.recent-places-list ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recent-place-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+}
+
+.recent-place-row__primary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.recent-place-name {
+  font-weight: 500;
+}
+
+.recent-place-visits {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.recent-place-prompt {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--color-primary);
+}
+
+.recent-place-row__controls {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.recent-places-actions {
+  margin-top: 1rem;
+}
+
 /* ── Modal dialog ──
    Used by PersonaWizard. The backdrop click-through is handled in the
    component (clicks on the dialog itself don't propagate to backdrop). */
