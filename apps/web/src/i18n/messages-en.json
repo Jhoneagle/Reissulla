@@ -15,6 +15,8 @@
   "footer.providers.openMeteo": "Open-Meteo",
   "footer.providers.osm": "OpenStreetMap contributors",
 
+  "forms.errorSummary.heading": "Please fix:",
+
   "auth.error.unexpected": "An unexpected error occurred. Please try again.",
   "auth.error.sendLink": "Couldn't send the sign-in email. Please try again.",
   "auth.checkEmail.title": "Check your email",

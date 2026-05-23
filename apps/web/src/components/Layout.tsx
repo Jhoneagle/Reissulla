@@ -2,12 +2,14 @@ import { NavLink, Outlet, Link } from "react-router";
 import { FormattedMessage, useIntl } from "react-intl";
 import { navRoutes } from "../routes";
 import { useAuthStore } from "../stores/auth";
+import { useFocusOnRouteChange } from "../hooks/useFocusOnRouteChange";
 
 export function Layout() {
   const user = useAuthStore((s) => s.user);
   const loading = useAuthStore((s) => s.loading);
   const signOut = useAuthStore((s) => s.signOut);
   const intl = useIntl();
+  useFocusOnRouteChange();
 
   return (
     <>
@@ -55,7 +57,7 @@ export function Layout() {
           </div>
         )}
       </header>
-      <main id="main-content">
+      <main id="main-content" tabIndex={-1}>
         <Outlet />
       </main>
       <footer>
