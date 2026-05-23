@@ -2,6 +2,8 @@ import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
 import { config } from "./config.js";
 import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
@@ -41,6 +43,29 @@ export async function buildServer() {
     timeWindow: "1 minute",
     allowList: (req) => req.url === "/api/v1/health",
   });
+
+  // OpenAPI spec generated from the JSON Schemas already declared on each
+  // route. Exposed at /api/v1/openapi.json (machine-readable) and an
+  // interactive viewer at /api/v1/docs. The spec is also written to a
+  // snapshot file on `pnpm api:snapshot-openapi` for review in PRs.
+  await server.register(swagger, {
+    openapi: {
+      info: {
+        title: "Reissulla API",
+        description:
+          "Weather + transit + identity API for Reissulla. See roadmap.md " +
+          "for scope and external-apis.md for upstream integrations.",
+        version: "1.0.0",
+      },
+      servers: [{ url: "/" }],
+    },
+    hideUntagged: false,
+  });
+  await server.register(swaggerUi, {
+    routePrefix: "/api/v1/docs",
+    uiConfig: { docExpansion: "list", deepLinking: true },
+  });
+  server.get("/api/v1/openapi.json", async () => server.swagger());
 
   server.setErrorHandler((err: FastifyError, request, reply) => {
     if (err instanceof AppError) {
