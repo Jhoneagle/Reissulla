@@ -13,6 +13,24 @@ import { RecentPlacesList } from "../components/RecentPlacesList";
 import { useConfirm } from "../hooks/useConfirm";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { showToast } from "../stores/toast";
+import { SettingsNav } from "../components/SettingsNav";
+
+// Ordering decision (W3.1): Profile is the most personal, Display next
+// (most users want to set theme/text size early), Persona right after
+// so the accessibility profile is high-prominence. Recent Places is
+// hoisted above Saved Locations because it's the data source for
+// future deletion CTAs and gets re-read more often. Units is calmer
+// (rarely changed once set). Account stays last — destructive end
+// matches the cleanup-as-finale pattern in most settings UIs.
+const SETTINGS_SECTIONS = [
+  { id: "settings-profile", labelId: "settings.section.profile" },
+  { id: "settings-display", labelId: "settings.section.display" },
+  { id: "settings-persona", labelId: "settings.section.persona" },
+  { id: "settings-recent", labelId: "settings.section.recentPlaces" },
+  { id: "settings-locations", labelId: "settings.section.locations" },
+  { id: "settings-units", labelId: "settings.section.units" },
+  { id: "settings-account", labelId: "settings.section.account" },
+] as const;
 
 const PERSONA_FLAGS: ReadonlyArray<{
   key: keyof Persona;
@@ -144,190 +162,213 @@ export function Settings() {
         <FormattedMessage id="settings.heading" />
       </h2>
 
-      <ProfileSection currentName={user.name} />
+      <div className="settings-page__layout">
+        <SettingsNav items={[...SETTINGS_SECTIONS]} />
 
-      <fieldset>
-        <legend>
-          <FormattedMessage id="settings.section.display" />
-        </legend>
+        <div className="settings-page__content">
+          <ProfileSection id="settings-profile" currentName={user.name} />
 
-        <SelectField
-          id="language"
-          labelId="settings.language.label"
-          value={prefs?.language ?? "en"}
-          onChange={(v) => setLanguage(v as Locale)}
-          options={[
-            { value: "fi", labelId: "settings.language.fi" },
-            { value: "en", labelId: "settings.language.en" },
-          ]}
-        />
+          <fieldset id="settings-display">
+            <legend>
+              <FormattedMessage id="settings.section.display" />
+            </legend>
 
-        <SelectField
-          id="theme"
-          labelId="settings.theme.label"
-          value={prefs?.theme ?? "system"}
-          onChange={(v) => patch({ theme: v as "light" | "dark" | "system" })}
-          options={[
-            { value: "system", labelId: "settings.theme.system" },
-            { value: "light", labelId: "settings.theme.light" },
-            { value: "dark", labelId: "settings.theme.dark" },
-          ]}
-        />
-
-        <BooleanField
-          id="highContrast"
-          labelId="settings.highContrast.label"
-          value={prefs?.highContrast ?? false}
-          onChange={(v) => patch({ highContrast: v })}
-        />
-
-        <div className="form-field">
-          <label htmlFor="fontScale">
-            <FormattedMessage id="settings.fontScale.label" />
-          </label>
-          {/* Keep the live percent OUT of the <label>: when the slider value
-              changes, the label's accessible name would otherwise update and
-              SRs re-announce the whole control. Moving the value into a
-              separate aria-describedby sibling means only the description
-              changes — the name stays stable, the value is read once. */}
-          <span
-            id="fontScale-value"
-            aria-live="polite"
-            className="form-field__value"
-          >
-            <FormattedMessage
-              id="settings.fontScale.percent"
-              values={{ percent: prefs?.fontScale ?? 100 }}
+            <SelectField
+              id="language"
+              labelId="settings.language.label"
+              value={prefs?.language ?? "en"}
+              onChange={(v) => setLanguage(v as Locale)}
+              options={[
+                { value: "fi", labelId: "settings.language.fi" },
+                { value: "en", labelId: "settings.language.en" },
+              ]}
             />
-          </span>
-          <input
-            id="fontScale"
-            type="range"
-            min={100}
-            max={200}
-            step={10}
-            value={prefs?.fontScale ?? 100}
-            aria-describedby="fontScale-value"
-            onChange={(e) =>
-              void patch({ fontScale: Number(e.currentTarget.value) })
-            }
+
+            <SelectField
+              id="theme"
+              labelId="settings.theme.label"
+              value={prefs?.theme ?? "system"}
+              onChange={(v) =>
+                patch({ theme: v as "light" | "dark" | "system" })
+              }
+              options={[
+                { value: "system", labelId: "settings.theme.system" },
+                { value: "light", labelId: "settings.theme.light" },
+                { value: "dark", labelId: "settings.theme.dark" },
+              ]}
+            />
+
+            <BooleanField
+              id="highContrast"
+              labelId="settings.highContrast.label"
+              value={prefs?.highContrast ?? false}
+              onChange={(v) => patch({ highContrast: v })}
+            />
+
+            <div className="form-field">
+              <label htmlFor="fontScale">
+                <FormattedMessage id="settings.fontScale.label" />
+              </label>
+              {/* Keep the live percent OUT of the <label>: when the slider
+                  changes, the label's accessible name would otherwise
+                  update and SRs re-announce the whole control. */}
+              <span
+                id="fontScale-value"
+                aria-live="polite"
+                className="form-field__value"
+              >
+                <FormattedMessage
+                  id="settings.fontScale.percent"
+                  values={{ percent: prefs?.fontScale ?? 100 }}
+                />
+              </span>
+              <input
+                id="fontScale"
+                type="range"
+                min={100}
+                max={200}
+                step={10}
+                value={prefs?.fontScale ?? 100}
+                aria-describedby="fontScale-value"
+                onChange={(e) =>
+                  void patch({ fontScale: Number(e.currentTarget.value) })
+                }
+              />
+            </div>
+
+            <SelectField
+              id="reduceMotion"
+              labelId="settings.reduceMotion.label"
+              value={prefs?.reduceMotion ?? "system"}
+              onChange={(v) =>
+                patch({ reduceMotion: v as "on" | "off" | "system" })
+              }
+              options={[
+                { value: "system", labelId: "settings.reduceMotion.system" },
+                { value: "on", labelId: "settings.reduceMotion.on" },
+                { value: "off", labelId: "settings.reduceMotion.off" },
+              ]}
+            />
+
+            <div className="form-field">
+              <BooleanField
+                id="srOptimised"
+                labelId="settings.srOptimised.label"
+                value={prefs?.srOptimised ?? false}
+                onChange={(v) => patch({ srOptimised: v })}
+              />
+              <p className="help">
+                <FormattedMessage id="settings.srOptimised.help" />
+              </p>
+            </div>
+          </fieldset>
+
+          <fieldset id="settings-persona">
+            <legend>
+              <FormattedMessage id="settings.section.persona" />
+            </legend>
+            <div className="form-field">
+              <button
+                type="button"
+                onClick={() => setWizardOpen(true)}
+                className="btn btn--secondary"
+              >
+                <FormattedMessage id="personaWizard.openButton" />
+              </button>
+            </div>
+            {PERSONA_FLAGS.map(({ key, labelId }) => (
+              <BooleanField
+                key={key}
+                id={`persona-${key}`}
+                labelId={labelId}
+                value={Boolean(personaStore.persona[key])}
+                onChange={(v) => setPersonaFlag(key, v)}
+              />
+            ))}
+          </fieldset>
+
+          <PersonaWizard
+            isOpen={wizardOpen}
+            onClose={() => setWizardOpen(false)}
           />
+
+          <fieldset id="settings-recent">
+            <legend>
+              <FormattedMessage id="settings.section.recentPlaces" />
+            </legend>
+            <RecentPlacesList />
+          </fieldset>
+
+          <fieldset id="settings-locations">
+            <legend>
+              <FormattedMessage id="settings.section.locations" />
+            </legend>
+            <SavedLocationsManager />
+          </fieldset>
+
+          <fieldset id="settings-units">
+            <legend>
+              <FormattedMessage id="settings.section.units" />
+            </legend>
+
+            <SelectField
+              id="temperatureUnit"
+              labelId="settings.tempUnit.label"
+              value={prefs?.temperatureUnit ?? "celsius"}
+              onChange={(v) =>
+                patch({ temperatureUnit: v as "celsius" | "fahrenheit" })
+              }
+              options={[
+                { value: "celsius", labelId: "settings.tempUnit.celsius" },
+                {
+                  value: "fahrenheit",
+                  labelId: "settings.tempUnit.fahrenheit",
+                },
+              ]}
+            />
+
+            <SelectField
+              id="distanceUnit"
+              labelId="settings.distanceUnit.label"
+              value={prefs?.distanceUnit ?? "metric"}
+              onChange={(v) =>
+                patch({ distanceUnit: v as "metric" | "imperial" })
+              }
+              options={[
+                { value: "metric", labelId: "settings.distanceUnit.metric" },
+                {
+                  value: "imperial",
+                  labelId: "settings.distanceUnit.imperial",
+                },
+              ]}
+            />
+
+            <SelectField
+              id="timeFormat"
+              labelId="settings.timeFormat.label"
+              value={prefs?.timeFormat ?? "24h"}
+              onChange={(v) => patch({ timeFormat: v as "24h" | "12h" })}
+              options={[
+                { value: "24h", labelId: "settings.timeFormat.24h" },
+                { value: "12h", labelId: "settings.timeFormat.12h" },
+              ]}
+            />
+          </fieldset>
+
+          <AccountSection id="settings-account" />
         </div>
-
-        <SelectField
-          id="reduceMotion"
-          labelId="settings.reduceMotion.label"
-          value={prefs?.reduceMotion ?? "system"}
-          onChange={(v) =>
-            patch({ reduceMotion: v as "on" | "off" | "system" })
-          }
-          options={[
-            { value: "system", labelId: "settings.reduceMotion.system" },
-            { value: "on", labelId: "settings.reduceMotion.on" },
-            { value: "off", labelId: "settings.reduceMotion.off" },
-          ]}
-        />
-
-        <div className="form-field">
-          <BooleanField
-            id="srOptimised"
-            labelId="settings.srOptimised.label"
-            value={prefs?.srOptimised ?? false}
-            onChange={(v) => patch({ srOptimised: v })}
-          />
-          <p className="help">
-            <FormattedMessage id="settings.srOptimised.help" />
-          </p>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>
-          <FormattedMessage id="settings.section.units" />
-        </legend>
-
-        <SelectField
-          id="temperatureUnit"
-          labelId="settings.tempUnit.label"
-          value={prefs?.temperatureUnit ?? "celsius"}
-          onChange={(v) =>
-            patch({ temperatureUnit: v as "celsius" | "fahrenheit" })
-          }
-          options={[
-            { value: "celsius", labelId: "settings.tempUnit.celsius" },
-            { value: "fahrenheit", labelId: "settings.tempUnit.fahrenheit" },
-          ]}
-        />
-
-        <SelectField
-          id="distanceUnit"
-          labelId="settings.distanceUnit.label"
-          value={prefs?.distanceUnit ?? "metric"}
-          onChange={(v) => patch({ distanceUnit: v as "metric" | "imperial" })}
-          options={[
-            { value: "metric", labelId: "settings.distanceUnit.metric" },
-            { value: "imperial", labelId: "settings.distanceUnit.imperial" },
-          ]}
-        />
-
-        <SelectField
-          id="timeFormat"
-          labelId="settings.timeFormat.label"
-          value={prefs?.timeFormat ?? "24h"}
-          onChange={(v) => patch({ timeFormat: v as "24h" | "12h" })}
-          options={[
-            { value: "24h", labelId: "settings.timeFormat.24h" },
-            { value: "12h", labelId: "settings.timeFormat.12h" },
-          ]}
-        />
-      </fieldset>
-
-      <fieldset>
-        <legend>
-          <FormattedMessage id="settings.section.persona" />
-        </legend>
-        <div className="form-field">
-          <button
-            type="button"
-            onClick={() => setWizardOpen(true)}
-            className="btn btn--secondary"
-          >
-            <FormattedMessage id="personaWizard.openButton" />
-          </button>
-        </div>
-        {PERSONA_FLAGS.map(({ key, labelId }) => (
-          <BooleanField
-            key={key}
-            id={`persona-${key}`}
-            labelId={labelId}
-            value={Boolean(personaStore.persona[key])}
-            onChange={(v) => setPersonaFlag(key, v)}
-          />
-        ))}
-      </fieldset>
-
-      <PersonaWizard isOpen={wizardOpen} onClose={() => setWizardOpen(false)} />
-
-      <fieldset>
-        <legend>
-          <FormattedMessage id="settings.section.locations" />
-        </legend>
-        <SavedLocationsManager />
-      </fieldset>
-
-      <fieldset>
-        <legend>
-          <FormattedMessage id="settings.section.recentPlaces" />
-        </legend>
-        <RecentPlacesList />
-      </fieldset>
-
-      <AccountSection />
+      </div>
     </section>
   );
 }
 
-function ProfileSection({ currentName }: { currentName: string }) {
+function ProfileSection({
+  id,
+  currentName,
+}: {
+  id: string;
+  currentName: string;
+}) {
   const [name, setName] = useState(currentName);
   const [saving, setSaving] = useState(false);
   const intl = useIntl();
@@ -353,7 +394,7 @@ function ProfileSection({ currentName }: { currentName: string }) {
   }
 
   return (
-    <fieldset>
+    <fieldset id={id}>
       <legend>
         <FormattedMessage id="settings.section.profile" />
       </legend>
@@ -384,7 +425,7 @@ function ProfileSection({ currentName }: { currentName: string }) {
   );
 }
 
-function AccountSection() {
+function AccountSection({ id }: { id: string }) {
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const intl = useIntl();
@@ -433,7 +474,7 @@ function AccountSection() {
   }
 
   return (
-    <fieldset>
+    <fieldset id={id}>
       <legend>
         <FormattedMessage id="settings.section.account" />
       </legend>

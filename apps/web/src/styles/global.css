@@ -643,19 +643,78 @@ footer a {
 
 /* ── Settings page ── */
 .settings-page {
-  max-width: 36rem;
+  max-width: var(--container-page);
   margin: 0 auto;
 }
 
+.settings-page__layout {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.settings-page__content {
+  flex: 1;
+  min-width: 0;
+  max-width: var(--container-narrow);
+}
+
 .settings-page fieldset {
-  margin: 1.5rem 0;
-  padding: 1rem 1.25rem;
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-rule);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
+  scroll-margin-top: var(--space-6);
 }
 
 .settings-page legend {
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
+  font-weight: 600;
+}
+
+/* ── Settings sub-nav ──
+   Sticky table-of-contents on the left at ≥48rem viewport. Hidden
+   below that — mobile already scrolls linearly. */
+.settings-nav {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .settings-nav {
+    display: block;
+    flex: 0 0 12rem;
+    position: sticky;
+    top: var(--space-5);
+    align-self: flex-start;
+  }
+}
+
+.settings-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-nav a {
+  display: block;
+  padding: var(--space-1) var(--space-3);
+  border-left: 2px solid transparent;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  font-size: var(--text-sm);
+}
+
+.settings-nav a:hover {
+  color: var(--color-ink);
+}
+
+.settings-nav a.active {
+  color: var(--color-primary-ink);
+  border-left-color: var(--color-primary);
+  background: transparent;
   font-weight: 600;
 }
 
