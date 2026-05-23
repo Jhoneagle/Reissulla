@@ -97,15 +97,31 @@ html {
   font-size: calc(100% * var(--font-scale));
 }
 
-body {
-  font-family:
-    "Plus Jakarta Sans",
-    system-ui,
-    -apple-system,
+/* ── Font families ──
+   Three roles, three families. See docs/design-system.md §1.
+   - --font-body:    Atkinson Hyperlegible — body, UI, form text.
+   - --font-display: Instrument Serif — hero numerals, wordmark, italic
+                     emphasis. Used via `font-family: var(--font-display)`
+                     on `.dashboard-card__temp`, the wordmark SVG <text>,
+                     and any `.kicker__title`-like markings.
+   - --font-mono:    IBM Plex Mono — stop codes, distances, timestamps,
+                     departure-board tags. Carries `tabular-nums`. */
+:root {
+  --font-body:
+    "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Cantarell,
     sans-serif;
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-mono:
+    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+body {
+  font-family: var(--font-body);
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern", "liga";
 }
 
 #root {

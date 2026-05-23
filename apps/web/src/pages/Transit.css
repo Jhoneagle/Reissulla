@@ -234,7 +234,7 @@
 }
 
 .departure-table__stop-name {
-  font-family: "Instrument Serif", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 400;
   line-height: 1.2;
@@ -711,7 +711,7 @@
 }
 
 .itinerary-card__time {
-  font-family: "Instrument Serif", Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 400;
   font-variant-numeric: tabular-nums;

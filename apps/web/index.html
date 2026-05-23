@@ -5,8 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      Three families, three display strategies (see docs/design-system.md §1):
+      - Atkinson Hyperlegible body  → display=optional   (zero CLS; fallback for the session is acceptable)
+      - Instrument Serif display    → display=swap        (italic numeral / wordmark is too distinctive to fall back)
+      - IBM Plex Mono board         → display=swap        (mono falls back cleanly)
+
+      Loading via two separate stylesheet requests so each family carries
+      its own `display` value — Google Fonts doesn't honour a per-family
+      override in a single combined URL.
+    -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=optional"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <title>Reissulla — Weather, Travel &amp; Maps</title>
