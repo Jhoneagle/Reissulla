@@ -60,21 +60,6 @@
   --color-success: #1f5d34;
   --color-success-bg: #d8ecd9;
 
-  /* ── Legacy aliases ──
-     The old --color-bg/--color-text/etc tokens are referenced by every
-     existing component CSS file. The mechanical sweep in W4a.4 rebinds
-     each call site to the new token names. Until then, these aliases
-     keep the existing CSS valid while the visual identity has already
-     shifted to the new palette. */
-  --color-bg: var(--color-paper);
-  --color-text: var(--color-ink);
-  --color-primary-hover: var(--color-primary-ink);
-  --color-nav-bg: var(--color-surface);
-  --color-border: var(--color-rule);
-  --color-active: var(--color-primary);
-  --color-footer-text: var(--color-ink-muted);
-  --color-error-text: var(--color-error);
-
   /* ── Font scale ──
      Multiplier applied to html font-size. Settings page sets this via
      documentElement.style.setProperty('--font-scale', '1.5'). Decoupled
@@ -175,8 +160,8 @@ html {
 
 body {
   font-family: var(--font-body);
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   line-height: 1.6;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern", "liga";
@@ -196,7 +181,7 @@ body {
   z-index: 100;
   padding: 0.5rem 1rem;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   border-radius: 0 0 0.25rem 0.25rem;
   text-decoration: none;
 }
@@ -211,8 +196,8 @@ header {
   align-items: center;
   gap: 2rem;
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-nav-bg);
+  border-bottom: 1px solid var(--color-rule);
+  background: var(--color-surface);
 }
 
 header h1 {
@@ -274,13 +259,13 @@ nav a {
   display: block;
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
-  color: var(--color-text);
+  color: var(--color-ink);
   text-decoration: none;
   font-weight: 500;
 }
 
 nav a:hover {
-  background: var(--color-border);
+  background: var(--color-rule);
 }
 
 nav a:focus-visible {
@@ -289,12 +274,11 @@ nav a:focus-visible {
 }
 
 nav a.active {
-  /* Use the darker primary-hover token for the text so contrast against
-     the 10% tinted background clears 4.5:1. The bg tint is too pale to
-     read the regular --color-active (#2563eb on #e3ebfa = 4.31:1).
-     Wave 4a.2 rebinds primary entirely. */
-  color: var(--color-primary-hover);
-  background: color-mix(in srgb, var(--color-active) 10%, transparent);
+  /* Dark primary-ink text on a 10% primary tint clears 4.5:1. Using the
+     plain `--color-primary` for text fails contrast against its own
+     light tint, which is why we step down to the darker shade. */
+  color: var(--color-primary-ink);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
   font-weight: 700;
 }
 
@@ -333,10 +317,10 @@ main:has(.page-full-width) {
 /* Footer */
 footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-rule);
   text-align: center;
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 footer a {
@@ -357,28 +341,28 @@ footer a {
 
 .auth-nav button {
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-ink);
   cursor: pointer;
   font: inherit;
 }
 
 .auth-nav button:hover {
-  background: var(--color-border);
+  background: var(--color-rule);
 }
 
 .btn-register {
   padding: 0.375rem 0.75rem;
   border-radius: 0.375rem;
   background: var(--color-primary);
-  color: #fff !important;
+  color: var(--color-on-primary) !important;
   font-weight: 500;
 }
 
 .btn-register:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-ink);
 }
 
 /* Auth pages */
@@ -410,10 +394,10 @@ footer a {
 
 .form-field input {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
 }
 
@@ -421,17 +405,17 @@ footer a {
   padding: 0.75rem;
   border-radius: 0.375rem;
   background: var(--color-error-bg);
-  color: var(--color-error-text);
+  color: var(--color-error);
   font-size: 0.875rem;
 }
 
 /* Form error summary — focus jumps here on submit failure (A11Y-26). */
 .form-error-summary {
   padding: 1rem;
-  border: 2px solid var(--color-error-text);
+  border: 2px solid var(--color-error);
   border-radius: 0.375rem;
   background: var(--color-error-bg);
-  color: var(--color-error-text);
+  color: var(--color-error);
   outline: none;
 }
 
@@ -462,7 +446,7 @@ footer a {
 }
 
 .link-button:hover:not(:disabled) {
-  color: var(--color-primary-hover);
+  color: var(--color-primary-ink);
 }
 
 .link-button:disabled {
@@ -475,14 +459,14 @@ footer a {
   border: none;
   border-radius: 0.375rem;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 
 .auth-page button[type="submit"]:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-ink);
 }
 
 .auth-page button[type="submit"]:disabled {
@@ -509,7 +493,7 @@ footer a {
 .settings-page fieldset {
   margin: 1.5rem 0;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.5rem;
 }
 
@@ -527,7 +511,7 @@ footer a {
 .form-field .help {
   margin-top: 0.25rem;
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 /* Inline value annotation next to a control — e.g. font-scale percent
@@ -535,17 +519,17 @@ footer a {
    so SR don't re-announce the whole control on every value change. */
 .form-field__value {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .btn-destructive {
   background: var(--color-error-bg);
-  color: var(--color-error-text);
-  border: 1px solid var(--color-error-text);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
 }
 
 .btn-destructive:hover:not(:disabled) {
-  background: var(--color-error-text);
+  background: var(--color-error);
   color: var(--color-error-bg);
 }
 
@@ -562,7 +546,7 @@ footer a {
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
 }
 
@@ -579,7 +563,7 @@ footer a {
 
 .saved-location-region {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .badge {
@@ -601,10 +585,10 @@ footer a {
 .saved-location-row__controls button,
 .saved-location-row__controls select {
   padding: 0.25rem 0.625rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.25rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   font-size: 0.875rem;
   cursor: pointer;
@@ -619,17 +603,17 @@ footer a {
 .saved-location-rename input {
   flex: 1;
   padding: 0.375rem 0.5rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.25rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
 .form-status {
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  color: var(--color-text);
+  color: var(--color-ink);
   font-size: 0.875rem;
 }
 
@@ -646,7 +630,7 @@ footer a {
   flex-direction: column;
   gap: 0.375rem;
   padding: 0.625rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
 }
 
@@ -664,7 +648,7 @@ footer a {
 
 .recent-place-visits {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .recent-place-prompt {
@@ -700,9 +684,9 @@ footer a {
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.5rem;
-  background: var(--color-bg);
+  background: var(--color-paper);
 }
 
 .dashboard-card--primary {
@@ -723,7 +707,7 @@ footer a {
 
 .dashboard-card__region {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__weather {
@@ -738,12 +722,12 @@ footer a {
 }
 
 .dashboard-card__weather-desc {
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__weather-empty {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__stops h4 {
@@ -769,11 +753,11 @@ footer a {
 .dashboard-card__stops .stop-mode {
   font-size: 0.75rem;
   text-transform: uppercase;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__stops .stop-distance {
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__actions {
@@ -785,14 +769,14 @@ footer a {
 .dashboard-card__actions a {
   font-size: 0.875rem;
   padding: 0.25rem 0.625rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.25rem;
-  color: var(--color-text);
+  color: var(--color-ink);
   text-decoration: none;
 }
 
 .dashboard-card__actions a:hover {
-  background: var(--color-border);
+  background: var(--color-rule);
 }
 
 .dashboard-save-prompt {
@@ -806,10 +790,10 @@ footer a {
   flex: 1;
   min-width: 12rem;
   padding: 0.375rem 0.5rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.25rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
 .dashboard-saved {
@@ -850,8 +834,8 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 .modal-dialog {
   max-width: 32rem;
   width: 100%;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   border-radius: 0.5rem;
   padding: 1.5rem;
   outline: none;
@@ -869,7 +853,7 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 
 .confirm-dialog__body {
   margin: 0 0 1rem;
-  color: var(--color-text);
+  color: var(--color-ink);
 }
 
 .confirm-dialog__actions {
@@ -881,10 +865,10 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 
 .confirm-dialog__actions button:not(.link-button) {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   cursor: pointer;
 }
@@ -900,7 +884,7 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 
 .persona-wizard-step {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   margin-bottom: 1rem;
 }
 
@@ -923,10 +907,10 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 .persona-wizard-choice button {
   flex: 1;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-rule);
   border-radius: 0.375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   cursor: pointer;
 }
@@ -952,10 +936,10 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 
 .persona-wizard-nav button:not(.link-button) {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   cursor: pointer;
 }

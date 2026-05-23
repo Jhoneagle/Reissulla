@@ -45,7 +45,7 @@
   border: none;
   border-radius: 9999px;
   background: transparent;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   font: inherit;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -58,7 +58,7 @@
 }
 
 .transit-tabs button:hover:not([aria-selected="true"]) {
-  color: var(--color-text);
+  color: var(--color-ink);
   background: rgba(0, 0, 0, 0.04);
 }
 
@@ -88,7 +88,7 @@
   transform: translateY(-50%);
   width: 1rem;
   height: 1rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   pointer-events: none;
   z-index: 1;
 }
@@ -96,10 +96,10 @@
 .stop-search input {
   width: 100%;
   padding: 0.75rem 0.875rem 0.75rem 2.5rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.75rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   font-size: 0.875rem;
   letter-spacing: 0.01em;
@@ -120,9 +120,9 @@
   left: 0;
   right: 0;
   margin-top: 0.375rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.75rem;
-  background: var(--color-bg);
+  background: var(--color-paper);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   list-style: none;
   max-height: 16rem;
@@ -161,7 +161,7 @@
 }
 
 .stop-search__status {
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   cursor: default !important;
   font-style: italic;
   font-size: 0.8125rem;
@@ -183,21 +183,21 @@
   font-size: 0.6875rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--color-footer-text);
-  background: var(--color-border);
+  color: var(--color-ink-muted);
+  background: var(--color-rule);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
 }
 
 .stop-search__city {
   font-size: 0.6875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .stop-search__mode {
   font-size: 0.6875rem;
   font-weight: 600;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -210,7 +210,7 @@
   justify-content: center;
   padding: 4rem 2rem;
   text-align: center;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .departure-board__empty svg {
@@ -268,7 +268,7 @@
 .departure-table__mode {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -286,15 +286,15 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .departure-table__filter-select {
   padding: 0.375rem 0.625rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.5rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   font-size: 0.8125rem;
   cursor: pointer;
@@ -311,7 +311,7 @@
 
 @media (prefers-color-scheme: dark) {
   .departure-table__filter-select {
-    background: var(--color-nav-bg);
+    background: var(--color-surface);
   }
 }
 
@@ -352,8 +352,8 @@
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--color-footer-text);
-  border-bottom: 2px solid var(--color-border);
+  color: var(--color-ink-muted);
+  border-bottom: 2px solid var(--color-rule);
 }
 
 .departure-table tbody tr {
@@ -372,7 +372,7 @@
 
 .departure-table tbody td {
   padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-rule);
   vertical-align: middle;
 }
 
@@ -412,7 +412,7 @@
 
 .departure-row__scheduled {
   text-decoration: line-through;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   font-size: 0.75rem;
   margin-right: 0.375rem;
 }
@@ -439,7 +439,7 @@
 .departure-row__relative {
   display: block;
   font-size: 0.6875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   margin-top: 0.0625rem;
 }
 
@@ -454,7 +454,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-border);
+  background: var(--color-rule);
 }
 
 .rt-dot--live {
@@ -490,14 +490,14 @@
 .departure-table__empty {
   text-align: center;
   padding: 2rem 1rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   font-size: 0.875rem;
 }
 
 .departure-table__timestamp {
   margin-top: 0.5rem;
   font-size: 0.6875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   letter-spacing: 0.01em;
 }
 
@@ -505,10 +505,10 @@
 .retry-btn {
   margin-top: 0.75rem;
   padding: 0.375rem 0.875rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 9999px;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-ink);
   font: inherit;
   font-size: 0.75rem;
   font-weight: 600;
@@ -541,7 +541,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 /* Style the LocationSearch inputs within the route planner */
@@ -556,17 +556,17 @@
   transform: translateY(-50%);
   width: 1rem;
   height: 1rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   pointer-events: none;
 }
 
 .route-planner__field .search-box input {
   width: 100%;
   padding: 0.625rem 0.875rem 0.625rem 2.5rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.625rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   font-size: 0.875rem;
   transition:
@@ -586,9 +586,9 @@
   left: 0;
   right: 0;
   margin-top: 0.375rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.625rem;
-  background: var(--color-bg);
+  background: var(--color-paper);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   list-style: none;
   max-height: 16rem;
@@ -629,7 +629,7 @@
   align-items: center;
   text-align: center;
   padding: 3rem 1rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .route-planner__hint svg {
@@ -658,16 +658,16 @@
 
 .itinerary-skel__card {
   padding: 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.875rem;
   margin-bottom: 0.75rem;
 }
 
 /* --- Itinerary card ---------------------------------------- */
 .itinerary-card {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.875rem;
-  background: var(--color-bg);
+  background: var(--color-paper);
   overflow: hidden;
   position: relative;
 }
@@ -686,13 +686,13 @@
 
 @media (prefers-color-scheme: dark) {
   .itinerary-card {
-    background: var(--color-nav-bg);
+    background: var(--color-surface);
   }
 }
 
 .itinerary-card__header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-rule);
 }
 
 .itinerary-card__label {
@@ -700,7 +700,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .itinerary-card__times {
@@ -718,7 +718,7 @@
 }
 
 .itinerary-card__arrow {
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   font-size: 0.875rem;
 }
 
@@ -727,7 +727,7 @@
   gap: 0.75rem;
   margin-top: 0.375rem;
   font-size: 0.75rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .itinerary-card__meta span {
@@ -761,7 +761,7 @@
   height: 10px;
   border-radius: 50%;
   border: 2.5px solid #b45309;
-  background: var(--color-bg);
+  background: var(--color-paper);
   flex-shrink: 0;
   z-index: 1;
 }
@@ -769,7 +769,7 @@
 @media (prefers-color-scheme: dark) {
   .leg__dot {
     border-color: #fbbf24;
-    background: var(--color-nav-bg);
+    background: var(--color-surface);
   }
 }
 
@@ -808,7 +808,7 @@
 }
 
 .leg__arrow {
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   font-size: 0.75rem;
 }
 
@@ -818,12 +818,12 @@
 
 .leg__detail {
   font-size: 0.75rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   margin-top: 0.125rem;
 }
 
 .leg--walk .leg__mode-label {
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 /* --- Responsive -------------------------------------------- */
