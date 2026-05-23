@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { accountApi, ApiError, meApi } from "@reissulla/api-client";
 import type { Persona } from "@reissulla/shared";
 import { useAuthStore } from "../stores/auth";
@@ -234,6 +234,20 @@ export function Settings() {
                   void patch({ fontScale: Number(e.currentTarget.value) })
                 }
               />
+              {/* Live preview: the slider value is just a number, but
+                  the *feel* of "150%" vs "100%" is what matters. The
+                  sentence is decorative (the slider already carries the
+                  semantic value via aria-describedby), so we hide it
+                  from SR to avoid double-announcement. */}
+              <p
+                aria-hidden="true"
+                className="form-field__preview"
+                style={{
+                  fontSize: `calc(1rem * ${(prefs?.fontScale ?? 100) / 100})`,
+                }}
+              >
+                <FormattedMessage id="settings.fontScale.sample" />
+              </p>
             </div>
 
             <SelectField
@@ -524,6 +538,15 @@ function AnonymousPersonaSection({
   const [wizardOpen, setWizardOpen] = useState(false);
   return (
     <>
+      <p className="settings-anonymous-cta">
+        <FormattedMessage
+          id="settings.anonymousCta"
+          values={{
+            login: (chunks) => <Link to="/login">{chunks}</Link>,
+            register: (chunks) => <Link to="/register">{chunks}</Link>,
+          }}
+        />
+      </p>
       <fieldset>
         <legend>
           <FormattedMessage id="settings.section.persona" />

@@ -1,4 +1,5 @@
 import { FormattedMessage, useIntl } from "react-intl";
+import { Link } from "react-router";
 import { useSaveLocation } from "../hooks/useSavedLocations";
 import {
   useClearRecentPlaces,
@@ -23,9 +24,17 @@ export function RecentPlacesList() {
 
   if (places.length === 0) {
     return (
-      <p className="help">
-        <FormattedMessage id="recentPlaces.empty" />
-      </p>
+      <div className="empty-state">
+        <div className="empty-state__art" aria-hidden="true" />
+        <p>
+          <FormattedMessage id="recentPlaces.empty" />
+        </p>
+        <p>
+          <Link to="/map">
+            <FormattedMessage id="recentPlaces.emptyCta" />
+          </Link>
+        </p>
+      </div>
     );
   }
 

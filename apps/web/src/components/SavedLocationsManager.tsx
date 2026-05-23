@@ -7,6 +7,7 @@ import {
   useUpdateLocation,
 } from "../hooks/useSavedLocations";
 import { ApiError } from "@reissulla/api-client";
+import { Link } from "react-router";
 import { shareLocation } from "../lib/share-location";
 import { useConfirm } from "../hooks/useConfirm";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -35,9 +36,19 @@ export function SavedLocationsManager() {
 
   if (locations.length === 0) {
     return (
-      <p className="help">
-        <FormattedMessage id="locations.empty" />
-      </p>
+      <div className="empty-state">
+        {/* Empty illustrations are added in W4b.5 — this slot is the
+            anchor for the line-art SVG. Aria-hidden, decorative. */}
+        <div className="empty-state__art" aria-hidden="true" />
+        <p>
+          <FormattedMessage id="locations.empty" />
+        </p>
+        <p>
+          <Link to="/map">
+            <FormattedMessage id="locations.emptyCta" />
+          </Link>
+        </p>
+      </div>
     );
   }
 

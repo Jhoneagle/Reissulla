@@ -354,6 +354,64 @@ main:has(.page-full-width) {
   flex-direction: column;
 }
 
+/* ── Empty state ──
+   Used by saved-locations and recent-places when their lists are
+   empty. The art slot is left blank for now; W4b.5 fills it with
+   hand-drawn line-art SVGs (folded map, tram, satellite). The text
+   carries the meaning; the illustration is decorative. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--color-ink-muted);
+}
+
+.empty-state__art {
+  width: 6rem;
+  height: 6rem;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.empty-state a:hover {
+  color: var(--color-primary-ink);
+  text-decoration: underline;
+}
+
+.settings-anonymous-cta {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-sunk);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-xs);
+  margin: var(--space-4) 0;
+  font-size: var(--text-sm);
+}
+
+.settings-anonymous-cta a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.form-field__preview {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-sunk);
+  border-radius: var(--radius-xs);
+  color: var(--color-ink);
+  font-style: italic;
+  line-height: var(--leading-tight);
+}
+
 /* ── Toast queue ──
    Singleton, mounted by Layout. Bottom-centre stack, each toast in a
    coloured surface tied to its kind. The container is an aria-live
