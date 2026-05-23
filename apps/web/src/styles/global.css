@@ -1163,6 +1163,112 @@ footer a {
   margin-bottom: var(--space-2);
 }
 
+/* ── Departure board ──
+   Stop list as a transit-board row grid. See docs/design-system.md §7.
+   Row number (mono) | mode tag (real-word, brand-tinted) | stop name
+   (Atkinson 500) | distance (mono tabular). Inter-row hairline rule
+   in --color-rule-soft (decorative). */
+.stops-board {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stops-board__row {
+  display: grid;
+  grid-template-columns: 2rem auto 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-rule-soft);
+}
+
+.stops-board__row:last-child {
+  border-bottom: none;
+}
+
+.stops-board__num {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-muted);
+}
+
+.stops-board__mode {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  padding: var(--space-1) var(--space-2) var(--space-1) calc(var(--space-2) + 6px);
+  border-radius: var(--radius-xs);
+  /* Default mode background — overridden per mode below. */
+  background: var(--mode-bus);
+  color: var(--color-ink);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.stops-board__mode::before {
+  /* 4px brand-strong bar at the left edge of the tag. Preserves the
+     line's brand colour identity while keeping the tag itself a
+     light tint for contrast. */
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--mode-bus-strong);
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+}
+
+.stops-board__mode.mode-bus { background: var(--mode-bus); }
+.stops-board__mode.mode-bus::before { background: var(--mode-bus-strong); }
+.stops-board__mode.mode-tram { background: var(--mode-tram); }
+.stops-board__mode.mode-tram::before { background: var(--mode-tram-strong); }
+.stops-board__mode.mode-rail { background: var(--mode-rail); }
+.stops-board__mode.mode-rail::before { background: var(--mode-rail-strong); }
+.stops-board__mode.mode-subway { background: var(--mode-subway); }
+.stops-board__mode.mode-subway::before { background: var(--mode-subway-strong); }
+.stops-board__mode.mode-ferry { background: var(--mode-ferry); }
+.stops-board__mode.mode-ferry::before { background: var(--mode-ferry-strong); }
+
+.stops-board__name {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+}
+
+.stops-board__distance {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-muted);
+  text-align: right;
+}
+
+@media (max-width: 40rem) {
+  .stops-board__row {
+    grid-template-columns: 2rem auto 1fr;
+    grid-template-areas:
+      "num mode name"
+      ".   .    distance";
+    row-gap: var(--space-1);
+  }
+  .stops-board__num { grid-area: num; }
+  .stops-board__mode { grid-area: mode; }
+  .stops-board__name { grid-area: name; }
+  .stops-board__distance {
+    grid-area: distance;
+    text-align: left;
+  }
+}
+
 .dashboard-card__actions {
   display: flex;
   flex-wrap: wrap;
