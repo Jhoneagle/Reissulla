@@ -1,5 +1,7 @@
 import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import { config } from "./config.js";
 import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
@@ -24,6 +26,16 @@ export async function buildServer() {
   await server.register(cors, {
     origin: config.frontendUrl,
     credentials: true,
+  });
+
+  // CSP is configured at the nginx layer (FE/API share an origin behind nginx);
+  // disabling here keeps Fastify from setting a conflicting policy.
+  await server.register(helmet, { contentSecurityPolicy: false });
+
+  await server.register(rateLimit, {
+    max: config.rateLimitMax,
+    timeWindow: "1 minute",
+    allowList: (req) => req.url === "/api/v1/health",
   });
 
   server.setErrorHandler((err: FastifyError, request, reply) => {

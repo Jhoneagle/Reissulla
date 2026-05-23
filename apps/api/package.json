@@ -18,6 +18,8 @@
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.9",
     "@fastify/cors": "^11.2.0",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/rate-limit": "^10.3.0",
     "@reissulla/shared": "workspace:*",
     "better-auth": "^1.6.9",
     "dotenv": "^17.4.2",
