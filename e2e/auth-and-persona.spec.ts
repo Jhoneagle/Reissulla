@@ -42,11 +42,11 @@ test("sign up + wizard sets wheelchair persona and sends it on subsequent API ca
     (req) => req.url().includes("/api/v1/") && req.method() !== "OPTIONS",
   );
 
-  // "Save" on the last step persists; click Next twice (the remaining
-  // questions are unanswered → false) then Save.
+  // After auto-advance from step 1, we're on step 2. Click Next to
+  // step 3 (skipping = null, not false — wire encoder drops it), then
+  // Finish to persist.
   await wizard.getByRole("button", { name: /Next|Seuraava/ }).click();
-  await wizard.getByRole("button", { name: /Next|Seuraava/ }).click();
-  await wizard.getByRole("button", { name: /Save|Tallenna/ }).click();
+  await wizard.getByRole("button", { name: /Finish|Valmis/ }).click();
 
   // Settings page should now show the wheelchair toggle checked.
   await expect(
