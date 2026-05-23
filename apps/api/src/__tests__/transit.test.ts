@@ -7,10 +7,13 @@ import {
   vi,
   beforeEach,
 } from "vitest";
+import { DEFAULT_PERSONA, serializePersona } from "@reissulla/shared";
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
 import { cacheDel } from "../cache/cache.js";
 import type { FastifyInstance } from "fastify";
+
+const DEFAULT_PERSONA_FINGERPRINT = serializePersona(DEFAULT_PERSONA);
 
 // -- Mock data matching Digitransit OTP2 GraphQL response shapes ----------
 
@@ -485,7 +488,9 @@ describe("GET /api/v1/transit/departures", () => {
 
 describe("GET /api/v1/transit/plan", () => {
   beforeEach(async () => {
-    await cacheDel("transit:plan:v1:60.170:24.940:60.200:24.960");
+    await cacheDel(
+      `transit:plan:v2:60.170:24.940:60.200:24.960:${DEFAULT_PERSONA_FINGERPRINT}`,
+    );
     vi.restoreAllMocks();
   });
 
@@ -561,5 +566,82 @@ describe("GET /api/v1/transit/plan", () => {
 
     expect(res.statusCode).toBe(502);
     expect(res.json().error.code).toBe("TRANSIT_UNAVAILABLE");
+  });
+
+  it("forwards wheelchair=1 persona into the GraphQL preferences arg", async () => {
+    const wheelchairPersonaKey = `transit:plan:v2:60.170:24.940:60.200:24.960:wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en`;
+    await cacheDel(wheelchairPersonaKey);
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
+      );
+
+    const res = await server.inject({
+      method: "GET",
+      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
+      headers: {
+        "x-reissulla-persona":
+          "wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInit = fetchSpy.mock.calls[0]![1] as RequestInit;
+    const body = JSON.parse(requestInit.body as string) as { query: string };
+    expect(body.query).toContain("wheelchair: { enabled: true }");
+
+    await cacheDel(wheelchairPersonaKey);
+  });
+
+  it("omits the preferences arg when persona has no accessibility flags", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
+      );
+
+    await server.inject({
+      method: "GET",
+      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInit = fetchSpy.mock.calls[0]![1] as RequestInit;
+    const body = JSON.parse(requestInit.body as string) as { query: string };
+    expect(body.query).not.toContain("preferences:");
+  });
+
+  it("uses a separate cache entry for wheelchair persona", async () => {
+    const wheelchairKey = `transit:plan:v2:60.170:24.940:60.200:24.960:wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en`;
+    await cacheDel(wheelchairKey);
+
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
+      );
+
+    // Anonymous (default persona) — uses the default-persona cache slot.
+    await server.inject({
+      method: "GET",
+      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
+    });
+
+    // Wheelchair persona — must NOT hit the anonymous cache slot.
+    await server.inject({
+      method: "GET",
+      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
+      headers: {
+        "x-reissulla-persona":
+          "wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en",
+      },
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    await cacheDel(wheelchairKey);
   });
 });

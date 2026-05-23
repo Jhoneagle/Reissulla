@@ -17,6 +17,7 @@ import {
   type Source,
 } from "./utils/error-envelope.js";
 import { DigitransitError } from "./adapters/digitransit-routing/errors.js";
+import { attachPersona } from "./auth/persona.middleware.js";
 
 export async function buildServer() {
   const server = Fastify({
@@ -85,6 +86,19 @@ export async function buildServer() {
         source: "self" as Source,
       },
     });
+  });
+
+  // Decorate request.persona before any /api/v1/* handler runs. Skipped for
+  // health (frequent, doesn't need persona) and /api/auth/* (handled by
+  // better-auth's own pipeline; persona context is meaningless there).
+  server.addHook("preHandler", async (request) => {
+    if (
+      request.url === "/api/v1/health" ||
+      request.url.startsWith("/api/auth/")
+    ) {
+      return;
+    }
+    await attachPersona(request);
   });
 
   await server.register(healthRoutes);

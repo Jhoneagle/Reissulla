@@ -52,7 +52,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         radius = parsed;
       }
 
-      const { data, cached } = await getNearbyStops(lat, lon, radius);
+      const { data, cached } = await getNearbyStops(
+        lat,
+        lon,
+        radius,
+        request.persona,
+      );
       return { data, cached };
     },
   );
@@ -74,7 +79,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         return badRequest("q must not be empty");
       }
 
-      const { data, cached } = await searchStops(q);
+      const { data, cached } = await searchStops(q, request.persona);
       return { data, cached };
     },
   );
@@ -116,6 +121,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         stopId,
         count,
         isStation,
+        request.persona,
       );
       return { data, cached };
     },
@@ -195,6 +201,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         countPerStop,
         totalCount,
         stationId,
+        request.persona,
       );
       return { data, cached };
     },
@@ -238,6 +245,8 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         from.lon,
         to.lat,
         to.lon,
+        undefined,
+        request.persona,
       );
       return { data, cached };
     },
