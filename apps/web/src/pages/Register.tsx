@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router";
 import { useAuthStore } from "../stores/auth";
 import { ApiError } from "@reissulla/api-client";
 
+type ViewState = { kind: "form" } | { kind: "magic-link-sent"; email: string };
+
 export function Register() {
   const signUp = useAuthStore((s) => s.signUp);
   const navigate = useNavigate();
@@ -11,6 +13,7 @@ export function Register() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [view, setView] = useState<ViewState>({ kind: "form" });
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -18,8 +21,12 @@ export function Register() {
     setSubmitting(true);
 
     try {
-      await signUp(name, email, password);
-      navigate("/");
+      const outcome = await signUp(name, email, password);
+      if (outcome.status === "signed-in") {
+        navigate("/");
+      } else {
+        setView({ kind: "magic-link-sent", email: outcome.email });
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -29,6 +36,27 @@ export function Register() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (view.kind === "magic-link-sent") {
+    return (
+      <section aria-labelledby="register-heading" className="auth-page">
+        <h2 id="register-heading">Check your email</h2>
+        <p role="status">
+          We sent a sign-in link to <strong>{view.email}</strong>. Open it on
+          this device — the link expires in 15 minutes.
+        </p>
+        <p>
+          <button
+            type="button"
+            onClick={() => setView({ kind: "form" })}
+            className="link-button"
+          >
+            Use a different email
+          </button>
+        </p>
+      </section>
+    );
   }
 
   return (

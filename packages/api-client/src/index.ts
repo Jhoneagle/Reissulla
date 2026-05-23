@@ -167,16 +167,21 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const authApi = {
-  signUp(name: string, email: string, password: string) {
+  signUp(
+    name: string,
+    email: string,
+    password: string,
+    recaptchaToken: string,
+  ) {
     return authRequest<{ user: AuthUser }>("/sign-up/email", {
       method: "POST",
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, recaptchaToken }),
     });
   },
-  signIn(email: string, password: string) {
+  signIn(email: string, password: string, recaptchaToken: string) {
     return authRequest<{ user: AuthUser }>("/sign-in/email", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, recaptchaToken }),
     });
   },
   signOut() {
@@ -184,6 +189,17 @@ export const authApi = {
   },
   getSession() {
     return authRequest<{ user: AuthUser }>("/get-session");
+  },
+  /**
+   * Trigger a magic-link email. Used both as an explicit "sign in by email"
+   * affordance and as the fallback when password sign-in hits the
+   * RECAPTCHA_FAILED envelope from the auth hook.
+   */
+  requestMagicLink(email: string, recaptchaToken: string) {
+    return authRequest<{ status?: boolean }>("/sign-in/magic-link", {
+      method: "POST",
+      body: JSON.stringify({ email, recaptchaToken }),
+    });
   },
 };
 
