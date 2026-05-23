@@ -3,3 +3,6 @@ node_modules
 .turbo
 .playwright-mcp
 pnpm-lock.yaml
+.claude
+tmp-docs
+docs

@@ -17,7 +17,10 @@ describe("digitransit GraphQL client", () => {
       new Response(JSON.stringify({ data: { ok: true } }), { status: 200 }),
     );
 
-    const client = createGraphQLClient("digitransit-finland", "https://example/");
+    const client = createGraphQLClient(
+      "digitransit-finland",
+      "https://example/",
+    );
     const result = await client.graphql<{ ok: boolean }>("{ q }", {}, ctx());
 
     expect(result).toEqual({ ok: true });
@@ -28,7 +31,10 @@ describe("digitransit GraphQL client", () => {
       new Response("oops", { status: 503, statusText: "Service Unavailable" }),
     );
 
-    const client = createGraphQLClient("digitransit-finland", "https://example/");
+    const client = createGraphQLClient(
+      "digitransit-finland",
+      "https://example/",
+    );
     await expect(client.graphql("{ q }", {}, ctx())).rejects.toMatchObject({
       name: "DigitransitError",
       source: "digitransit-finland",
@@ -60,7 +66,10 @@ describe("digitransit GraphQL client", () => {
       new Error("connect ECONNREFUSED"),
     );
 
-    const client = createGraphQLClient("digitransit-finland", "https://example/");
+    const client = createGraphQLClient(
+      "digitransit-finland",
+      "https://example/",
+    );
     const err = await client
       .graphql("{ q }", {}, ctx())
       .catch((e: unknown) => e);
@@ -80,7 +89,10 @@ describe("digitransit GraphQL client", () => {
         }),
     );
 
-    const client = createGraphQLClient("digitransit-finland", "https://example/");
+    const client = createGraphQLClient(
+      "digitransit-finland",
+      "https://example/",
+    );
     const promise = client.graphql("{ q }", {}, { signal: controller.signal });
     controller.abort();
 

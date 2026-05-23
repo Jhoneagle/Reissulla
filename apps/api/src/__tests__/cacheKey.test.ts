@@ -13,9 +13,9 @@ describe("cacheKey", () => {
   });
 
   it("stringifies numeric segments", () => {
-    expect(cacheKey("transit", "stops-nearby", 1, "60.170", "24.940", 500)).toBe(
-      "transit:stops-nearby:v1:60.170:24.940:500",
-    );
+    expect(
+      cacheKey("transit", "stops-nearby", 1, "60.170", "24.940", 500),
+    ).toBe("transit:stops-nearby:v1:60.170:24.940:500");
   });
 
   it("stringifies boolean segments", () => {

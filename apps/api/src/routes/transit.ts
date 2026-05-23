@@ -112,7 +112,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       }
 
       const isStation = request.query.isStation === "true";
-      const { data, cached } = await getStopDepartures(stopId, count, isStation);
+      const { data, cached } = await getStopDepartures(
+        stopId,
+        count,
+        isStation,
+      );
       return { data, cached };
     },
   );

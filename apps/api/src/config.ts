@@ -5,17 +5,12 @@ import { resolve } from "node:path";
 // so "dotenv/config" alone would look in apps/api/ instead of the repo root.
 dotenvConfig({ path: resolve(import.meta.dirname, "../../../.env") });
 
-function positiveIntEnv(
-  name: string,
-  defaultValue: number,
-): number {
+function positiveIntEnv(name: string, defaultValue: number): number {
   const raw = process.env[name];
   if (raw === undefined || raw === "") return defaultValue;
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
-    throw new Error(
-      `Invalid ${name}="${raw}" — expected a positive integer`,
-    );
+    throw new Error(`Invalid ${name}="${raw}" — expected a positive integer`);
   }
   return n;
 }

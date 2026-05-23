@@ -7,10 +7,7 @@ import {
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../cache/cache.js";
 import { cacheKey } from "../cache/key.js";
-import {
-  WEATHER_CURRENT_TTL,
-  WEATHER_FORECAST_TTL,
-} from "../cache/ttl.js";
+import { WEATHER_CURRENT_TTL, WEATHER_FORECAST_TTL } from "../cache/ttl.js";
 import { tryCache } from "../utils/resilience.js";
 
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1/forecast";
@@ -104,7 +101,13 @@ export async function getWeatherForecast(
   lat: number,
   lon: number,
 ): Promise<{ data: WeatherForecast; cached: boolean }> {
-  const key = cacheKey("weather", "forecast", 1, lat.toFixed(2), lon.toFixed(2));
+  const key = cacheKey(
+    "weather",
+    "forecast",
+    1,
+    lat.toFixed(2),
+    lon.toFixed(2),
+  );
   const cached = await tryCache(() => cacheGet<WeatherForecast>(key));
   if (cached) return { data: cached, cached: true };
 

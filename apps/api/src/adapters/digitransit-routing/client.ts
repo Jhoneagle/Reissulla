@@ -21,7 +21,10 @@ function apiKeyHeaders(): Record<string, string> {
     : {};
 }
 
-export function createGraphQLClient(source: string, url: string): GraphQLClient {
+export function createGraphQLClient(
+  source: string,
+  url: string,
+): GraphQLClient {
   return {
     source,
     url,

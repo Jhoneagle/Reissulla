@@ -5,10 +5,7 @@ import type {
 import { config } from "../config.js";
 import { cacheGet, cacheSet } from "../cache/cache.js";
 import { cacheKey } from "../cache/key.js";
-import {
-  GEOCODE_SEARCH_TTL,
-  GEOCODE_REVERSE_TTL,
-} from "../cache/ttl.js";
+import { GEOCODE_SEARCH_TTL, GEOCODE_REVERSE_TTL } from "../cache/ttl.js";
 import { tryCache } from "../utils/resilience.js";
 
 const DIGITRANSIT_BASE = "https://api.digitransit.fi/geocoding/v1";

@@ -92,9 +92,7 @@ export async function updateByIdForUser(
     const [row] = await tx
       .update(savedLocations)
       .set({ ...updates, updatedAt: new Date() })
-      .where(
-        and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)),
-      )
+      .where(and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)))
       .returning();
 
     return row;
@@ -115,9 +113,7 @@ export async function deleteByIdForUser(
   return db.transaction(async (tx) => {
     const [row] = await tx
       .delete(savedLocations)
-      .where(
-        and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)),
-      )
+      .where(and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)))
       .returning();
 
     if (row?.isPrimary) {

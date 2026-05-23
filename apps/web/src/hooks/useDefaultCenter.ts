@@ -30,11 +30,7 @@ function readLastViewed(): LastViewed | null {
   }
 }
 
-export function saveLastViewed(
-  lat: number,
-  lon: number,
-  zoom: number,
-): void {
+export function saveLastViewed(lat: number, lon: number, zoom: number): void {
   try {
     localStorage.setItem(
       LAST_VIEWED_KEY,
