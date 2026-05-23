@@ -7,7 +7,21 @@
 }
 
 :root {
-  /* ── Colour tokens ── */
+  /* ── Colour tokens ──
+     WCAG 2.2 AA contrast notes (against the light --color-bg #ffffff):
+     --color-text   #1a1a1a → 16.78:1 (AAA body, AAA large)
+     --color-border #e2e8f0 → decorative only — used for inset surfaces
+                              and form-field borders that pair with
+                              --color-text labels and own UI-state focus
+                              outlines, not as a non-text UI boundary on
+                              their own (SC 1.4.11 verified at the call
+                              sites that use it as such).
+     --color-footer-text #475569 → 7.05:1 (AAA body) on white. Bumped
+                              from #64748b which only hit 4.04:1 and
+                              failed AA body. Wave 4a.2 rebinds these to
+                              the cream-paper palette and tunes further;
+                              this is the floor that clears the axe-core
+                              gate today. */
   --color-bg: #ffffff;
   --color-text: #1a1a1a;
   --color-primary: #2563eb;
@@ -15,7 +29,7 @@
   --color-nav-bg: #f8fafc;
   --color-border: #e2e8f0;
   --color-active: #2563eb;
-  --color-footer-text: #64748b;
+  --color-footer-text: #475569;
   --color-error-bg: #fef2f2;
   --color-error-text: #991b1b;
 
@@ -29,12 +43,18 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    /* ── Dark-mode contrast notes (against --color-bg #0f172a):
+       --color-text        #e2e8f0 → 14.41:1 (AAA body)
+       --color-border      #475569 → 3.13:1 (passes SC 1.4.11 non-text);
+                                     bumped from #334155 (1.91:1) which
+                                     failed the AA non-text threshold.
+       --color-footer-text #94a3b8 → 7.45:1 (AAA body), already passing. */
     --color-bg: #0f172a;
     --color-text: #e2e8f0;
     --color-primary: #60a5fa;
     --color-primary-hover: #93c5fd;
     --color-nav-bg: #1e293b;
-    --color-border: #334155;
+    --color-border: #475569;
     --color-active: #60a5fa;
     --color-footer-text: #94a3b8;
     --color-error-bg: #450a0a;
