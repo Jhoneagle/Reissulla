@@ -196,6 +196,7 @@ export function SavedLocationsManager() {
                       aria-label={intl.formatMessage({
                         id: "locations.moveUp",
                       })}
+                      className="btn btn--ghost btn--sm"
                     >
                       <span aria-hidden="true">↑</span>
                     </button>
@@ -206,24 +207,37 @@ export function SavedLocationsManager() {
                       aria-label={intl.formatMessage({
                         id: "locations.moveDown",
                       })}
+                      className="btn btn--ghost btn--sm"
                     >
                       <span aria-hidden="true">↓</span>
                     </button>
                     {!loc.isPrimary && (
-                      <button type="button" onClick={() => setPrimary(loc)}>
+                      <button
+                        type="button"
+                        onClick={() => setPrimary(loc)}
+                        className="btn btn--secondary btn--sm"
+                      >
                         <FormattedMessage id="locations.makePrimary" />
                       </button>
                     )}
-                    <button type="button" onClick={() => setEditingId(loc.id)}>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(loc.id)}
+                      className="btn btn--secondary btn--sm"
+                    >
                       <FormattedMessage id="locations.rename" />
                     </button>
-                    <button type="button" onClick={() => share(loc)}>
+                    <button
+                      type="button"
+                      onClick={() => share(loc)}
+                      className="btn btn--secondary btn--sm"
+                    >
                       <FormattedMessage id="locations.share" />
                     </button>
                     <button
                       type="button"
                       onClick={() => remove(loc)}
-                      className="btn-destructive"
+                      className="btn btn--destructive btn--sm"
                     >
                       <FormattedMessage id="locations.delete" />
                     </button>
@@ -282,10 +296,14 @@ function RenameForm({
         minLength={1}
         maxLength={255}
       />
-      <button type="submit">
+      <button type="submit" className="btn btn--primary btn--sm">
         <FormattedMessage id="locations.saveChanges" />
       </button>
-      <button type="button" onClick={onCancel} className="link-button">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="btn btn--ghost btn--sm"
+      >
         <FormattedMessage id="locations.cancel" />
       </button>
     </form>

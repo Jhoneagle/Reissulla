@@ -74,7 +74,7 @@ export function Login() {
           <button
             type="button"
             onClick={() => setView({ kind: "form" })}
-            className="link-button"
+            className="btn btn--link"
           >
             <FormattedMessage id="auth.checkEmail.useDifferentEmail" />
           </button>
@@ -117,7 +117,11 @@ export function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        <button type="submit" disabled={submitting}>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="btn btn--primary"
+        >
           <FormattedMessage
             id={submitting ? "login.submitting" : "login.submit"}
           />
@@ -129,7 +133,7 @@ export function Login() {
           type="button"
           onClick={handleMagicLinkOnly}
           disabled={submitting || !email}
-          className="link-button"
+          className="btn btn--link"
         >
           <FormattedMessage id="login.magicLinkAction" />
         </button>

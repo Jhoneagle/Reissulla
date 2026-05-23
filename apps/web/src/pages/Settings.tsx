@@ -290,7 +290,11 @@ export function Settings() {
           <FormattedMessage id="settings.section.persona" />
         </legend>
         <div className="form-field">
-          <button type="button" onClick={() => setWizardOpen(true)}>
+          <button
+            type="button"
+            onClick={() => setWizardOpen(true)}
+            className="btn btn--secondary"
+          >
             <FormattedMessage id="personaWizard.openButton" />
           </button>
         </div>
@@ -372,7 +376,11 @@ function ProfileSection({ currentName }: { currentName: string }) {
             {error}
           </div>
         )}
-        <button type="submit" disabled={saving || name === currentName}>
+        <button
+          type="submit"
+          disabled={saving || name === currentName}
+          className="btn btn--primary"
+        >
           <FormattedMessage
             id={saving ? "settings.profile.saving" : "settings.profile.save"}
           />
@@ -436,7 +444,11 @@ function AccountSection() {
         <FormattedMessage id="settings.section.account" />
       </legend>
       <div className="form-field">
-        <button type="button" onClick={() => void downloadExport()}>
+        <button
+          type="button"
+          onClick={() => void downloadExport()}
+          className="btn btn--secondary"
+        >
           <FormattedMessage id="settings.account.export" />
         </button>
         <p className="help">
@@ -448,7 +460,7 @@ function AccountSection() {
           type="button"
           onClick={() => void deleteAccount()}
           disabled={deleting}
-          className="btn-destructive"
+          className="btn btn--destructive"
         >
           <FormattedMessage
             id={
@@ -485,7 +497,11 @@ function AnonymousPersonaSection({
           <FormattedMessage id="settings.persona.localOnly" />
         </p>
         <div className="form-field">
-          <button type="button" onClick={() => setWizardOpen(true)}>
+          <button
+            type="button"
+            onClick={() => setWizardOpen(true)}
+            className="btn btn--secondary"
+          >
             <FormattedMessage id="personaWizard.openButton" />
           </button>
         </div>

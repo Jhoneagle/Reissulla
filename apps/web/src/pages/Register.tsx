@@ -60,7 +60,7 @@ export function Register() {
           <button
             type="button"
             onClick={() => setView({ kind: "form" })}
-            className="link-button"
+            className="btn btn--link"
           >
             <FormattedMessage id="auth.checkEmail.useDifferentEmail" />
           </button>
@@ -116,7 +116,11 @@ export function Register() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        <button type="submit" disabled={submitting}>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="btn btn--primary"
+        >
           <FormattedMessage
             id={submitting ? "register.submitting" : "register.submit"}
           />

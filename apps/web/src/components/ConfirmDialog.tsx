@@ -57,14 +57,16 @@ export function ConfirmDialog({
       <div className="confirm-dialog__actions">
         <button
           type="button"
-          className="link-button"
+          className="btn btn--ghost"
           onClick={() => onResolve(false)}
         >
           {resolvedCancel}
         </button>
         <button
           type="button"
-          className={destructive ? "btn-destructive" : undefined}
+          className={
+            destructive ? "btn btn--destructive" : "btn btn--secondary"
+          }
           onClick={() => onResolve(true)}
         >
           {resolvedConfirm}

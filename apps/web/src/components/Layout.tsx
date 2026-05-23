@@ -53,16 +53,20 @@ export function Layout() {
             {user ? (
               <>
                 <span className="user-name">{user.name}</span>
-                <button type="button" onClick={signOut}>
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="btn btn--secondary btn--sm"
+                >
                   <FormattedMessage id="nav.logOut" />
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login">
+                <Link to="/login" className="btn btn--ghost btn--sm">
                   <FormattedMessage id="nav.logIn" />
                 </Link>
-                <Link to="/register" className="btn-register">
+                <Link to="/register" className="btn btn--primary btn--sm">
                   <FormattedMessage id="nav.register" />
                 </Link>
               </>

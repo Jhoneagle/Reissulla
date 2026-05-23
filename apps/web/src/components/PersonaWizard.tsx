@@ -137,16 +137,20 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
       )}
 
       <div className="persona-wizard-nav">
-        <button type="button" onClick={onClose} className="link-button">
+        <button type="button" onClick={onClose} className="btn btn--link">
           <FormattedMessage id="personaWizard.skipAll" />
         </button>
         <div className="persona-wizard-nav-right">
           {!isFirstStep && (
-            <button type="button" onClick={() => setStep((s) => s - 1)}>
+            <button
+              type="button"
+              onClick={() => setStep((s) => s - 1)}
+              className="btn btn--secondary"
+            >
               <FormattedMessage id="personaWizard.previous" />
             </button>
           )}
-          <button type="button" onClick={next}>
+          <button type="button" onClick={next} className="btn btn--primary">
             <FormattedMessage
               id={isLastStep ? "personaWizard.finish" : "personaWizard.next"}
             />
