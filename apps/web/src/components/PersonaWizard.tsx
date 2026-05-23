@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import type { Persona } from "@reissulla/shared";
 import { useAuthStore } from "../stores/auth";
@@ -117,40 +117,18 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
       <p className="persona-wizard-intro">
         <FormattedMessage id="personaWizard.intro" />
       </p>
-      <p className="persona-wizard-step" aria-live="polite">
+      <p className="persona-wizard-step">
         <FormattedMessage
           id="personaWizard.step"
           values={{ current: step + 1, total: QUESTIONS.length }}
         />
       </p>
 
-      <fieldset>
-        <legend>
-          <FormattedMessage id={currentQuestion.labelId} />
-        </legend>
-        <div className="persona-wizard-choice">
-          <button
-            type="button"
-            onClick={() => answer(true)}
-            aria-pressed={answers[currentQuestion.id] === true}
-            className={
-              answers[currentQuestion.id] === true ? "selected" : undefined
-            }
-          >
-            <FormattedMessage id="personaWizard.yes" />
-          </button>
-          <button
-            type="button"
-            onClick={() => answer(false)}
-            aria-pressed={answers[currentQuestion.id] === false}
-            className={
-              answers[currentQuestion.id] === false ? "selected" : undefined
-            }
-          >
-            <FormattedMessage id="personaWizard.no" />
-          </button>
-        </div>
-      </fieldset>
+      <YesNoRadioGroup
+        questionLabelId={currentQuestion.labelId}
+        value={answers[currentQuestion.id]}
+        onChange={answer}
+      />
 
       {saveError && (
         <div role="alert" className="form-error">
@@ -176,5 +154,83 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
         </div>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * Native-feel yes/no radio group with arrow-key roving focus. We don't
+ * use `<input type="radio">` because the buttons carry custom selected
+ * styling and a click should both select and (in W3.3) auto-advance — a
+ * hidden input would split focus management between the input and the
+ * visible button. ARIA `radio` semantics with explicit roving tabindex
+ * is the documented WAI-ARIA APG pattern for exactly this case.
+ */
+function YesNoRadioGroup({
+  questionLabelId,
+  value,
+  onChange,
+}: {
+  questionLabelId: string;
+  value: boolean | null;
+  onChange: (value: boolean) => void;
+}) {
+  const groupLabelId = useId();
+  const yesRef = useRef<HTMLButtonElement>(null);
+  const noRef = useRef<HTMLButtonElement>(null);
+
+  // Roving tabindex: only the active option (or the first one when
+  // nothing is selected yet) is in the Tab sequence. Arrow keys move
+  // both focus and selection between options.
+  const yesIsTabStop = value === true || value === null;
+  const noIsTabStop = value === false;
+
+  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+      return;
+    }
+    e.preventDefault();
+    const next = value === true ? false : true;
+    onChange(next);
+    (next ? yesRef : noRef).current?.focus();
+  }
+
+  return (
+    <fieldset>
+      <legend id={groupLabelId}>
+        <FormattedMessage id={questionLabelId} />
+      </legend>
+      {/* WAI-ARIA APG: radiogroup container is not focusable — focus
+          rests on one of its radio children at a time (roving tabindex). */}
+      {/* eslint-disable-next-line jsx-a11y/interactive-supports-focus */}
+      <div
+        role="radiogroup"
+        aria-labelledby={groupLabelId}
+        className="persona-wizard-choice"
+        onKeyDown={handleKeyDown}
+      >
+        <button
+          ref={yesRef}
+          type="button"
+          role="radio"
+          aria-checked={value === true}
+          tabIndex={yesIsTabStop ? 0 : -1}
+          onClick={() => onChange(true)}
+          className={value === true ? "selected" : undefined}
+        >
+          <FormattedMessage id="personaWizard.yes" />
+        </button>
+        <button
+          ref={noRef}
+          type="button"
+          role="radio"
+          aria-checked={value === false}
+          tabIndex={noIsTabStop ? 0 : -1}
+          onClick={() => onChange(false)}
+          className={value === false ? "selected" : undefined}
+        >
+          <FormattedMessage id="personaWizard.no" />
+        </button>
+      </div>
+    </fieldset>
   );
 }
