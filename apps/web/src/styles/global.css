@@ -533,6 +533,157 @@ footer a {
   margin-top: 1rem;
 }
 
+/* ── Dashboard ── */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-bg);
+}
+
+.dashboard-card--primary {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+.dashboard-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-card__header h3 {
+  font-size: 1.125rem;
+}
+
+.dashboard-card__region {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__weather {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dashboard-card__temp {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.dashboard-card__weather-desc {
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__weather-empty {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__stops h4 {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-card__stops ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.dashboard-card__stops li {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.dashboard-card__stops .stop-mode {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__stops .stop-distance {
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dashboard-card__actions a {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.dashboard-card__actions a:hover {
+  background: var(--color-border);
+}
+
+.dashboard-save-prompt {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dashboard-save-prompt input {
+  flex: 1;
+  min-width: 12rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.dashboard-saved {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* SR-optimised: stack the stop grid into linear rows so the order is
+   mode → name → distance in reading order. */
+body[data-sr-optimised="true"] .dashboard-card__stops li {
+  grid-template-columns: 1fr;
+}
+
+/* Compact mobile layout: single column, slightly tighter padding. */
+@media (max-width: 40rem) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-card {
+    padding: 0.75rem 1rem;
+  }
+}
+
 /* ── Modal dialog ──
    Used by PersonaWizard. The backdrop click-through is handled in the
    component (clicks on the dialog itself don't propagate to backdrop). */
