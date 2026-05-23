@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
+import { cacheDel } from "../cache/cache.js";
 import type { FastifyInstance } from "fastify";
 
 let server: FastifyInstance;
@@ -43,6 +44,11 @@ describe("error envelope", () => {
   });
 
   it("returns { error: { code: 'TRANSIT_UNAVAILABLE', source: 'digitransit-finland' } } when the upstream fails", async () => {
+    // Other test files share this Redis instance and may have primed the
+    // stops-nearby cache for these coordinates; clear so we know the
+    // request will reach the (mocked-failing) upstream.
+    await cacheDel("transit:stops-nearby:v1:60.170:24.940:500");
+
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
       new Error("Network error"),
     );

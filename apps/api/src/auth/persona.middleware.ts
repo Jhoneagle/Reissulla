@@ -51,31 +51,7 @@ export async function attachPersona(request: FastifyRequest): Promise<void> {
 
 async function loadStoredPersona(userId: string): Promise<Persona | null> {
   const prefs = await preferencesRepo.findByUserId(userId);
-  return extractPersona(prefs?.extra);
-}
-
-/**
- * Best-effort extraction of `extra.persona` from the raw jsonb column. A
- * proper zod-validated schema for `preferences.extra` lands in the next
- * commit; until then we shape-check inline so malformed rows don't poison
- * the request.
- */
-function extractPersona(extra: unknown): Persona | null {
-  if (typeof extra !== "object" || extra === null) return null;
-  const candidate = (extra as Record<string, unknown>).persona;
-  if (typeof candidate !== "object" || candidate === null) return null;
-
-  const c = candidate as Record<string, unknown>;
-  const lang = c.language === "fi" || c.language === "en" ? c.language : "en";
-  return {
-    wheelchair: c.wheelchair === true,
-    lowFloor: c.lowFloor === true,
-    noStairs: c.noStairs === true,
-    stroller: c.stroller === true,
-    screenReader: c.screenReader === true,
-    lowVision: c.lowVision === true,
-    language: lang,
-  };
+  return prefs?.extra.persona ?? null;
 }
 
 declare module "fastify" {

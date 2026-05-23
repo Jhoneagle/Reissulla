@@ -618,10 +618,13 @@ describe("GET /api/v1/transit/plan", () => {
     const wheelchairKey = `transit:plan:v2:60.170:24.940:60.200:24.960:wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en`;
     await cacheDel(wheelchairKey);
 
+    // Fresh Response per call — `mockResolvedValue` would hand out the same
+    // body object both times and `await res.json()` would fail on the second.
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
+      .mockImplementation(
+        async () =>
+          new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
       );
 
     // Anonymous (default persona) — uses the default-persona cache slot.

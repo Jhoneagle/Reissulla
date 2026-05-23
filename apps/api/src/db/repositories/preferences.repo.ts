@@ -1,11 +1,28 @@
 import { eq } from "drizzle-orm";
 import { db } from "../index.js";
 import { preferences } from "../schema.js";
+import {
+  parseExtra,
+  serializeExtra,
+  type PreferencesExtra,
+} from "./preferences-extra.js";
 
-export type PreferencesRow = typeof preferences.$inferSelect;
+type PreferencesRowRaw = typeof preferences.$inferSelect;
+type PreferencesInsertRaw = typeof preferences.$inferInsert;
+
+export type PreferencesRow = Omit<PreferencesRowRaw, "extra"> & {
+  extra: PreferencesExtra;
+};
+
 export type PreferencesPatch = Partial<
-  Omit<typeof preferences.$inferInsert, "id" | "userId" | "updatedAt">
+  Omit<PreferencesInsertRaw, "id" | "userId" | "updatedAt" | "extra"> & {
+    extra?: PreferencesExtra;
+  }
 >;
+
+function toRow(raw: PreferencesRowRaw): PreferencesRow {
+  return { ...raw, extra: parseExtra(raw.extra) };
+}
 
 export async function findByUserId(
   userId: string,
@@ -15,7 +32,7 @@ export async function findByUserId(
     .from(preferences)
     .where(eq(preferences.userId, userId))
     .limit(1);
-  return row;
+  return row ? toRow(row) : undefined;
 }
 
 /**
@@ -28,13 +45,19 @@ export async function upsert(
   userId: string,
   patch: PreferencesPatch,
 ): Promise<PreferencesRow> {
+  const { extra, ...rest } = patch;
+  const dbValues: Partial<PreferencesInsertRaw> = { ...rest };
+  if (extra !== undefined) {
+    dbValues.extra = serializeExtra(extra);
+  }
+
   const [row] = await db
     .insert(preferences)
-    .values({ userId, ...patch })
+    .values({ userId, ...dbValues })
     .onConflictDoUpdate({
       target: preferences.userId,
-      set: { ...patch, updatedAt: new Date() },
+      set: { ...dbValues, updatedAt: new Date() },
     })
     .returning();
-  return row!;
+  return toRow(row!);
 }
