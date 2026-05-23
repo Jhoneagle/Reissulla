@@ -1,0 +1,30 @@
+# Local git hooks managed by lefthook.
+# `pnpm install` wires this up automatically via the prepare script.
+#
+# Requires the gitleaks binary on PATH:
+#   macOS:   brew install gitleaks
+#   Linux:   https://github.com/gitleaks/gitleaks/releases
+#   Windows: scoop install gitleaks  or  choco install gitleaks
+#
+# If gitleaks is not installed the hook prints a hint and exits 0 so
+# developers without the binary are not blocked from committing.
+
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then
+          gitleaks protect --staged --no-banner --redact
+        else
+          echo "gitleaks not installed — skipping secret scan"
+          echo "  install: https://github.com/gitleaks/gitleaks"
+        fi
+      fail_text: |
+        Gitleaks detected staged secrets. Commit blocked.
+        Review the report above, rotate the leaked credential, and remove
+        it from your staged files before committing.
+
+skip_output:
+  - meta
+  - summary
