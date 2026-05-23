@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 import { FormattedMessage } from "react-intl";
-import type { SavedLocation } from "@reissulla/shared";
 import { useCurrentWeather } from "../../hooks/useWeather";
 import { useNearbyStops } from "../../hooks/useTransit";
 import { WeatherIcon } from "../weather/WeatherIcon";
@@ -24,13 +23,6 @@ export interface LocationCardProps {
   isPrimary?: boolean;
   /** Saved location's id, when present — enables the saved-row link. */
   savedId?: string;
-  /** Home / work shortcuts the user has saved (for plan-trip buttons). */
-  shortcuts?: SavedLocationShortcuts;
-}
-
-export interface SavedLocationShortcuts {
-  home?: SavedLocation;
-  work?: SavedLocation;
 }
 
 const NEARBY_RADIUS_M = 500;
@@ -42,7 +34,6 @@ export function LocationCard({
   name,
   region,
   isPrimary,
-  shortcuts,
 }: LocationCardProps) {
   const weather = useCurrentWeather(lat, lon);
   const stops = useNearbyStops(lat, lon, NEARBY_RADIUS_M);
@@ -116,20 +107,6 @@ export function LocationCard({
         <Link to={`/map?lat=${lat}&lon=${lon}`}>
           <FormattedMessage id="dashboard.card.openOnMap" />
         </Link>
-        {shortcuts?.home && shortcuts.home.id !== "" && (
-          <Link
-            to={`/transit?toLat=${shortcuts.home.latitude}&toLon=${shortcuts.home.longitude}&fromLat=${lat}&fromLon=${lon}`}
-          >
-            <FormattedMessage id="dashboard.card.planTripToHome" />
-          </Link>
-        )}
-        {shortcuts?.work && shortcuts.work.id !== "" && (
-          <Link
-            to={`/transit?toLat=${shortcuts.work.latitude}&toLon=${shortcuts.work.longitude}&fromLat=${lat}&fromLon=${lon}`}
-          >
-            <FormattedMessage id="dashboard.card.planTripToWork" />
-          </Link>
-        )}
       </div>
     </article>
   );

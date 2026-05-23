@@ -152,8 +152,6 @@
   "dashboard.card.weatherUnavailable": "Weather unavailable right now.",
   "dashboard.card.openOnMap": "Open on map",
   "dashboard.card.planTripFrom": "Plan trip from here",
-  "dashboard.card.planTripToHome": "Plan trip home",
-  "dashboard.card.planTripToWork": "Plan trip to work",
 
   "weather.code.0": "Clear sky",
   "weather.code.1": "Mainly clear",

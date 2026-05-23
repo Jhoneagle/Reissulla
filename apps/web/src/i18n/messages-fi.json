@@ -152,8 +152,6 @@
   "dashboard.card.weatherUnavailable": "Sää ei saatavilla juuri nyt.",
   "dashboard.card.openOnMap": "Avaa kartalla",
   "dashboard.card.planTripFrom": "Suunnittele matka tästä",
-  "dashboard.card.planTripToHome": "Matka kotiin",
-  "dashboard.card.planTripToWork": "Matka työhön",
 
   "weather.code.0": "Selkeää",
   "weather.code.1": "Enimmäkseen selkeää",

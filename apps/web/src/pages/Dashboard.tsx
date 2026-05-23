@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import type { SavedLocation } from "@reissulla/shared";
 import { useAuthStore } from "../stores/auth";
@@ -36,14 +35,6 @@ export function Dashboard() {
   const primary = savedLocations.find((l) => l.isPrimary);
   const secondary = savedLocations.filter((l) => l !== primary);
 
-  const shortcuts = useMemo(
-    () => ({
-      home: savedLocations.find((l) => l.category === "home"),
-      work: savedLocations.find((l) => l.category === "work"),
-    }),
-    [savedLocations],
-  );
-
   const gps = geolocation.position;
 
   return (
@@ -59,7 +50,7 @@ export function Dashboard() {
       )}
 
       {primary ? (
-        <PrimaryCard location={primary} shortcuts={shortcuts} />
+        <PrimaryCard location={primary} />
       ) : gps ? (
         <GpsCard lat={gps.lat} lon={gps.lon} />
       ) : (
@@ -76,7 +67,6 @@ export function Dashboard() {
               name={loc.name}
               region={loc.region}
               savedId={loc.id}
-              shortcuts={shortcuts}
             />
           ))}
         </div>
@@ -89,13 +79,7 @@ export function Dashboard() {
   );
 }
 
-function PrimaryCard({
-  location,
-  shortcuts,
-}: {
-  location: SavedLocation;
-  shortcuts: { home?: SavedLocation; work?: SavedLocation };
-}) {
+function PrimaryCard({ location }: { location: SavedLocation }) {
   return (
     <LocationCard
       lat={location.latitude}
@@ -104,7 +88,6 @@ function PrimaryCard({
       region={location.region}
       isPrimary
       savedId={location.id}
-      shortcuts={shortcuts}
     />
   );
 }
