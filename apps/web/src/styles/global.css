@@ -713,6 +713,33 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
   outline-offset: 2px;
 }
 
+.confirm-dialog h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.confirm-dialog__body {
+  margin: 0 0 1rem;
+  color: var(--color-text);
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.confirm-dialog__actions button:not(.link-button) {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
 .persona-wizard h2 {
   margin-bottom: 0.5rem;
 }

@@ -5,6 +5,8 @@ import {
   useDeleteRecentPlace,
   useRecentPlaces,
 } from "../hooks/useRecentPlaces";
+import { useConfirm } from "../hooks/useConfirm";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const SAVE_PROMPT_THRESHOLD = 3;
 
@@ -14,6 +16,7 @@ export function RecentPlacesList() {
   const deletePlace = useDeleteRecentPlace();
   const clearAll = useClearRecentPlaces();
   const intl = useIntl();
+  const { confirm, dialogProps } = useConfirm();
 
   if (isLoading) return null;
   const places = data?.data ?? [];
@@ -76,20 +79,19 @@ export function RecentPlacesList() {
       <div className="recent-places-actions">
         <button
           type="button"
-          onClick={() => {
-            if (
-              window.confirm(
-                intl.formatMessage({ id: "recentPlaces.clearConfirm" }),
-              )
-            ) {
-              clearAll.mutate();
-            }
+          onClick={async () => {
+            const ok = await confirm({
+              title: intl.formatMessage({ id: "recentPlaces.clearConfirm" }),
+              destructive: true,
+            });
+            if (ok) clearAll.mutate();
           }}
           className="link-button"
         >
           <FormattedMessage id="recentPlaces.clear" />
         </button>
       </div>
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

@@ -8,6 +8,8 @@ import {
 } from "../hooks/useSavedLocations";
 import { ApiError } from "@reissulla/api-client";
 import { shareLocation } from "../lib/share-location";
+import { useConfirm } from "../hooks/useConfirm";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const CATEGORIES: ReadonlyArray<SavedLocationCategory> = [
   "home",
@@ -27,6 +29,7 @@ export function SavedLocationsManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const { confirm, dialogProps } = useConfirm();
 
   if (isLoading) return null;
   const locations = data?.data ?? [];
@@ -85,8 +88,11 @@ export function SavedLocationsManager() {
   }
 
   async function remove(loc: SavedLocation) {
-    if (!window.confirm(intl.formatMessage({ id: "locations.deleteConfirm" })))
-      return;
+    const ok = await confirm({
+      title: intl.formatMessage({ id: "locations.deleteConfirm" }),
+      destructive: true,
+    });
+    if (!ok) return;
     setError(null);
     try {
       await deleteLocation.mutateAsync(loc.id);
@@ -228,6 +234,7 @@ export function SavedLocationsManager() {
           );
         })}
       </ul>
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

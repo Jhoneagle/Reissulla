@@ -10,6 +10,8 @@ import { changeLocale, type Locale } from "../i18n";
 import { PersonaWizard } from "../components/PersonaWizard";
 import { SavedLocationsManager } from "../components/SavedLocationsManager";
 import { RecentPlacesList } from "../components/RecentPlacesList";
+import { useConfirm } from "../hooks/useConfirm";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 
 const PERSONA_FLAGS: ReadonlyArray<{
   key: keyof Persona;
@@ -374,6 +376,7 @@ function AccountSection() {
   const [deleting, setDeleting] = useState(false);
   const intl = useIntl();
   const signOut = useAuthStore((s) => s.signOut);
+  const { confirm, dialogProps } = useConfirm();
 
   async function downloadExport() {
     const data = await accountApi.export();
@@ -391,13 +394,11 @@ function AccountSection() {
   }
 
   async function deleteAccount() {
-    if (
-      !window.confirm(
-        intl.formatMessage({ id: "settings.account.deleteConfirm" }),
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: intl.formatMessage({ id: "settings.account.deleteConfirm" }),
+      destructive: true,
+    });
+    if (!ok) return;
     setDeleting(true);
     try {
       await accountApi.remove();
@@ -435,6 +436,7 @@ function AccountSection() {
           />
         </button>
       </div>
+      <ConfirmDialog {...dialogProps} />
     </fieldset>
   );
 }

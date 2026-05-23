@@ -1,5 +1,8 @@
 {
   "app.title": "Reissulla",
+  "confirm.cancel": "Peruuta",
+  "confirm.confirmGeneric": "OK",
+  "confirm.confirmDelete": "Poista",
   "app.skipToContent": "Siirry sisältöön",
   "nav.mainNav": "Päänavigaatio",
   "nav.dashboard": "Etusivu",

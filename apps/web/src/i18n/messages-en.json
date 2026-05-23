@@ -1,5 +1,8 @@
 {
   "app.title": "Reissulla",
+  "confirm.cancel": "Cancel",
+  "confirm.confirmGeneric": "OK",
+  "confirm.confirmDelete": "Delete",
   "app.skipToContent": "Skip to content",
   "nav.mainNav": "Main navigation",
   "nav.dashboard": "Dashboard",

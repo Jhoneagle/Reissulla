@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import type { Persona } from "@reissulla/shared";
 import { useAuthStore } from "../stores/auth";
 import { usePersonaStore } from "../stores/persona";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
+import { Modal } from "./Modal";
 
 /**
  * Skippable 3-question intro that captures the highest-value persona
@@ -46,7 +47,6 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
   const updatePreferences = useUpdatePreferences();
   const intl = useIntl();
 
-  const dialogRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
   // null = unanswered (treated as "no" if user skips through)
   const [answers, setAnswers] = useState<
@@ -59,19 +59,6 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
       >,
   );
   const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Focus the dialog on mount so SR announces it and keyboard users land
-  // inside the modal rather than behind it. The component is unmounted
-  // when closed (see `if (!isOpen) return null` below), so each open is
-  // a fresh mount — initial state always starts clean, no reset effect
-  // needed.
-  useEffect(() => {
-    if (isOpen) {
-      requestAnimationFrame(() => dialogRef.current?.focus());
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const currentQuestion = QUESTIONS[step]!;
   const isFirstStep = step === 0;
@@ -118,87 +105,76 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
   }
 
   return (
-    <div
-      className="modal-backdrop"
-      role="presentation"
-      onClick={(e) => {
-        // Click on the backdrop (not the dialog itself) skips without saving.
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      labelledBy="persona-wizard-heading"
+      className="persona-wizard"
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="persona-wizard-heading"
-        tabIndex={-1}
-        className="modal-dialog persona-wizard"
-      >
-        <h2 id="persona-wizard-heading">
-          <FormattedMessage id="personaWizard.heading" />
-        </h2>
-        <p className="persona-wizard-intro">
-          <FormattedMessage id="personaWizard.intro" />
-        </p>
-        <p className="persona-wizard-step" aria-live="polite">
-          <FormattedMessage
-            id="personaWizard.step"
-            values={{ current: step + 1, total: QUESTIONS.length }}
-          />
-        </p>
+      <h2 id="persona-wizard-heading">
+        <FormattedMessage id="personaWizard.heading" />
+      </h2>
+      <p className="persona-wizard-intro">
+        <FormattedMessage id="personaWizard.intro" />
+      </p>
+      <p className="persona-wizard-step" aria-live="polite">
+        <FormattedMessage
+          id="personaWizard.step"
+          values={{ current: step + 1, total: QUESTIONS.length }}
+        />
+      </p>
 
-        <fieldset>
-          <legend>
-            <FormattedMessage id={currentQuestion.labelId} />
-          </legend>
-          <div className="persona-wizard-choice">
-            <button
-              type="button"
-              onClick={() => answer(true)}
-              aria-pressed={answers[currentQuestion.id] === true}
-              className={
-                answers[currentQuestion.id] === true ? "selected" : undefined
-              }
-            >
-              <FormattedMessage id="personaWizard.yes" />
-            </button>
-            <button
-              type="button"
-              onClick={() => answer(false)}
-              aria-pressed={answers[currentQuestion.id] === false}
-              className={
-                answers[currentQuestion.id] === false ? "selected" : undefined
-              }
-            >
-              <FormattedMessage id="personaWizard.no" />
-            </button>
-          </div>
-        </fieldset>
-
-        {saveError && (
-          <div role="alert" className="form-error">
-            {saveError}
-          </div>
-        )}
-
-        <div className="persona-wizard-nav">
-          <button type="button" onClick={onClose} className="link-button">
-            <FormattedMessage id="personaWizard.skipAll" />
+      <fieldset>
+        <legend>
+          <FormattedMessage id={currentQuestion.labelId} />
+        </legend>
+        <div className="persona-wizard-choice">
+          <button
+            type="button"
+            onClick={() => answer(true)}
+            aria-pressed={answers[currentQuestion.id] === true}
+            className={
+              answers[currentQuestion.id] === true ? "selected" : undefined
+            }
+          >
+            <FormattedMessage id="personaWizard.yes" />
           </button>
-          <div className="persona-wizard-nav-right">
-            {!isFirstStep && (
-              <button type="button" onClick={() => setStep((s) => s - 1)}>
-                <FormattedMessage id="personaWizard.previous" />
-              </button>
-            )}
-            <button type="button" onClick={next}>
-              <FormattedMessage
-                id={isLastStep ? "personaWizard.finish" : "personaWizard.next"}
-              />
+          <button
+            type="button"
+            onClick={() => answer(false)}
+            aria-pressed={answers[currentQuestion.id] === false}
+            className={
+              answers[currentQuestion.id] === false ? "selected" : undefined
+            }
+          >
+            <FormattedMessage id="personaWizard.no" />
+          </button>
+        </div>
+      </fieldset>
+
+      {saveError && (
+        <div role="alert" className="form-error">
+          {saveError}
+        </div>
+      )}
+
+      <div className="persona-wizard-nav">
+        <button type="button" onClick={onClose} className="link-button">
+          <FormattedMessage id="personaWizard.skipAll" />
+        </button>
+        <div className="persona-wizard-nav-right">
+          {!isFirstStep && (
+            <button type="button" onClick={() => setStep((s) => s - 1)}>
+              <FormattedMessage id="personaWizard.previous" />
             </button>
-          </div>
+          )}
+          <button type="button" onClick={next}>
+            <FormattedMessage
+              id={isLastStep ? "personaWizard.finish" : "personaWizard.next"}
+            />
+          </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
