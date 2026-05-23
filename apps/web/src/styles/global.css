@@ -297,36 +297,66 @@ body[data-high-contrast="true"][data-weather] {
    See docs/design-system.md §9. */
 
 @keyframes card-entrance {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes stop-row-entrance {
-  from { opacity: 0; transform: translateX(-4px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes sun-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .dashboard-card {
   animation: card-entrance 280ms ease-out backwards;
 }
 
-.dashboard-grid .dashboard-card:nth-child(1) { animation-delay: 80ms; }
-.dashboard-grid .dashboard-card:nth-child(2) { animation-delay: 160ms; }
-.dashboard-grid .dashboard-card:nth-child(3) { animation-delay: 240ms; }
-.dashboard-grid .dashboard-card:nth-child(n + 4) { animation-delay: 320ms; }
+.dashboard-grid .dashboard-card:nth-child(1) {
+  animation-delay: 80ms;
+}
+.dashboard-grid .dashboard-card:nth-child(2) {
+  animation-delay: 160ms;
+}
+.dashboard-grid .dashboard-card:nth-child(3) {
+  animation-delay: 240ms;
+}
+.dashboard-grid .dashboard-card:nth-child(n + 4) {
+  animation-delay: 320ms;
+}
 
 .stops-board__row {
   animation: stop-row-entrance 220ms ease-out backwards;
 }
 
-.stops-board__row:nth-child(1) { animation-delay: 280ms; }
-.stops-board__row:nth-child(2) { animation-delay: 320ms; }
-.stops-board__row:nth-child(3) { animation-delay: 360ms; }
-.stops-board__row:nth-child(4) { animation-delay: 400ms; }
+.stops-board__row:nth-child(1) {
+  animation-delay: 280ms;
+}
+.stops-board__row:nth-child(2) {
+  animation-delay: 320ms;
+}
+.stops-board__row:nth-child(3) {
+  animation-delay: 360ms;
+}
+.stops-board__row:nth-child(4) {
+  animation-delay: 400ms;
+}
 
 /* Hover lift on cards — 1px translation, no shadow elevation (shadows
    compete with the editorial flatness). */
@@ -575,6 +605,24 @@ main:has(.page-full-width) {
 .empty-state__art {
   width: 6rem;
   height: 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state__art svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Type-face shift signals the editorial register without italicising
+   body text. The phrase uses Instrument Serif Roman; the action link
+   below stays in Atkinson — uppercase action links reduce legibility
+   for everyone. */
+.empty-state__phrase {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--color-ink);
 }
 
 .empty-state p {

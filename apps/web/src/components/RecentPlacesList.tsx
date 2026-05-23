@@ -9,6 +9,7 @@ import {
 import { useConfirm } from "../hooks/useConfirm";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useUndoableDelete } from "../hooks/useUndoableDelete";
+import { TramArt } from "./art/EmptyArt";
 
 const SAVE_PROMPT_THRESHOLD = 3;
 
@@ -35,8 +36,10 @@ export function RecentPlacesList() {
   if (allPlaces.length === 0) {
     return (
       <div className="empty-state">
-        <div className="empty-state__art" aria-hidden="true" />
-        <p>
+        <div className="empty-state__art" aria-hidden="true">
+          <TramArt />
+        </div>
+        <p className="empty-state__phrase">
           <FormattedMessage id="recentPlaces.empty" />
         </p>
         <p>

@@ -13,6 +13,7 @@ import { useConfirm } from "../hooks/useConfirm";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { showToast } from "../stores/toast";
 import { useUndoableDelete } from "../hooks/useUndoableDelete";
+import { FoldedMapArt } from "./art/EmptyArt";
 
 const CATEGORIES: ReadonlyArray<SavedLocationCategory> = [
   "home",
@@ -44,10 +45,10 @@ export function SavedLocationsManager() {
   if (allLocations.length === 0) {
     return (
       <div className="empty-state">
-        {/* Empty illustrations are added in W4b.5 — this slot is the
-            anchor for the line-art SVG. Aria-hidden, decorative. */}
-        <div className="empty-state__art" aria-hidden="true" />
-        <p>
+        <div className="empty-state__art" aria-hidden="true">
+          <FoldedMapArt />
+        </div>
+        <p className="empty-state__phrase">
           <FormattedMessage id="locations.empty" />
         </p>
         <p>

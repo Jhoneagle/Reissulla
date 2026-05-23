@@ -6,6 +6,7 @@ import { useSavedLocations } from "../hooks/useSavedLocations";
 import { LocationCard } from "../components/dashboard/LocationCard";
 import { SaveCurrentLocationPrompt } from "../components/dashboard/SaveCurrentLocationPrompt";
 import { DashboardKicker } from "../components/dashboard/DashboardKicker";
+import { SatelliteArt } from "../components/art/EmptyArt";
 
 /**
  * Dashboard composition (roadmap DASH-1, DASH-2, DASH-8, DASH-9):
@@ -112,8 +113,13 @@ function GpsCard({ lat, lon }: { lat: number; lon: number }) {
 
 function EmptyState() {
   return (
-    <p role="status" className="help">
-      <FormattedMessage id="dashboard.gpsUnavailable" />
-    </p>
+    <div className="empty-state" role="status">
+      <div className="empty-state__art" aria-hidden="true">
+        <SatelliteArt />
+      </div>
+      <p className="empty-state__phrase">
+        <FormattedMessage id="dashboard.gpsUnavailable" />
+      </p>
+    </div>
   );
 }
