@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useAuthStore } from "../stores/auth";
 import { ApiError } from "@reissulla/api-client";
+import { FormErrorSummary } from "../components/FormErrorSummary";
 
 type ViewState = { kind: "form" } | { kind: "magic-link-sent"; email: string };
 
@@ -88,11 +89,7 @@ export function Login() {
         <FormattedMessage id="login.heading" />
       </h2>
       <form onSubmit={handleSubmit} noValidate>
-        {error && (
-          <div id="login-error" role="alert" className="form-error">
-            {error}
-          </div>
-        )}
+        <FormErrorSummary id="login-error" errors={error ? [error] : []} />
         <div className="form-field">
           <label htmlFor="login-email">
             <FormattedMessage id="login.email" />

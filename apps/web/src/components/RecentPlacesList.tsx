@@ -69,7 +69,7 @@ export function RecentPlacesList() {
                   onClick={() => deletePlace.mutate(p.id)}
                   aria-label={intl.formatMessage({ id: "recentPlaces.remove" })}
                 >
-                  ×
+                  <span aria-hidden="true">×</span>
                 </button>
               </div>
             </li>

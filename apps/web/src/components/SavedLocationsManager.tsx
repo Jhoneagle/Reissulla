@@ -197,7 +197,7 @@ export function SavedLocationsManager() {
                         id: "locations.moveUp",
                       })}
                     >
-                      ↑
+                      <span aria-hidden="true">↑</span>
                     </button>
                     <button
                       type="button"
@@ -207,7 +207,7 @@ export function SavedLocationsManager() {
                         id: "locations.moveDown",
                       })}
                     >
-                      ↓
+                      <span aria-hidden="true">↓</span>
                     </button>
                     {!loc.isPrimary && (
                       <button type="button" onClick={() => setPrimary(loc)}>

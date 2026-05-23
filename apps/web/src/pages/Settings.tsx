@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { accountApi, ApiError, meApi } from "@reissulla/api-client";
 import type { Persona } from "@reissulla/shared";
 import { useAuthStore } from "../stores/auth";
@@ -186,14 +186,23 @@ export function Settings() {
 
         <div className="form-field">
           <label htmlFor="fontScale">
-            <FormattedMessage id="settings.fontScale.label" />{" "}
-            <span aria-live="polite">
-              <FormattedMessage
-                id="settings.fontScale.percent"
-                values={{ percent: prefs?.fontScale ?? 100 }}
-              />
-            </span>
+            <FormattedMessage id="settings.fontScale.label" />
           </label>
+          {/* Keep the live percent OUT of the <label>: when the slider value
+              changes, the label's accessible name would otherwise update and
+              SRs re-announce the whole control. Moving the value into a
+              separate aria-describedby sibling means only the description
+              changes — the name stays stable, the value is read once. */}
+          <span
+            id="fontScale-value"
+            aria-live="polite"
+            className="form-field__value"
+          >
+            <FormattedMessage
+              id="settings.fontScale.percent"
+              values={{ percent: prefs?.fontScale ?? 100 }}
+            />
+          </span>
           <input
             id="fontScale"
             type="range"
@@ -201,6 +210,7 @@ export function Settings() {
             max={200}
             step={10}
             value={prefs?.fontScale ?? 100}
+            aria-describedby="fontScale-value"
             onChange={(e) =>
               void patch({ fontScale: Number(e.currentTarget.value) })
             }
@@ -374,9 +384,20 @@ function ProfileSection({ currentName }: { currentName: string }) {
 
 function AccountSection() {
   const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const intl = useIntl();
   const signOut = useAuthStore((s) => s.signOut);
+  const navigate = useNavigate();
   const { confirm, dialogProps } = useConfirm();
+
+  // Navigate home AFTER the live-region message has rendered (one tick
+  // later via useEffect). SRs queue aria-live updates at the moment the
+  // change is committed, so the announcement survives the unmount.
+  useEffect(() => {
+    if (deleted) {
+      navigate("/", { replace: true });
+    }
+  }, [deleted, navigate]);
 
   async function downloadExport() {
     const data = await accountApi.export();
@@ -403,7 +424,7 @@ function AccountSection() {
     try {
       await accountApi.remove();
       await signOut();
-      window.location.href = "/";
+      setDeleted(true);
     } catch {
       setDeleting(false);
     }
@@ -435,6 +456,11 @@ function AccountSection() {
             }
           />
         </button>
+      </div>
+      <div role="status" aria-live="polite" className="visually-hidden">
+        {deleted && (
+          <FormattedMessage id="settings.account.deletedAnnouncement" />
+        )}
       </div>
       <ConfirmDialog {...dialogProps} />
     </fieldset>

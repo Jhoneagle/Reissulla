@@ -138,6 +138,7 @@
   "settings.account.delete": "Poista tilini",
   "settings.account.deleteConfirm": "Tämä poistaa tilisi ja kaikki tietosi pysyvästi. Jatketaanko?",
   "settings.account.deleting": "Poistetaan…",
+  "settings.account.deletedAnnouncement": "Tili poistettu.",
   "settings.saveError": "Tallennus epäonnistui. Yritä uudelleen.",
 
   "dashboard.heading": "Etusivu",

@@ -138,6 +138,7 @@
   "settings.account.delete": "Delete my account",
   "settings.account.deleteConfirm": "This permanently deletes your account and everything in it. Continue?",
   "settings.account.deleting": "Deleting…",
+  "settings.account.deletedAnnouncement": "Account deleted.",
   "settings.saveError": "Couldn't save. Please try again.",
 
   "dashboard.heading": "Dashboard",

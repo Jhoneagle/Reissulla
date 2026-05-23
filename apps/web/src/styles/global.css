@@ -409,6 +409,14 @@ footer a {
   color: var(--color-footer-text);
 }
 
+/* Inline value annotation next to a control — e.g. font-scale percent
+   beside a range input. Visual peer of the label, but separate from it
+   so SR don't re-announce the whole control on every value change. */
+.form-field__value {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
 .btn-destructive {
   background: var(--color-error-bg);
   color: var(--color-error-text);

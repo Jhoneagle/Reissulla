@@ -36,11 +36,12 @@ export function FormErrorSummary({
   if (errors.length === 0) return null;
 
   return (
+    // role="alert" already implies aria-live="assertive" — declaring both
+    // makes some screen readers double-announce.
     <div
       ref={ref}
       id={id}
       role="alert"
-      aria-live="assertive"
       tabIndex={-1}
       className="form-error-summary"
     >
