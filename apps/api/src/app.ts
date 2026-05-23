@@ -7,6 +7,7 @@ import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/account.js";
 import { meRoutes } from "./routes/me.js";
+import { preferencesRoutes } from "./routes/preferences.js";
 import { weatherRoutes } from "./routes/weather.js";
 import { geocodingRoutes } from "./routes/geocoding.js";
 import { locationRoutes } from "./routes/locations.js";
@@ -107,6 +108,7 @@ export async function buildServer() {
   await server.register(authRoutes);
   await server.register(accountRoutes);
   await server.register(meRoutes);
+  await server.register(preferencesRoutes);
   await server.register(weatherRoutes);
   await server.register(geocodingRoutes);
   await server.register(locationRoutes);

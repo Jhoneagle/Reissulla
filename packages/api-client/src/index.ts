@@ -8,6 +8,8 @@ import type {
   UpdateLocationInput,
   RecentPlace,
   RecordVisitInput,
+  Preferences,
+  PreferencesPatch,
   TransitStop,
   TransitSubStop,
   TransitDeparturesResult,
@@ -230,6 +232,19 @@ export const recentPlacesApi = {
   },
   clear() {
     return mutationRequest<void>("/recent-places", "DELETE");
+  },
+};
+
+export const preferencesApi = {
+  get() {
+    return request<{ data: Preferences }>("/preferences");
+  },
+  update(patch: PreferencesPatch) {
+    return mutationRequest<{ data: Preferences }>(
+      "/preferences",
+      "PATCH",
+      patch,
+    );
   },
 };
 

@@ -359,6 +359,47 @@ footer a {
   color: var(--color-primary);
 }
 
+/* ── Settings page ── */
+.settings-page {
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.settings-page fieldset {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+}
+
+.settings-page legend {
+  padding: 0 0.5rem;
+  font-weight: 600;
+}
+
+.form-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-field .help {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.btn-destructive {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-text);
+}
+
+.btn-destructive:hover:not(:disabled) {
+  background: var(--color-error-text);
+  color: var(--color-error-bg);
+}
+
 /* ── SR-optimised mode ──
    Marker class set on <body> by the settings page (PREF-9 / A11Y-1). CSS
    hooks here keep visual decorations out of the way and let components
