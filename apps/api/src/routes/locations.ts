@@ -1,33 +1,18 @@
 import type { FastifyPluginAsync } from "fastify";
-import { eq, and, count } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { savedLocations } from "../db/schema.js";
 import { requireAuth } from "../auth/middleware.js";
 import { badRequest } from "../utils/validation.js";
-import { ConflictError, NotFoundError } from "../utils/error-envelope.js";
-
-const MAX_SAVED_LOCATIONS = 20;
+import { NotFoundError } from "../utils/error-envelope.js";
+import * as savedLocationsRepo from "../db/repositories/saved-locations.repo.js";
 
 export const locationRoutes: FastifyPluginAsync = async (server) => {
-  // All routes require authentication
   server.addHook("preHandler", requireAuth);
 
-  // GET /api/v1/locations — list all saved locations for the user
   server.get("/api/v1/locations", async (request) => {
     const userId = request.session!.user.id;
-
-    const locations = await db
-      .select()
-      .from(savedLocations)
-      .where(eq(savedLocations.userId, userId))
-      .orderBy(savedLocations.sortOrder, savedLocations.createdAt);
-
-    return {
-      data: locations.map(toResponse),
-    };
+    const rows = await savedLocationsRepo.listByUser(userId);
+    return { data: rows.map(toResponse) };
   });
 
-  // POST /api/v1/locations — save a new location
   server.post<{
     Body: { name: string; latitude: number; longitude: number };
   }>(
@@ -49,41 +34,17 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
       const userId = request.session!.user.id;
       const { name, latitude, longitude } = request.body;
 
-      // Check limit
-      const result = await db
-        .select({ value: count() })
-        .from(savedLocations)
-        .where(eq(savedLocations.userId, userId));
+      const row = await savedLocationsRepo.insertWithLimitCheck({
+        userId,
+        name,
+        latitude,
+        longitude,
+      });
 
-      const existing = result[0]?.value ?? 0;
-
-      if (existing >= MAX_SAVED_LOCATIONS) {
-        throw new ConflictError(
-          "LIMIT_REACHED",
-          `You can save up to ${MAX_SAVED_LOCATIONS} locations`,
-        );
-      }
-
-      // First saved location becomes primary
-      const isPrimary = existing === 0;
-
-      const [location] = await db
-        .insert(savedLocations)
-        .values({
-          userId,
-          name,
-          latitude,
-          longitude,
-          isPrimary,
-          sortOrder: existing,
-        })
-        .returning();
-
-      return reply.status(201).send({ data: toResponse(location!) });
+      return reply.status(201).send({ data: toResponse(row) });
     },
   );
 
-  // PATCH /api/v1/locations/:id — update a saved location
   server.patch<{
     Params: { id: string };
     Body: { name?: string; isPrimary?: boolean; sortOrder?: number };
@@ -115,35 +76,20 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
         return badRequest("No fields to update");
       }
 
-      const location = await db.transaction(async (tx) => {
-        // If setting as primary, clear other primaries first
-        if (updates.isPrimary) {
-          await tx
-            .update(savedLocations)
-            .set({ isPrimary: false, updatedAt: new Date() })
-            .where(eq(savedLocations.userId, userId));
-        }
+      const row = await savedLocationsRepo.updateByIdForUser(
+        id,
+        userId,
+        updates,
+      );
 
-        const [updated] = await tx
-          .update(savedLocations)
-          .set({ ...updates, updatedAt: new Date() })
-          .where(
-            and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)),
-          )
-          .returning();
-
-        return updated;
-      });
-
-      if (!location) {
+      if (!row) {
         throw new NotFoundError("Location not found");
       }
 
-      return { data: toResponse(location) };
+      return { data: toResponse(row) };
     },
   );
 
-  // DELETE /api/v1/locations/:id — remove a saved location
   server.delete<{ Params: { id: string } }>(
     "/api/v1/locations/:id",
     {
@@ -159,35 +105,9 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
       const userId = request.session!.user.id;
       const { id } = request.params;
 
-      const deleted = await db.transaction(async (tx) => {
-        const [row] = await tx
-          .delete(savedLocations)
-          .where(
-            and(eq(savedLocations.id, id), eq(savedLocations.userId, userId)),
-          )
-          .returning();
+      const row = await savedLocationsRepo.deleteByIdForUser(id, userId);
 
-        // If we deleted the primary, promote the first remaining location
-        if (row?.isPrimary) {
-          const [next] = await tx
-            .select({ id: savedLocations.id })
-            .from(savedLocations)
-            .where(eq(savedLocations.userId, userId))
-            .orderBy(savedLocations.sortOrder, savedLocations.createdAt)
-            .limit(1);
-
-          if (next) {
-            await tx
-              .update(savedLocations)
-              .set({ isPrimary: true, updatedAt: new Date() })
-              .where(eq(savedLocations.id, next.id));
-          }
-        }
-
-        return row;
-      });
-
-      if (!deleted) {
+      if (!row) {
         throw new NotFoundError("Location not found");
       }
 
@@ -196,7 +116,7 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
   );
 };
 
-function toResponse(row: typeof savedLocations.$inferSelect) {
+function toResponse(row: savedLocationsRepo.SavedLocationRow) {
   return {
     id: row.id,
     name: row.name,
