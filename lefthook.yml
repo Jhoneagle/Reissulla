@@ -13,13 +13,7 @@ pre-commit:
   parallel: true
   commands:
     gitleaks:
-      run: |
-        if command -v gitleaks >/dev/null 2>&1; then
-          gitleaks protect --staged --no-banner --redact
-        else
-          echo "gitleaks not installed — skipping secret scan"
-          echo "  install: https://github.com/gitleaks/gitleaks"
-        fi
+      run: sh scripts/gitleaks-precommit.sh
       fail_text: |
         Gitleaks detected staged secrets. Commit blocked.
         Review the report above, rotate the leaked credential, and remove
