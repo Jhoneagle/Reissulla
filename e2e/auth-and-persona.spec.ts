@@ -26,17 +26,15 @@ test("sign up + wizard sets wheelchair persona and sends it on subsequent API ca
 
   // Lands on /settings?wizard=1
   await expect(page).toHaveURL(/\/settings/);
-  await expect(
-    page.getByRole("dialog", {
-      name: /accessibility profile|saavutettavuusprofiili/i,
-    }),
-  ).toBeVisible();
+  const wizard = page.getByRole("dialog", {
+    name: /accessibility profile|saavutettavuusprofiili/i,
+  });
+  await expect(wizard).toBeVisible();
 
-  // Answer the first question (wheelchair) with Yes, then skip the rest.
-  await page
-    .getByRole("button", { name: /^Yes|^Kyllä/ })
-    .first()
-    .click();
+  // Answer the first question (wheelchair) with Yes. Scope all wizard
+  // controls to the dialog itself so we don't accidentally match the
+  // Settings page's Profile "Save" button or other duplicate roles.
+  await wizard.getByRole("radio", { name: /^Yes|^Kyllä/ }).click();
 
   // Inspect: capture the next outbound /api/v1/* request and verify the
   // x-reissulla-persona header has wheelchair=1.
@@ -46,12 +44,9 @@ test("sign up + wizard sets wheelchair persona and sends it on subsequent API ca
 
   // "Save" on the last step persists; click Next twice (the remaining
   // questions are unanswered → false) then Save.
-  await page.getByRole("button", { name: /Next|Seuraava/ }).click();
-  await page.getByRole("button", { name: /Next|Seuraava/ }).click();
-  await page
-    .getByRole("button", { name: /Save|Tallenna/ })
-    .first()
-    .click();
+  await wizard.getByRole("button", { name: /Next|Seuraava/ }).click();
+  await wizard.getByRole("button", { name: /Next|Seuraava/ }).click();
+  await wizard.getByRole("button", { name: /Save|Tallenna/ }).click();
 
   // Settings page should now show the wheelchair toggle checked.
   await expect(

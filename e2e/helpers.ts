@@ -20,7 +20,17 @@ export async function expectNoSeriousA11yViolations(page: Page) {
 
   if (serious.length > 0) {
     const summary = serious
-      .map((v) => `  ${v.id} (${v.impact}): ${v.help}`)
+      .map((v) => {
+        const nodes = v.nodes
+          .slice(0, 5)
+          .map((n) => {
+            const target = n.target.join(" › ");
+            const reason = n.failureSummary?.replace(/\s+/g, " ") ?? "";
+            return `    - ${target}\n      ${reason}`;
+          })
+          .join("\n");
+        return `  ${v.id} (${v.impact}): ${v.help}\n${nodes}`;
+      })
       .join("\n");
     throw new Error(
       `axe-core found ${serious.length} critical/serious violation(s):\n${summary}`,

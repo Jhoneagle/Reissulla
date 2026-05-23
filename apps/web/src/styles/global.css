@@ -172,7 +172,11 @@ nav a:focus-visible {
 }
 
 nav a.active {
-  color: var(--color-active);
+  /* Use the darker primary-hover token for the text so contrast against
+     the 10% tinted background clears 4.5:1. The bg tint is too pale to
+     read the regular --color-active (#2563eb on #e3ebfa = 4.31:1).
+     Wave 4a.2 rebinds primary entirely. */
+  color: var(--color-primary-hover);
   background: color-mix(in srgb, var(--color-active) 10%, transparent);
   font-weight: 700;
 }
