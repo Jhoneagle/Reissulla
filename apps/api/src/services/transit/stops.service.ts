@@ -1,13 +1,13 @@
 import type { TransitStop } from "@reissulla/shared";
 import { config } from "../../config.js";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
+import { cacheKey } from "../../cache/key.js";
+import { STOPS_TTL, GEOCODE_REVERSE_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
 import { defaultAdapter } from "../../adapters/digitransit-routing/dispatch.js";
 import type { AdapterContext } from "../../adapters/types.js";
 import { groupStopsByNameAndMode } from "./grouping.js";
 
-const STOPS_CACHE_TTL = 3600;
-const GEOCODE_CACHE_TTL = 86400;
 const GEOCODE_TIMEOUT_MS = 5_000;
 
 const GEOCODING_URL = "https://api.digitransit.fi/geocoding/v1/reverse";
@@ -30,7 +30,10 @@ async function reverseGeocodeCity(
 ): Promise<string | undefined> {
   const rLat = lat.toFixed(3);
   const rLon = lon.toFixed(3);
-  const key = `transit:geocode:${rLat}:${rLon}`;
+  // Consolidate under the geocoding domain — this is the same Pelias
+  // reverse-geocode operation as services/geocoding.service.ts, just rounded
+  // to 3 decimals for the transit-side coordinate-batching use case.
+  const key = cacheKey("geocoding", "reverse", 1, rLat, rLon);
 
   const cached = await tryCache(() => cacheGet<string>(key));
   if (cached) return cached;
@@ -53,7 +56,7 @@ async function reverseGeocodeCity(
       json?.features?.[0]?.properties?.name;
 
     if (city) {
-      await tryCache(() => cacheSet(key, city, GEOCODE_CACHE_TTL));
+      await tryCache(() => cacheSet(key, city, GEOCODE_REVERSE_TTL));
     }
     return city;
   } catch {
@@ -87,7 +90,14 @@ export async function getNearbyStops(
   lon: number,
   radiusMeters = 500,
 ): Promise<{ data: TransitStop[]; cached: boolean }> {
-  const key = `transit:stops-nearby:${lat.toFixed(3)}:${lon.toFixed(3)}:${radiusMeters}`;
+  const key = cacheKey(
+    "transit",
+    "stops-nearby",
+    1,
+    lat.toFixed(3),
+    lon.toFixed(3),
+    radiusMeters,
+  );
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -105,14 +115,14 @@ export async function getNearbyStops(
     distance: edge.distance,
   }));
 
-  await tryCache(() => cacheSet(key, data, STOPS_CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, STOPS_TTL));
   return { data, cached: false };
 }
 
 export async function searchStops(
   query: string,
 ): Promise<{ data: TransitStop[]; cached: boolean }> {
-  const key = `transit:stops-search:${query.toLowerCase()}`;
+  const key = cacheKey("transit", "stops-search", 1, query.toLowerCase());
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -127,6 +137,6 @@ export async function searchStops(
 
   await enrichStopsWithCity(data);
 
-  await tryCache(() => cacheSet(key, data, STOPS_CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, STOPS_TTL));
   return { data, cached: false };
 }

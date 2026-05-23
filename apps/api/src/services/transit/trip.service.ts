@@ -4,11 +4,11 @@ import type {
   TransitPlanResult,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
+import { cacheKey } from "../../cache/key.js";
+import { PLAN_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
 import { defaultAdapter } from "../../adapters/digitransit-routing/dispatch.js";
 import type { AdapterContext } from "../../adapters/types.js";
-
-const PLAN_CACHE_TTL = 300;
 
 function makeContext(): AdapterContext {
   return { signal: new AbortController().signal };
@@ -21,7 +21,15 @@ export async function planRoute(
   toLon: number,
   numItineraries = 5,
 ): Promise<{ data: TransitPlanResult; cached: boolean }> {
-  const key = `transit:plan:${fromLat.toFixed(3)}:${fromLon.toFixed(3)}:${toLat.toFixed(3)}:${toLon.toFixed(3)}`;
+  const key = cacheKey(
+    "transit",
+    "plan",
+    1,
+    fromLat.toFixed(3),
+    fromLon.toFixed(3),
+    toLat.toFixed(3),
+    toLon.toFixed(3),
+  );
   const cached = await tryCache(() => cacheGet<TransitPlanResult>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -77,6 +85,6 @@ export async function planRoute(
   });
 
   const data: TransitPlanResult = { itineraries };
-  await tryCache(() => cacheSet(key, data, PLAN_CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, PLAN_TTL));
   return { data, cached: false };
 }

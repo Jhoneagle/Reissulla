@@ -6,10 +6,14 @@ import {
   WMO_CODES,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../cache/cache.js";
+import { cacheKey } from "../cache/key.js";
+import {
+  WEATHER_CURRENT_TTL,
+  WEATHER_FORECAST_TTL,
+} from "../cache/ttl.js";
 import { tryCache } from "../utils/resilience.js";
 
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1/forecast";
-const CACHE_TTL = 15 * 60; // 15 minutes
 const FETCH_TIMEOUT_MS = 10_000;
 
 interface OpenMeteoCurrentResponse {
@@ -49,11 +53,6 @@ interface OpenMeteoForecastResponse {
   longitude: number;
 }
 
-function cacheKey(type: string, lat: number, lon: number): string {
-  // ~1km precision — groups nearby requests under the same cache entry
-  return `weather:${type}:${lat.toFixed(2)}:${lon.toFixed(2)}`;
-}
-
 function describeCode(code: number): string {
   return WMO_CODES[code] ?? "Unknown";
 }
@@ -62,7 +61,7 @@ export async function getCurrentWeather(
   lat: number,
   lon: number,
 ): Promise<{ data: CurrentWeather; cached: boolean }> {
-  const key = cacheKey("current", lat, lon);
+  const key = cacheKey("weather", "current", 1, lat.toFixed(2), lon.toFixed(2));
   const cached = await tryCache(() => cacheGet<CurrentWeather>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -97,7 +96,7 @@ export async function getCurrentWeather(
     timestamp: c.time,
   };
 
-  await tryCache(() => cacheSet(key, data, CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, WEATHER_CURRENT_TTL));
   return { data, cached: false };
 }
 
@@ -105,7 +104,7 @@ export async function getWeatherForecast(
   lat: number,
   lon: number,
 ): Promise<{ data: WeatherForecast; cached: boolean }> {
-  const key = cacheKey("forecast", lat, lon);
+  const key = cacheKey("weather", "forecast", 1, lat.toFixed(2), lon.toFixed(2));
   const cached = await tryCache(() => cacheGet<WeatherForecast>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -154,6 +153,6 @@ export async function getWeatherForecast(
   }));
 
   const data: WeatherForecast = { hourly, daily };
-  await tryCache(() => cacheSet(key, data, CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, WEATHER_FORECAST_TTL));
   return { data, cached: false };
 }

@@ -4,12 +4,13 @@ import type {
   TransitSubStop,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
+import { cacheKey } from "../../cache/key.js";
+import { DEPARTURES_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
 import { adapterForGtfsId } from "../../adapters/digitransit-routing/dispatch.js";
 import type { AdapterContext } from "../../adapters/types.js";
 import type { RawStoptime } from "../../adapters/digitransit-routing/types.js";
 
-const DEPARTURES_CACHE_TTL = 60;
 const MAX_PARALLEL_STOP_QUERIES = 10;
 
 function makeContext(): AdapterContext {
@@ -37,7 +38,7 @@ export async function getStopDepartures(
   count = 20,
   isStation = false,
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
-  const key = `transit:departures:${stopId}:${count}:${isStation}`;
+  const key = cacheKey("transit", "departures", 1, stopId, count, isStation);
   const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -77,7 +78,7 @@ export async function getStopDepartures(
     departures,
   };
 
-  await tryCache(() => cacheSet(key, data, DEPARTURES_CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, DEPARTURES_TTL));
   return { data, cached: false };
 }
 
@@ -89,7 +90,14 @@ export async function getMultiStopDepartures(
   stationId?: string,
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
   const sortedIds = [...stopIds].sort();
-  const key = `transit:departures-multi:${sortedIds.join(",")}:${countPerStop}:${totalCount}`;
+  const key = cacheKey(
+    "transit",
+    "departures-multi",
+    1,
+    sortedIds.join(","),
+    countPerStop,
+    totalCount,
+  );
   const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -176,6 +184,6 @@ export async function getMultiStopDepartures(
     subStops,
   };
 
-  await tryCache(() => cacheSet(key, data, DEPARTURES_CACHE_TTL));
+  await tryCache(() => cacheSet(key, data, DEPARTURES_TTL));
   return { data, cached: false };
 }

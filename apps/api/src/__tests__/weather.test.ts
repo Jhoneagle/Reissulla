@@ -109,7 +109,7 @@ describe("Weather routes - input validation", () => {
 
 describe("GET /api/v1/weather/current", () => {
   beforeEach(async () => {
-    await cacheDel("weather:current:60.17:24.94");
+    await cacheDel("weather:current:v1:60.17:24.94");
     vi.restoreAllMocks();
   });
 
@@ -180,7 +180,7 @@ describe("GET /api/v1/weather/current", () => {
 
 describe("GET /api/v1/weather/forecast", () => {
   beforeEach(async () => {
-    await cacheDel("weather:forecast:60.17:24.94");
+    await cacheDel("weather:forecast:v1:60.17:24.94");
     vi.restoreAllMocks();
   });
 
