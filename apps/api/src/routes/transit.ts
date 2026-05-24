@@ -6,6 +6,7 @@ import {
   searchStops,
   getStopDepartures,
   getMultiStopDepartures,
+  getFirstLastOfDay,
   planRoute,
   type DeparturesOptions,
   type ArrivalDepartureMode,
@@ -309,6 +310,35 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
     },
   );
 
+  // First / last departure of the day at a stop (DEP-9).
+  server.get<{ Querystring: { stopId: string; date?: string } }>(
+    "/api/v1/transit/departures/first-last",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          required: ["stopId"],
+          properties: {
+            stopId: { type: "string" },
+            // YYYYMMDD; defaults to today in the feed's timezone.
+            date: { type: "string", pattern: "^\\d{8}$" },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const stopId = request.query.stopId.trim();
+      if (stopId === "") return badRequest("stopId must not be empty");
+      const date = request.query.date?.trim() || todayServiceDateYYYYMMDD();
+      const { data, cached } = await getFirstLastOfDay(
+        stopId,
+        date,
+        request.persona,
+      );
+      return { data, cached };
+    },
+  );
+
   server.get<{
     Querystring: {
       fromLat: string;
@@ -509,6 +539,19 @@ function parseRecentLimit(raw: string | undefined): number {
   const n = Number(raw);
   if (!Number.isInteger(n) || n < 1) return 20;
   return Math.min(n, RECENT_STOPS_MAX_LIMIT);
+}
+
+function todayServiceDateYYYYMMDD(): string {
+  // Default service date is today in Europe/Helsinki — the feed timezone.
+  // `en-CA` formats with `YYYY-MM-DD` separators which we strip to GTFS's
+  // YYYYMMDD shape.
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return parts.replace(/-/g, "");
 }
 
 const ALLOWED_ARRIVAL_DEPARTURE = new Set<ArrivalDepartureMode>([

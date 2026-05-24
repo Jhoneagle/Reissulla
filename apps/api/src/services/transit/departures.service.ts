@@ -13,6 +13,9 @@ import { DEPARTURES_V2_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
 import type { AdapterContext } from "../../adapters/types.js";
 import type { RawStoptime } from "../../adapters/digitransit-routing/types.js";
+import { createGraphQLClient } from "../../adapters/digitransit-routing/client.js";
+import { stoptimesForDateOperation } from "../../adapters/digitransit-routing/operations/stoptimesForDate.js";
+import { SERVICE_RANGE_TTL } from "../../cache/ttl.js";
 import { adapterRouter } from "./adapter-router.js";
 
 const MAX_PARALLEL_STOP_QUERIES = 10;
@@ -311,5 +314,87 @@ export async function getMultiStopDepartures(
   };
 
   await tryCache(() => cacheSet(key, data, DEPARTURES_V2_TTL));
+  return { data, cached: false };
+}
+
+export interface FirstLastResult {
+  first: TransitDeparture | null;
+  last: TransitDeparture | null;
+  /** YYYYMMDD service date that backs the response. */
+  serviceDate: string;
+}
+
+/**
+ * First and last departures of a given service date at a stop.
+ *
+ * Sweeps every pattern serving the stop on `date` via
+ * `stoptimesForServiceDate`, flattens into a single list, and pulls the
+ * earliest + latest departure by absolute unix time. Cached at
+ * `transit:first-last:v1:<stopId>:<date>` for the service-range TTL —
+ * tomorrow's first/last shouldn't change second-by-second.
+ *
+ * Returns nulls when the stop is unknown or the feed has no schedule
+ * for the requested day (rural feeds with short serviceTimeRange).
+ */
+export async function getFirstLastOfDay(
+  stopId: string,
+  date: string,
+  persona: Persona = DEFAULT_PERSONA,
+): Promise<{ data: FirstLastResult; cached: boolean }> {
+  const key = cacheKey("transit", "first-last", 1, stopId, date);
+  const cached = await tryCache(() => cacheGet<FirstLastResult>(key));
+  if (cached) return { data: cached, cached: true };
+
+  const adapter = adapterRouter.forStopId(stopId);
+  const client = createGraphQLClient(adapter.name, adapter.graphUrl);
+  const ctx = makeContext(persona);
+
+  const patterns = await stoptimesForDateOperation(
+    client,
+    { stopId, date },
+    ctx,
+  );
+
+  const all: TransitDeparture[] = [];
+  for (const p of patterns) {
+    for (const st of p.stoptimes) {
+      all.push({
+        routeShortName: p.pattern.route.shortName,
+        routeLongName: p.pattern.route.longName,
+        headsign: st.headsign,
+        scheduledDeparture: st.scheduledDeparture,
+        realtimeDeparture: st.realtimeDeparture,
+        departureDelay: st.departureDelay,
+        realtime: st.realtime,
+        serviceDay: st.serviceDay,
+        vehicleMode: p.pattern.route.mode,
+        tripId: st.trip.gtfsId,
+      });
+    }
+  }
+
+  if (all.length === 0) {
+    const data: FirstLastResult = {
+      first: null,
+      last: null,
+      serviceDate: date,
+    };
+    await tryCache(() => cacheSet(key, data, SERVICE_RANGE_TTL));
+    return { data, cached: false };
+  }
+
+  all.sort(
+    (a, b) =>
+      a.serviceDay +
+      a.scheduledDeparture -
+      (b.serviceDay + b.scheduledDeparture),
+  );
+
+  const data: FirstLastResult = {
+    first: all[0] ?? null,
+    last: all[all.length - 1] ?? null,
+    serviceDate: date,
+  };
+  await tryCache(() => cacheSet(key, data, SERVICE_RANGE_TTL));
   return { data, cached: false };
 }

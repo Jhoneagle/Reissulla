@@ -281,6 +281,53 @@ export interface SearchStopsOptions {
   operator?: string;
 }
 
+export type ArrivalDepartureMode = "departures" | "arrivals" | "both";
+
+export interface DeparturesOptions {
+  /** Unix seconds — future-time picker. */
+  at?: number;
+  arriveBy?: boolean;
+  mode?: ArrivalDepartureMode;
+  lineFilter?: string[];
+  directionFilter?: string;
+  lowFloorOnly?: boolean;
+}
+
+function appendDeparturesOptions(
+  params: URLSearchParams,
+  options: DeparturesOptions | undefined,
+): void {
+  if (!options) return;
+  if (options.at !== undefined) params.set("at", String(options.at));
+  if (options.arriveBy) params.set("arriveBy", "true");
+  if (options.mode) params.set("mode", options.mode);
+  if (options.lineFilter && options.lineFilter.length > 0) {
+    params.set("lineFilter", options.lineFilter.join(","));
+  }
+  if (options.directionFilter) {
+    params.set("directionFilter", options.directionFilter);
+  }
+  if (options.lowFloorOnly) params.set("lowFloorOnly", "true");
+}
+
+export interface FirstLastResponse {
+  first: {
+    routeShortName: string;
+    headsign: string;
+    scheduledDeparture: number;
+    serviceDay: number;
+    vehicleMode: string;
+  } | null;
+  last: {
+    routeShortName: string;
+    headsign: string;
+    scheduledDeparture: number;
+    serviceDay: number;
+    vehicleMode: string;
+  } | null;
+  serviceDate: string;
+}
+
 export interface AdaptiveNearbyResponse extends ApiResponse<TransitStop[]> {
   radiusUsed: number;
 }
@@ -330,10 +377,16 @@ export const transitApi = {
       `/transit/stops/search?${params}`,
     );
   },
-  departures(stopId: string, count?: number, isStation?: boolean) {
+  departures(
+    stopId: string,
+    count?: number,
+    isStation?: boolean,
+    options?: DeparturesOptions,
+  ) {
     const params = new URLSearchParams({ stopId });
     if (count) params.set("count", String(count));
     if (isStation) params.set("isStation", "true");
+    appendDeparturesOptions(params, options);
     return request<ApiResponse<TransitDeparturesResult>>(
       `/transit/departures?${params}`,
     );
@@ -344,14 +397,23 @@ export const transitApi = {
     countPerStop?: number,
     totalCount?: number,
     stationId?: string,
+    options?: DeparturesOptions,
   ) {
     const params = new URLSearchParams({ stopIds: stopIds.join(",") });
     if (subStops) params.set("subStops", JSON.stringify(subStops));
     if (stationId) params.set("stationId", stationId);
     if (countPerStop) params.set("countPerStop", String(countPerStop));
     if (totalCount) params.set("totalCount", String(totalCount));
+    appendDeparturesOptions(params, options);
     return request<ApiResponse<TransitDeparturesResult>>(
       `/transit/departures/multi?${params}`,
+    );
+  },
+  firstLast(stopId: string, date?: string) {
+    const params = new URLSearchParams({ stopId });
+    if (date) params.set("date", date);
+    return request<ApiResponse<FirstLastResponse>>(
+      `/transit/departures/first-last?${params}`,
     );
   },
   plan(fromLat: number, fromLon: number, toLat: number, toLon: number) {
