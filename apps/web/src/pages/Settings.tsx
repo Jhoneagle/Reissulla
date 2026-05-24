@@ -8,6 +8,7 @@ import { usePersonaStore } from "../stores/persona";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import { changeLocale, type Locale } from "../i18n";
 import { PersonaWizard } from "../components/PersonaWizard";
+import { PersonaBanner } from "../components/PersonaBanner";
 import { SavedLocationsManager } from "../components/SavedLocationsManager";
 import { RecentPlacesList } from "../components/RecentPlacesList";
 import { useConfirm } from "../hooks/useConfirm";
@@ -176,6 +177,7 @@ export function Settings() {
         <SettingsNav items={[...SETTINGS_SECTIONS]} />
 
         <div className="settings-page__content">
+          <PersonaBanner onOpenWizard={() => setWizardOpen(true)} />
           <ProfileSection id="settings-profile" currentName={user.name} />
 
           <fieldset id="settings-display">

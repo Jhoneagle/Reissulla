@@ -10,6 +10,14 @@ export type ReduceMotion = "on" | "off" | "system";
 export interface PreferencesExtra {
   persona?: Persona;
   layerDefaults?: Record<string, unknown>;
+  /**
+   * Set to true when the user dismisses the Settings persona-setup
+   * banner. Suppresses re-display on subsequent visits. Cleared
+   * automatically when persona is configured (the banner stops
+   * rendering anyway). Server-side parseExtra must preserve this
+   * field on round-trip; see apps/api/src/db/repositories/preferences-extra.ts.
+   */
+  personaBannerDismissed?: boolean;
 }
 
 export interface Preferences {
