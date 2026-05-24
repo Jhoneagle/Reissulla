@@ -126,3 +126,59 @@ export interface PlanConnectionArgs {
   toLon: number;
   numItineraries: number;
 }
+
+// ---- Line catalogue (routes / route / pattern / patterns) ------------------
+
+export interface RawAgency {
+  gtfsId: string;
+  name: string;
+}
+
+export interface RawRouteMeta {
+  gtfsId: string;
+  shortName: string;
+  longName: string;
+  mode: string;
+  color: string | null;
+  textColor: string | null;
+  agency: RawAgency | null;
+}
+
+export interface RawPatternMeta {
+  code: string;
+  headsign: string;
+  directionId: number;
+}
+
+export interface RawPatternStop {
+  gtfsId: string;
+  name: string;
+  lat: number;
+  lon: number;
+  code: string | null;
+  platformCode: string | null;
+}
+
+export interface RawPattern extends RawPatternMeta {
+  stops: RawPatternStop[];
+}
+
+export interface RawRouteWithPatterns extends RawRouteMeta {
+  patterns: RawPatternMeta[];
+}
+
+export interface RawRoutesData {
+  routes: RawRouteMeta[];
+}
+
+export interface RawRouteData {
+  route: RawRouteWithPatterns | null;
+}
+
+export interface RawPatternData {
+  pattern: RawPattern | null;
+}
+
+export interface RawPatternsData {
+  route: { patterns: RawPattern[] } | null;
+}
