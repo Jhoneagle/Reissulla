@@ -301,3 +301,31 @@ export interface RawStopsByRadiusPage {
 export interface RawStopsByRadiusData {
   stopsByRadius: RawStopsByRadiusPage | null;
 }
+
+// ---- Canceled trips / alerts (Phase 4 prep, no consumer yet) ---------------
+
+export interface RawCanceledTripNode {
+  trip: { gtfsId: string };
+  scheduledDeparture: number;
+  serviceDay: number;
+}
+
+export interface RawCanceledTripEdge {
+  node: RawCanceledTripNode;
+}
+
+export interface RawCanceledTripsData {
+  canceledTripTimes: { edges: RawCanceledTripEdge[] } | null;
+}
+
+export interface RawAlert {
+  alertHeaderText: string | null;
+  alertDescriptionText: string | null;
+  alertSeverityLevel: string | null;
+  effectiveStartDate: number | null;
+  effectiveEndDate: number | null;
+}
+
+export interface RawAlertsData {
+  alerts: RawAlert[];
+}
