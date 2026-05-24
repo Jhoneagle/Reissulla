@@ -187,6 +187,13 @@
   "dashboard.card.openOnMap": "Avaa kartalla",
   "dashboard.card.planTripFrom": "Suunnittele matka tästä",
 
+  "lede.wind": "{direction, select, N {Pohjoistuulta} NE {Koillistuulta} E {Itätuulta} SE {Kaakkoistuulta} S {Etelätuulta} SW {Lounaistuulta} W {Länsituulta} NW {Luoteistuulta} other {Vaihtelevaa tuulta}}{bucket, select, breeze { (heikkoa)} wind { (kohtalaista)} gale { (kovaa)} other {}}.",
+  "lede.wind.calm": "Tyyntä.",
+  "lede.sun.rises_at": "Aurinko nousee klo {time}.",
+  "lede.sun.rose_at": "Aurinko nousi klo {time}.",
+  "lede.sun.sets_at": "Aurinko laskee klo {time}.",
+  "lede.sun.set_at": "Aurinko laski klo {time}.",
+
   "weather.code.0": "Selkeää",
   "weather.code.1": "Enimmäkseen selkeää",
   "weather.code.2": "Puolipilvistä",

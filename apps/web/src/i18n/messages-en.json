@@ -187,6 +187,13 @@
   "dashboard.card.openOnMap": "Open on map",
   "dashboard.card.planTripFrom": "Plan trip from here",
 
+  "lede.wind": "{direction, select, N {Northerly} NE {Northeasterly} E {Easterly} SE {Southeasterly} S {Southerly} SW {Southwesterly} W {Westerly} NW {Northwesterly} other {Variable}} {bucket, select, breeze {breeze} wind {wind} gale {gale} other {wind}}.",
+  "lede.wind.calm": "Calm air.",
+  "lede.sun.rises_at": "Sun rises at {time}.",
+  "lede.sun.rose_at": "Sun rose at {time}.",
+  "lede.sun.sets_at": "Sun sets at {time}.",
+  "lede.sun.set_at": "Sun set at {time}.",
+
   "weather.code.0": "Clear sky",
   "weather.code.1": "Mainly clear",
   "weather.code.2": "Partly cloudy",

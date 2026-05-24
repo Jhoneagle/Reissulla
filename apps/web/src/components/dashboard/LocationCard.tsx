@@ -1,9 +1,14 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useCurrentWeather } from "../../hooks/useWeather";
 import { useNearbyStops } from "../../hooks/useTransit";
 import { WeatherIcon } from "../weather/WeatherIcon";
-import { buildWeatherLede } from "../../lib/lede";
+import {
+  buildWeatherLede,
+  type CardinalDirection,
+  type WindBucket,
+} from "../../lib/lede";
 import { useWeatherTheme } from "../../hooks/useWeatherTheme";
 
 /**
@@ -60,6 +65,35 @@ export function LocationCard({
     ? Math.round(weather.data.data.temperature)
     : null;
 
+  // Memoise the formatters object: useMemo keyed on intl.locale so we
+  // don't rebuild on every parent re-render, but do swap catalogues
+  // when the user changes language.
+  const ledeFormatters = useMemo(
+    () => ({
+      formatWind: (
+        direction: CardinalDirection | "Variable",
+        bucket: WindBucket,
+      ) => intl.formatMessage({ id: "lede.wind" }, { direction, bucket }),
+      formatCalm: () => intl.formatMessage({ id: "lede.wind.calm" }),
+      formatSun: (
+        event: "rise" | "set",
+        tense: "past" | "future",
+        time: string,
+      ) => {
+        const key =
+          event === "rise"
+            ? tense === "future"
+              ? "lede.sun.rises_at"
+              : "lede.sun.rose_at"
+            : tense === "future"
+              ? "lede.sun.sets_at"
+              : "lede.sun.set_at";
+        return intl.formatMessage({ id: key }, { time });
+      },
+    }),
+    [intl],
+  );
+
   const lede = weather.data
     ? buildWeatherLede({
         weather: weather.data.data,
@@ -68,7 +102,7 @@ export function LocationCard({
             id: `weather.code.${code}`,
             defaultMessage: weather.data!.data.weatherDescription,
           }),
-        locale: intl.locale,
+        ...ledeFormatters,
       })
     : null;
 

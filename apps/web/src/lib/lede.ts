@@ -1,18 +1,45 @@
 import type { CurrentWeather } from "@reissulla/shared";
 
+export type CardinalDirection =
+  | "N"
+  | "NE"
+  | "E"
+  | "SE"
+  | "S"
+  | "SW"
+  | "W"
+  | "NW";
+export type WindBucket = "breeze" | "wind" | "gale";
+
 export interface LedeContext {
   weather: CurrentWeather;
   sunrise?: string;
   sunset?: string;
-  /** Translation lookup. Accepts a key and returns the localised string. */
+  /** Weather-code → localised description ("Mainly clear" / "Selkeää"). */
   formatWeatherCode: (code: number) => string;
-  /** Browser locale, e.g. "en", "fi". Used for cardinal-direction labels. */
-  locale: string;
+  /**
+   * Direction + bucket → localised wind clause ("Easterly breeze." /
+   * "Itätuulta (heikkoa)."). Returns "Variable" + bucket when direction
+   * data is unusable.
+   */
+  formatWind: (
+    direction: CardinalDirection | "Variable",
+    bucket: WindBucket,
+  ) => string;
+  /** Localised "Calm air." / "Tyyntä." */
+  formatCalm: () => string;
+  /**
+   * Sun rise/set clause, with tense relative to `now`. The helper
+   * decides which tense / event to use; the caller maps it to a key.
+   */
+  formatSun: (
+    event: "rise" | "set",
+    tense: "past" | "future",
+    time: string,
+  ) => string;
   /** "now" — defaults to new Date(); injected for testability. */
   now?: Date;
 }
-
-const DIRECTION_KEYS_EN = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 
 /**
  * Build a 1–3 clause editorial lede summarising the current weather.
@@ -21,9 +48,11 @@ const DIRECTION_KEYS_EN = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
  *   2. When wind data is present — "Easterly breeze." (direction + bucket).
  *   3. When within 90 minutes of sunrise or sunset — "Sun set at 21:14."
  *
- * Decorative. The underlying numerals (temperature, wind speed) still
- * render in their dedicated UI slots; this is a sentence-form summary
- * the screen reader can announce once, no double-count.
+ * All locale-bearing strings are produced by the formatters the caller
+ * passes in, so the helper itself contains zero English. Decorative —
+ * the underlying numerals (temperature, wind speed) still render in
+ * their dedicated UI slots; this is a sentence-form summary the screen
+ * reader can announce once, no double-count.
  */
 export function buildWeatherLede(ctx: LedeContext): string {
   const description = sentenceCase(
@@ -31,7 +60,7 @@ export function buildWeatherLede(ctx: LedeContext): string {
   );
   const clauses: string[] = [periodise(description)];
 
-  const wind = describeWind(ctx.weather.windSpeed, ctx.weather.windDirection);
+  const wind = describeWind(ctx);
   if (wind) clauses.push(wind);
 
   const sun = describeSun(ctx);
@@ -52,8 +81,8 @@ function periodise(s: string): string {
 interface BeaufortBucket {
   /** Inclusive max wind in m/s for this bucket. */
   maxMs: number;
-  /** Translation key suffix — caller composes ("wind.still" → "Calm air."). */
-  key: "still" | "breeze" | "wind" | "gale";
+  /** "still" maps to formatCalm(); the rest feed formatWind(). */
+  key: "still" | WindBucket;
 }
 
 const BUCKETS: BeaufortBucket[] = [
@@ -63,33 +92,34 @@ const BUCKETS: BeaufortBucket[] = [
   { maxMs: Infinity, key: "gale" },
 ];
 
-function describeWind(speedMs: number, dirDeg: number): string | null {
+const DIRECTION_KEYS: CardinalDirection[] = [
+  "N",
+  "NE",
+  "E",
+  "SE",
+  "S",
+  "SW",
+  "W",
+  "NW",
+];
+
+function describeWind(ctx: LedeContext): string | null {
+  const speedMs = ctx.weather.windSpeed;
+  const dirDeg = ctx.weather.windDirection;
   if (Number.isNaN(speedMs) || speedMs < 0) return null;
   const bucket = BUCKETS.find((b) => speedMs <= b.maxMs);
   if (!bucket) return null;
-  if (bucket.key === "still") return "Calm air.";
+  if (bucket.key === "still") return ctx.formatCalm();
   const compass = compassFromDegrees(dirDeg);
-  return `${compass} ${bucket.key}.`;
+  return ctx.formatWind(compass, bucket.key);
 }
 
-function compassFromDegrees(deg: number): string {
+function compassFromDegrees(deg: number): CardinalDirection | "Variable" {
   if (Number.isNaN(deg)) return "Variable";
   const normalised = ((deg % 360) + 360) % 360;
   const idx = Math.round(normalised / 45) % 8;
-  const code = DIRECTION_KEYS_EN[idx]!;
-  return ADJECTIVE_BY_CARDINAL[code]!;
+  return DIRECTION_KEYS[idx]!;
 }
-
-const ADJECTIVE_BY_CARDINAL: Record<string, string> = {
-  N: "Northerly",
-  NE: "Northeasterly",
-  E: "Easterly",
-  SE: "Southeasterly",
-  S: "Southerly",
-  SW: "Southwesterly",
-  W: "Westerly",
-  NW: "Northwesterly",
-};
 
 const SUN_WINDOW_MS = 90 * 60 * 1000;
 
@@ -105,9 +135,7 @@ function describeSun(ctx: LedeContext): string | null {
     const delta = t.getTime() - now.getTime();
     if (Math.abs(delta) > SUN_WINDOW_MS) continue;
     const hhmm = formatHHMM(t);
-    return delta >= 0
-      ? `Sun ${event === "rise" ? "rises" : "sets"} at ${hhmm}.`
-      : `Sun ${event === "rise" ? "rose" : "set"} at ${hhmm}.`;
+    return ctx.formatSun(event, delta >= 0 ? "future" : "past", hhmm);
   }
   return null;
 }
