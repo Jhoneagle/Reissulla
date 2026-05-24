@@ -9,6 +9,7 @@ export interface VisitInput {
   gtfsId: string;
   name: string;
   vehicleMode?: string | null;
+  isStation?: boolean;
 }
 
 /**
@@ -38,6 +39,7 @@ export async function recordVisit(input: VisitInput): Promise<RecentStopRow> {
           lastVisitedAt: new Date(),
           name: input.name,
           vehicleMode: input.vehicleMode ?? null,
+          isStation: input.isStation ?? existing.isStation,
         })
         .where(eq(recentStops.id, existing.id))
         .returning();
@@ -51,6 +53,7 @@ export async function recordVisit(input: VisitInput): Promise<RecentStopRow> {
         gtfsId: input.gtfsId,
         name: input.name,
         vehicleMode: input.vehicleMode ?? null,
+        isStation: input.isStation ?? false,
       })
       .returning();
     return row!;

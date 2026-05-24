@@ -47,6 +47,12 @@ export function RecentStopsList({ onSelect, limit = 3 }: RecentStopsListProps) {
                   lon: 0,
                   vehicleMode: stop.vehicleMode,
                   platformCode: null,
+                  isStation: stop.isStation,
+                  // Seed a single sub-stop so useDepartures takes the
+                  // single-id query path. When isStation is true, that
+                  // hits the station departures endpoint with the same id;
+                  // when false, the stop endpoint. Either way the recall
+                  // resolves rather than silently 404-ing.
                   subStops: [
                     {
                       gtfsId: stop.gtfsId,

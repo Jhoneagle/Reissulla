@@ -327,7 +327,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
     });
 
     s.post<{
-      Body: { gtfsId: string; name: string; vehicleMode?: string | null };
+      Body: {
+        gtfsId: string;
+        name: string;
+        vehicleMode?: string | null;
+        isStation?: boolean;
+      };
     }>(
       "/api/v1/transit/pinned-stops",
       {
@@ -339,6 +344,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
               gtfsId: { type: "string", minLength: 1, maxLength: 255 },
               name: { type: "string", minLength: 1, maxLength: 255 },
               vehicleMode: { type: ["string", "null"], maxLength: 32 },
+              isStation: { type: "boolean" },
             },
           },
         },
@@ -350,6 +356,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           gtfsId: request.body.gtfsId,
           name: request.body.name,
           vehicleMode: request.body.vehicleMode ?? null,
+          isStation: request.body.isStation ?? false,
         });
         return reply.status(201).send({ data: pinnedStopToResponse(row) });
       },
@@ -395,7 +402,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
     );
 
     s.post<{
-      Body: { gtfsId: string; name: string; vehicleMode?: string | null };
+      Body: {
+        gtfsId: string;
+        name: string;
+        vehicleMode?: string | null;
+        isStation?: boolean;
+      };
     }>(
       "/api/v1/transit/recent-stops",
       {
@@ -407,6 +419,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
               gtfsId: { type: "string", minLength: 1, maxLength: 255 },
               name: { type: "string", minLength: 1, maxLength: 255 },
               vehicleMode: { type: ["string", "null"], maxLength: 32 },
+              isStation: { type: "boolean" },
             },
           },
         },
@@ -418,6 +431,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           gtfsId: request.body.gtfsId,
           name: request.body.name,
           vehicleMode: request.body.vehicleMode ?? null,
+          isStation: request.body.isStation ?? false,
         });
         return reply.status(201).send({ data: recentStopToResponse(row) });
       },
@@ -431,6 +445,7 @@ function pinnedStopToResponse(row: pinnedStopsRepo.PinnedStopRow) {
     gtfsId: row.gtfsId,
     name: row.name,
     vehicleMode: row.vehicleMode,
+    isStation: row.isStation,
     pinnedAt: row.pinnedAt.toISOString(),
   };
 }
@@ -441,6 +456,7 @@ function recentStopToResponse(row: recentStopsRepo.RecentStopRow) {
     gtfsId: row.gtfsId,
     name: row.name,
     vehicleMode: row.vehicleMode,
+    isStation: row.isStation,
     visitCount: row.visitCount,
     lastVisitedAt: row.lastVisitedAt.toISOString(),
   };

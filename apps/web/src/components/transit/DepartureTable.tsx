@@ -60,10 +60,11 @@ export function DepartureTable({
       gtfsId: stopId,
       name: stopName,
       vehicleMode: vehicleMode ?? null,
+      isStation: isStation ?? false,
     });
     // recordVisit is stable; mutate is the only thing that should fire.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, stopId, stopName, vehicleMode]);
+  }, [user?.id, stopId, stopName, vehicleMode, isStation]);
   const prevAnnouncementRef = useRef("");
   const [filterStopId, setFilterStopId] = useState<string | null>(null);
 
@@ -115,7 +116,14 @@ export function DepartureTable({
               {vehicleModeLabel(vehicleMode)}
             </span>
           )}
-          <PinButton stop={{ gtfsId: stopId, name: stopName, vehicleMode }} />
+          <PinButton
+            stop={{
+              gtfsId: stopId,
+              name: stopName,
+              vehicleMode,
+              isStation: isStation ?? false,
+            }}
+          />
         </div>
       </div>
 

@@ -9,7 +9,7 @@ import { useAuthStore } from "../../stores/auth";
 import { showToast } from "../../stores/toast";
 
 interface PinButtonProps {
-  stop: Pick<TransitStop, "gtfsId" | "name" | "vehicleMode">;
+  stop: Pick<TransitStop, "gtfsId" | "name" | "vehicleMode" | "isStation">;
 }
 
 /**
@@ -42,6 +42,7 @@ export function PinButton({ stop }: PinButtonProps) {
         gtfsId: stop.gtfsId,
         name: stop.name,
         vehicleMode: stop.vehicleMode ?? null,
+        isStation: stop.isStation ?? false,
       });
     }
   };

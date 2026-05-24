@@ -293,6 +293,7 @@ export interface RecentStopResponse {
   gtfsId: string;
   name: string;
   vehicleMode: string | null;
+  isStation: boolean;
   visitCount: number;
   lastVisitedAt: string;
 }
@@ -363,6 +364,7 @@ export const transitApi = {
     gtfsId: string;
     name: string;
     vehicleMode?: string | null;
+    isStation?: boolean;
   }) {
     return mutationRequest<{ data: PinnedStopResponse }>(
       "/transit/pinned-stops",
@@ -383,6 +385,7 @@ export const transitApi = {
     gtfsId: string;
     name: string;
     vehicleMode?: string | null;
+    isStation?: boolean;
   }) {
     return mutationRequest<{ data: RecentStopResponse }>(
       "/transit/recent-stops",

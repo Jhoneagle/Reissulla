@@ -80,12 +80,14 @@ interface ExportedPinnedStop {
   gtfsId: string;
   name: string;
   vehicleMode: string | null;
+  isStation: boolean;
   pinnedAt: string;
 }
 interface ExportedRecentStop {
   gtfsId: string;
   name: string;
   vehicleMode: string | null;
+  isStation: boolean;
   visitCount: number;
   lastVisitedAt: string;
 }
@@ -183,12 +185,14 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
       gtfsId: row.gtfsId,
       name: row.name,
       vehicleMode: row.vehicleMode,
+      isStation: row.isStation,
       pinnedAt: row.pinnedAt.toISOString(),
     })),
     recentStops: recentStopRows.map((row) => ({
       gtfsId: row.gtfsId,
       name: row.name,
       vehicleMode: row.vehicleMode,
+      isStation: row.isStation,
       visitCount: row.visitCount,
       lastVisitedAt: row.lastVisitedAt.toISOString(),
     })),
