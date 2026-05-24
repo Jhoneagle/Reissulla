@@ -9,4 +9,8 @@ export {
   getStopDepartures,
   getMultiStopDepartures,
 } from "./departures.service.js";
+export type {
+  DeparturesOptions,
+  ArrivalDepartureMode,
+} from "./departures.service.js";
 export { planRoute } from "./trip.service.js";

@@ -7,6 +7,8 @@ import {
   getStopDepartures,
   getMultiStopDepartures,
   planRoute,
+  type DeparturesOptions,
+  type ArrivalDepartureMode,
 } from "../services/transit/index.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
 import { parseJson } from "../utils/json.js";
@@ -150,7 +152,17 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
   );
 
   server.get<{
-    Querystring: { stopId: string; count?: string; isStation?: string };
+    Querystring: {
+      stopId: string;
+      count?: string;
+      isStation?: string;
+      at?: string;
+      arriveBy?: string;
+      mode?: string;
+      lineFilter?: string;
+      directionFilter?: string;
+      lowFloorOnly?: string;
+    };
   }>(
     "/api/v1/transit/departures",
     {
@@ -162,6 +174,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             stopId: { type: "string" },
             count: { type: "string" },
             isStation: { type: "string" },
+            at: { type: "string" },
+            arriveBy: { type: "string" },
+            mode: { type: "string" },
+            lineFilter: { type: "string" },
+            directionFilter: { type: "string" },
+            lowFloorOnly: { type: "string" },
           },
         },
       },
@@ -182,11 +200,15 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       }
 
       const isStation = request.query.isStation === "true";
+      const options = parseDeparturesOptions(request.query);
+      if (typeof options === "string") return badRequest(options);
+
       const { data, cached } = await getStopDepartures(
         stopId,
         count,
         isStation,
         request.persona,
+        options,
       );
       return { data, cached };
     },
@@ -199,6 +221,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       stationId?: string;
       countPerStop?: string;
       totalCount?: string;
+      at?: string;
+      arriveBy?: string;
+      mode?: string;
+      lineFilter?: string;
+      directionFilter?: string;
+      lowFloorOnly?: string;
     };
   }>(
     "/api/v1/transit/departures/multi",
@@ -213,6 +241,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             stationId: { type: "string" },
             countPerStop: { type: "string" },
             totalCount: { type: "string" },
+            at: { type: "string" },
+            arriveBy: { type: "string" },
+            mode: { type: "string" },
+            lineFilter: { type: "string" },
+            directionFilter: { type: "string" },
+            lowFloorOnly: { type: "string" },
           },
         },
       },
@@ -259,6 +293,8 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       }
 
       const stationId = request.query.stationId?.trim() || undefined;
+      const options = parseDeparturesOptions(request.query);
+      if (typeof options === "string") return badRequest(options);
 
       const { data, cached } = await getMultiStopDepartures(
         ids,
@@ -267,6 +303,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         totalCount,
         stationId,
         request.persona,
+        options,
       );
       return { data, cached };
     },
@@ -472,4 +509,55 @@ function parseRecentLimit(raw: string | undefined): number {
   const n = Number(raw);
   if (!Number.isInteger(n) || n < 1) return 20;
   return Math.min(n, RECENT_STOPS_MAX_LIMIT);
+}
+
+const ALLOWED_ARRIVAL_DEPARTURE = new Set<ArrivalDepartureMode>([
+  "departures",
+  "arrivals",
+  "both",
+]);
+
+/**
+ * Parse the at / arriveBy / mode / filter query params for departures.
+ * Returns a `DeparturesOptions` on success, or an error string on the first
+ * validation failure (route caller wraps it in a 400). Empty/unset params
+ * leave the option undefined.
+ */
+function parseDeparturesOptions(query: {
+  at?: string;
+  arriveBy?: string;
+  mode?: string;
+  lineFilter?: string;
+  directionFilter?: string;
+  lowFloorOnly?: string;
+}): DeparturesOptions | string {
+  const options: DeparturesOptions = {};
+  if (query.at) {
+    const at = Number(query.at);
+    if (!Number.isFinite(at) || at <= 0) {
+      return "at must be a positive unix timestamp";
+    }
+    options.at = Math.floor(at);
+  }
+  if (query.arriveBy === "true") options.arriveBy = true;
+  if (query.mode) {
+    const m = query.mode as ArrivalDepartureMode;
+    if (!ALLOWED_ARRIVAL_DEPARTURE.has(m)) {
+      return "mode must be one of departures | arrivals | both";
+    }
+    options.mode = m;
+  }
+  if (query.lineFilter) {
+    const list = query.lineFilter
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (list.length > 0) options.lineFilter = list;
+  }
+  if (query.directionFilter) {
+    const dir = query.directionFilter.trim();
+    if (dir.length > 0) options.directionFilter = dir;
+  }
+  if (query.lowFloorOnly === "true") options.lowFloorOnly = true;
+  return options;
 }

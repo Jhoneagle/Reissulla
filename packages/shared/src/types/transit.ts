@@ -1,3 +1,5 @@
+import type { ServiceDay } from "../utils/service-day.js";
+
 /** GTFS wheelchair-boarding status surfaced to the FE. */
 export type WheelchairBoarding = "POSSIBLE" | "NOT_POSSIBLE" | "NO_INFORMATION";
 
@@ -57,6 +59,10 @@ export interface TransitDeparture {
   stopId?: string;
   /** Platform code of the sub-stop (for display in platform filter). */
   platformCode?: string | null;
+  /** Trip id — opens the trip drill-down. */
+  tripId?: string;
+  /** GTFS wheelchairAccessible on the trip; POSSIBLE means low-floor. */
+  wheelchairAccessible?: WheelchairBoarding;
 }
 
 export interface TransitDeparturesResult {
@@ -65,6 +71,12 @@ export interface TransitDeparturesResult {
   message?: string;
   /** Sub-stop metadata for building the platform filter UI. */
   subStops?: TransitSubStop[];
+  /**
+   * Service day the response is anchored to (now or the future-time
+   * picker target). Lets the FE render "Tomorrow's schedule" kickers
+   * and resolve cross-midnight times consistently.
+   */
+  serviceDay?: ServiceDay;
 }
 
 export interface TransitItineraryLeg {

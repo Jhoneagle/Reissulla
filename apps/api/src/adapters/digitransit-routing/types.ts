@@ -84,7 +84,11 @@ export interface RawStoptime {
     code: string | null;
   };
   trip: {
+    gtfsId?: string;
+    /** GTFS wheelchairAccessible — POSSIBLE means low-floor. */
+    wheelchairAccessible?: RawWheelchairBoarding;
     route: {
+      gtfsId?: string;
       shortName: string;
       longName: string;
       mode: string;

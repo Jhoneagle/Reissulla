@@ -1,19 +1,55 @@
 import {
   DEFAULT_PERSONA,
+  serviceDayFromUnix,
   type Persona,
+  type ServiceDay,
   type TransitDeparture,
   type TransitDeparturesResult,
   type TransitSubStop,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
-import { DEPARTURES_TTL } from "../../cache/ttl.js";
+import { DEPARTURES_V2_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
 import type { AdapterContext } from "../../adapters/types.js";
 import type { RawStoptime } from "../../adapters/digitransit-routing/types.js";
 import { adapterRouter } from "./adapter-router.js";
 
 const MAX_PARALLEL_STOP_QUERIES = 10;
+
+export type ArrivalDepartureMode = "departures" | "arrivals" | "both";
+
+const ARRIVAL_DEPARTURE_MAP: Record<
+  ArrivalDepartureMode,
+  "DEPARTURES" | "ARRIVALS" | "BOTH"
+> = {
+  departures: "DEPARTURES",
+  arrivals: "ARRIVALS",
+  both: "BOTH",
+};
+
+export interface DeparturesOptions {
+  /** Unix seconds. When set, future-time picker — departures after `at`. */
+  at?: number;
+  /**
+   * When true, `at` is the desired arrival time, not departure time.
+   * OTP2 lacks a native arrive-by flag for stoptimes; we approximate by
+   * widening the lookahead so the FE can show arrivals near the time
+   * the user wants to be there.
+   */
+  arriveBy?: boolean;
+  /** ARRIVALS / DEPARTURES / BOTH — backs the DEP-2 arrivals toggle. */
+  mode?: ArrivalDepartureMode;
+  /** Comma-separated routeShortName whitelist (DEP-5). */
+  lineFilter?: string[];
+  /**
+   * Headsign substring (case-insensitive) — DEP-6 direction filter.
+   * Matches when the headsign contains the substring.
+   */
+  directionFilter?: string;
+  /** A11Y-19 — drop departures whose trip is not low-floor accessible. */
+  lowFloorOnly?: boolean;
+}
 
 function makeContext(persona: Persona): AdapterContext {
   return { signal: new AbortController().signal, persona };
@@ -32,7 +68,68 @@ function mapStoptimes(stoptimes: RawStoptime[]): TransitDeparture[] {
     vehicleMode: st.trip.route.mode,
     stopId: st.stop?.gtfsId,
     platformCode: st.stop?.platformCode ?? st.stop?.code ?? null,
+    tripId: st.trip.gtfsId,
+    wheelchairAccessible: st.trip.wheelchairAccessible ?? undefined,
   }));
+}
+
+function applyFilters(
+  data: TransitDeparture[],
+  options: DeparturesOptions,
+): TransitDeparture[] {
+  let out = data;
+  if (options.lineFilter && options.lineFilter.length > 0) {
+    const wanted = new Set(options.lineFilter.map((l) => l.toLowerCase()));
+    out = out.filter((d) => wanted.has(d.routeShortName.toLowerCase()));
+  }
+  if (options.directionFilter) {
+    const needle = options.directionFilter.toLowerCase();
+    out = out.filter((d) => d.headsign.toLowerCase().includes(needle));
+  }
+  if (options.lowFloorOnly) {
+    out = out.filter((d) => d.wheelchairAccessible === "POSSIBLE");
+  }
+  return out;
+}
+
+function serviceDayForResponse(at: number | undefined): ServiceDay {
+  return serviceDayFromUnix(at ?? Math.floor(Date.now() / 1000));
+}
+
+function buildOperationArgs(count: number, options: DeparturesOptions) {
+  return {
+    numberOfDepartures: count,
+    startTime: options.at,
+    arrivalDeparture: options.mode
+      ? ARRIVAL_DEPARTURE_MAP[options.mode]
+      : undefined,
+    timeRange: options.arriveBy ? 12 * 60 * 60 : undefined,
+  };
+}
+
+function cacheKeySegments(
+  stopId: string,
+  count: number,
+  isStation: boolean,
+  options: DeparturesOptions,
+): (string | number | boolean)[] {
+  // v2 segment widens for at / arriveBy / filters / mode / lowFloor.
+  // Old v1 keys time out naturally per the cache-key version-segment
+  // policy — no Redis flush.
+  const segments: (string | number | boolean)[] = [stopId, count, isStation];
+  if (options.at !== undefined) segments.push(`at=${options.at}`);
+  if (options.arriveBy) segments.push("arriveBy");
+  if (options.mode && options.mode !== "departures") {
+    segments.push(`m=${options.mode}`);
+  }
+  if (options.lineFilter && options.lineFilter.length > 0) {
+    segments.push(`lines=${[...options.lineFilter].sort().join(",")}`);
+  }
+  if (options.directionFilter) {
+    segments.push(`dir=${options.directionFilter.toLowerCase()}`);
+  }
+  if (options.lowFloorOnly) segments.push("lowFloor");
+  return segments;
 }
 
 export async function getStopDepartures(
@@ -40,25 +137,35 @@ export async function getStopDepartures(
   count = 20,
   isStation = false,
   persona: Persona = DEFAULT_PERSONA,
+  options: DeparturesOptions = {},
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
-  const key = cacheKey("transit", "departures", 1, stopId, count, isStation);
+  const key = cacheKey(
+    "transit",
+    "departures",
+    2,
+    ...cacheKeySegments(stopId, count, isStation, options),
+  );
   const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
   if (cached) return { data: cached, cached: true };
 
   const adapter = adapterRouter.forStopId(stopId);
   const ctx = makeContext(persona);
+  const opArgs = buildOperationArgs(count, options);
 
   let stopName: string | null = null;
   let stoptimes: RawStoptime[] = [];
 
   if (isStation) {
-    const raw = await adapter.stationDepartures(stopId, count, ctx);
+    const raw = await adapter.stationDepartures(
+      { stationId: stopId, ...opArgs },
+      ctx,
+    );
     if (raw.station) {
       stopName = raw.station.name;
       stoptimes = raw.station.stoptimesWithoutPatterns;
     }
   } else {
-    const raw = await adapter.stopDepartures(stopId, count, ctx);
+    const raw = await adapter.stopDepartures({ stopId, ...opArgs }, ctx);
     if (raw.stop) {
       stopName = raw.stop.name;
       stoptimes = raw.stop.stoptimesWithoutPatterns;
@@ -70,18 +177,20 @@ export async function getStopDepartures(
       stopName: null,
       departures: [],
       message: "Stop not found or outside transit coverage area",
+      serviceDay: serviceDayForResponse(options.at),
     };
     return { data, cached: false };
   }
 
-  const departures = mapStoptimes(stoptimes);
+  const departures = applyFilters(mapStoptimes(stoptimes), options);
 
   const data: TransitDeparturesResult = {
     stopName,
     departures,
+    serviceDay: serviceDayForResponse(options.at),
   };
 
-  await tryCache(() => cacheSet(key, data, DEPARTURES_TTL));
+  await tryCache(() => cacheSet(key, data, DEPARTURES_V2_TTL));
   return { data, cached: false };
 }
 
@@ -92,15 +201,17 @@ export async function getMultiStopDepartures(
   totalCount = 40,
   stationId?: string,
   persona: Persona = DEFAULT_PERSONA,
+  options: DeparturesOptions = {},
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
   const sortedIds = [...stopIds].sort();
   const key = cacheKey(
     "transit",
     "departures-multi",
-    1,
+    2,
     sortedIds.join(","),
     countPerStop,
     totalCount,
+    ...cacheKeySegments("", 0, Boolean(stationId), options).slice(3),
   );
   const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
   if (cached) return { data: cached, cached: true };
@@ -114,6 +225,7 @@ export async function getMultiStopDepartures(
   let stopName: string | null = null;
 
   const ctx = makeContext(persona);
+  const opArgs = buildOperationArgs(countPerStop, options);
 
   for (let i = 0; i < sortedIds.length; i += MAX_PARALLEL_STOP_QUERIES) {
     const batch = sortedIds.slice(i, i + MAX_PARALLEL_STOP_QUERIES);
@@ -121,7 +233,10 @@ export async function getMultiStopDepartures(
       batch.map(async (id) => {
         try {
           const adapter = adapterRouter.forStopId(id);
-          const raw = await adapter.stopDepartures(id, countPerStop, ctx);
+          const raw = await adapter.stopDepartures(
+            { stopId: id, ...opArgs },
+            ctx,
+          );
           return { id, data: raw.stop };
         } catch {
           return { id, data: null };
@@ -147,7 +262,10 @@ export async function getMultiStopDepartures(
   if (allDepartures.length === 0 && stationId) {
     try {
       const adapter = adapterRouter.forStopId(stationId);
-      const raw = await adapter.stationDepartures(stationId, totalCount, ctx);
+      const raw = await adapter.stationDepartures(
+        { stationId, ...buildOperationArgs(totalCount, options) },
+        ctx,
+      );
       if (raw.station) {
         stopName = raw.station.name;
         const deps = mapStoptimes(raw.station.stoptimesWithoutPatterns);
@@ -172,9 +290,12 @@ export async function getMultiStopDepartures(
       departures: [],
       subStops,
       message: "Stop not found or outside transit coverage area",
+      serviceDay: serviceDayForResponse(options.at),
     };
     return { data, cached: false };
   }
+
+  allDepartures = applyFilters(allDepartures, options);
 
   allDepartures.sort(
     (a, b) =>
@@ -186,8 +307,9 @@ export async function getMultiStopDepartures(
     stopName,
     departures: allDepartures,
     subStops,
+    serviceDay: serviceDayForResponse(options.at),
   };
 
-  await tryCache(() => cacheSet(key, data, DEPARTURES_TTL));
+  await tryCache(() => cacheSet(key, data, DEPARTURES_V2_TTL));
   return { data, cached: false };
 }

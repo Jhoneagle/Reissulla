@@ -7,6 +7,8 @@ import type {
   RawStationDeparturesData,
   RawStopDeparturesData,
 } from "./types.js";
+import type { StationDeparturesArgs } from "./operations/stationDepartures.js";
+import type { StopDeparturesArgs } from "./operations/stopDepartures.js";
 
 export type DigitransitAdapterName =
   | "digitransit-finland"
@@ -29,13 +31,11 @@ export interface DigitransitAdapter {
     ctx: AdapterContext,
   ): Promise<RawSearchStopsAndStationsData>;
   stopDepartures(
-    stopId: string,
-    n: number,
+    args: StopDeparturesArgs,
     ctx: AdapterContext,
   ): Promise<RawStopDeparturesData>;
   stationDepartures(
-    stationId: string,
-    n: number,
+    args: StationDeparturesArgs,
     ctx: AdapterContext,
   ): Promise<RawStationDeparturesData>;
   planConnection(
