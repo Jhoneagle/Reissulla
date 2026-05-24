@@ -232,3 +232,72 @@ export interface RawTrip {
 export interface RawTripData {
   trip: RawTrip | null;
 }
+
+// ---- Trips for date / stoptimes for date -----------------------------------
+
+export interface RawTripForDate {
+  gtfsId: string;
+  tripHeadsign: string;
+  /** YYYYMMDD strings — service dates the trip is active on. */
+  activeDates: string[];
+}
+
+export interface RawTripsForDateData {
+  pattern: { code: string; tripsForDate: RawTripForDate[] } | null;
+}
+
+export interface RawStoptimeForDate {
+  scheduledDeparture: number;
+  realtimeDeparture: number;
+  departureDelay: number;
+  realtime: boolean;
+  serviceDay: number;
+  headsign: string;
+  trip: { gtfsId: string };
+}
+
+export interface RawStoptimesForDateInPattern {
+  pattern: {
+    code: string;
+    headsign: string;
+    directionId: number;
+    route: RawRouteMeta;
+  };
+  stoptimes: RawStoptimeForDate[];
+}
+
+export interface RawStoptimesForDateData {
+  stop: {
+    name: string;
+    stoptimesForServiceDate: RawStoptimesForDateInPattern[];
+  } | null;
+}
+
+// ---- Paged radius search ---------------------------------------------------
+
+export interface RawStopAtDistance {
+  distance: number;
+  stop: {
+    gtfsId: string;
+    name: string;
+    code: string | null;
+    lat: number;
+    lon: number;
+    vehicleMode: string | null;
+    platformCode: string | null;
+  };
+}
+
+export interface RawStopsByRadiusEdge {
+  cursor: string;
+  node: RawStopAtDistance;
+}
+
+export interface RawStopsByRadiusPage {
+  edges: RawStopsByRadiusEdge[];
+  pageInfo: { hasNextPage: boolean; endCursor: string | null };
+}
+
+export interface RawStopsByRadiusData {
+  stopsByRadius: RawStopsByRadiusPage | null;
+}
