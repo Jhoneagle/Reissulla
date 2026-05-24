@@ -7,8 +7,20 @@ import {
   useSyncExternalStore,
 } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import type { TransitSubStop } from "@reissulla/shared";
-import { useDepartures, useRecordRecentStop } from "../../hooks/useTransit";
+import {
+  formatDeparture,
+  serviceDayFromUnix,
+  type TransitSubStop,
+} from "@reissulla/shared";
+import type {
+  ArrivalDepartureMode,
+  DeparturesOptions,
+} from "@reissulla/api-client";
+import {
+  useDepartures,
+  useFirstLast,
+  useRecordRecentStop,
+} from "../../hooks/useTransit";
 import {
   vehicleModeLabel,
   formatRelativeTime,
@@ -34,6 +46,38 @@ function subStopLabel(ss: TransitSubStop): string {
   return ss.gtfsId.split(":").pop() ?? ss.gtfsId;
 }
 
+function toDatetimeLocalValue(unix: number | undefined): string {
+  if (!unix) return "";
+  // datetime-local needs a local-time YYYY-MM-DDTHH:mm string. Resolve via
+  // Intl with Helsinki timezone since the rendered picker tracks the feed.
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts: Record<string, string> = {};
+  for (const p of fmt.formatToParts(new Date(unix * 1000))) {
+    if (p.type !== "literal") parts[p.type] = p.value;
+  }
+  if (parts.hour === "24") parts.hour = "00";
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+function fromDatetimeLocalValue(value: string): number | undefined {
+  if (!value) return undefined;
+  // Browser's datetime-local parses as local time. We treat that as
+  // Europe/Helsinki by passing through Date.parse with explicit tz; for
+  // simplicity, use the browser's local interpretation — close enough
+  // for users whose system clock is on Finnish time.
+  const ms = Date.parse(value);
+  if (!Number.isFinite(ms)) return undefined;
+  return Math.floor(ms / 1000);
+}
+
 export function DepartureTable({
   stopId,
   stopName,
@@ -45,11 +89,23 @@ export function DepartureTable({
   const intl = useIntl();
   const user = useAuthStore((s) => s.user);
   const recordVisit = useRecordRecentStop();
+
+  const [at, setAt] = useState<number | undefined>(undefined);
+  const [mode, setMode] = useState<ArrivalDepartureMode>("departures");
+  const [filterStopId, setFilterStopId] = useState<string | null>(null);
+
+  const departureOptions: DeparturesOptions = useMemo(
+    () => ({ at, mode }),
+    [at, mode],
+  );
+
   const { data, isLoading, isError, dataUpdatedAt, refetch } = useDepartures(
     subStops,
     isStation,
     stationId,
+    departureOptions,
   );
+  const firstLast = useFirstLast(stopId);
 
   // Auto-record the visit for the recent-stops list. Fires once per
   // mount per (stopId, name) — the mutation is idempotent (visitCount
@@ -66,7 +122,6 @@ export function DepartureTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, stopId, stopName, vehicleMode, isStation]);
   const prevAnnouncementRef = useRef("");
-  const [filterStopId, setFilterStopId] = useState<string | null>(null);
 
   const result = data?.data;
   const message = result?.message;
@@ -127,30 +182,114 @@ export function DepartureTable({
         </div>
       </div>
 
-      {showFilter && (
-        <div className="departure-table__filter">
-          <label
-            htmlFor="platform-filter"
-            className="departure-table__filter-label"
-          >
-            <FormattedMessage id="transit.depart.filter.platform" />
+      <div className="departure-table__controls">
+        <div className="departure-table__time">
+          <label className="departure-table__time-label">
+            <FormattedMessage id="transit.depart.time.label" />
+            <input
+              type="datetime-local"
+              value={toDatetimeLocalValue(at)}
+              onChange={(e) => setAt(fromDatetimeLocalValue(e.target.value))}
+            />
           </label>
-          <select
-            id="platform-filter"
-            value={filterStopId ?? ""}
-            onChange={(e) => setFilterStopId(e.target.value || null)}
-            className="departure-table__filter-select"
-          >
-            <option value="">
-              {intl.formatMessage({ id: "transit.depart.filter.allPlatforms" })}
-            </option>
-            {subStops.map((ss) => (
-              <option key={ss.gtfsId} value={ss.gtfsId}>
-                {subStopLabel(ss)}
-              </option>
-            ))}
-          </select>
+          {at !== undefined && (
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => setAt(undefined)}
+            >
+              <FormattedMessage id="transit.depart.time.now" />
+            </button>
+          )}
         </div>
+
+        <div
+          className="departure-table__chips"
+          role="radiogroup"
+          aria-label={intl.formatMessage({
+            id: "transit.depart.mode.label",
+          })}
+        >
+          <button
+            type="button"
+            role="radio"
+            aria-checked={mode === "departures"}
+            className={`departure-table__chip${mode === "departures" ? " departure-table__chip--on" : ""}`}
+            onClick={() => setMode("departures")}
+          >
+            <FormattedMessage id="transit.depart.mode.departures" />
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={mode === "arrivals"}
+            className={`departure-table__chip${mode === "arrivals" ? " departure-table__chip--on" : ""}`}
+            onClick={() => setMode("arrivals")}
+          >
+            <FormattedMessage id="transit.depart.mode.arrivals" />
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={mode === "both"}
+            className={`departure-table__chip${mode === "both" ? " departure-table__chip--on" : ""}`}
+            onClick={() => setMode("both")}
+          >
+            <FormattedMessage id="transit.depart.mode.both" />
+          </button>
+        </div>
+
+        {showFilter && (
+          <div className="departure-table__filter">
+            <label
+              htmlFor="platform-filter"
+              className="departure-table__filter-label"
+            >
+              <FormattedMessage id="transit.depart.filter.platform" />
+            </label>
+            <select
+              id="platform-filter"
+              value={filterStopId ?? ""}
+              onChange={(e) => setFilterStopId(e.target.value || null)}
+              className="departure-table__filter-select"
+            >
+              <option value="">
+                {intl.formatMessage({
+                  id: "transit.depart.filter.allPlatforms",
+                })}
+              </option>
+              {subStops.map((ss) => (
+                <option key={ss.gtfsId} value={ss.gtfsId}>
+                  {subStopLabel(ss)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {firstLast.data?.data.first && firstLast.data?.data.last && (
+        <p className="departure-table__first-last">
+          <FormattedMessage
+            id="transit.depart.firstLast"
+            values={{
+              first: formatDeparture(
+                serviceDayFromUnix(
+                  firstLast.data.data.first.serviceDay +
+                    firstLast.data.data.first.scheduledDeparture,
+                ),
+                "fi",
+              ),
+              last: formatDeparture(
+                serviceDayFromUnix(
+                  firstLast.data.data.last.serviceDay +
+                    firstLast.data.data.last.scheduledDeparture,
+                ),
+                "fi",
+              ),
+            }}
+          />
+        </p>
       )}
 
       {isLoading && (

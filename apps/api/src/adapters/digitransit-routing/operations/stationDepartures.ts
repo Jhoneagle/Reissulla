@@ -6,7 +6,8 @@ export interface StationDeparturesArgs {
   stationId: string;
   numberOfDepartures: number;
   startTime?: number;
-  arrivalDeparture?: "DEPARTURES" | "ARRIVALS" | "BOTH";
+  /** See StopDeparturesArgs — same semantics. */
+  omitNonPickups?: boolean;
   omitCanceled?: boolean;
   timeRange?: number;
 }
@@ -14,8 +15,8 @@ export interface StationDeparturesArgs {
 function buildQuery(args: StationDeparturesArgs): string {
   const parts: string[] = [`numberOfDepartures: ${args.numberOfDepartures}`];
   if (args.startTime !== undefined) parts.push(`startTime: ${args.startTime}`);
-  if (args.arrivalDeparture) {
-    parts.push(`arrivalDeparture: ${args.arrivalDeparture}`);
+  if (args.omitNonPickups !== undefined) {
+    parts.push(`omitNonPickups: ${args.omitNonPickups}`);
   }
   if (args.omitCanceled !== undefined) {
     parts.push(`omitCanceled: ${args.omitCanceled}`);

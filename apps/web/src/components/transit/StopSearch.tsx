@@ -10,74 +10,41 @@ interface StopSearchProps {
   onSelect: (stop: TransitStop) => void;
 }
 
-type ModeFilter = "" | "BUS" | "TRAM" | "RAIL" | "SUBWAY" | "FERRY";
-const MODE_CHIPS: ModeFilter[] = ["BUS", "TRAM", "RAIL", "SUBWAY", "FERRY"];
-
-// Numeric or short-alphanumeric inputs that look like a transit line
-// shortname — e.g. "550", "23A", "I3", "K". The shortcut affordance fires
-// against byLine on these instead of stop-name search.
-const LINE_CODE = /^[A-Z]?\d{1,3}[A-Z]?$|^[KIPNYAU]$/i;
-
-function looksLikeLineCode(s: string): boolean {
-  return LINE_CODE.test(s.trim());
-}
-
+/**
+ * Find a stop by name. Results carry city + mode labels per row — that's
+ * the disambiguation. Multiple "Rautatieasema" hits across cities, or a
+ * Bus / Tram / Subway split at the same name, surface as separate
+ * grouped rows in the results list; the user picks the one they want.
+ *
+ * No extra filter chips here: per-row labels already do the job, and the
+ * "find a line" affordance lives in its own Lines tab — not under stop
+ * search.
+ */
 export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
   const intl = useIntl();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [mode, setMode] = useState<ModeFilter>("");
-  const [region, setRegion] = useState<string>("");
-  const [operator, setOperator] = useState<string>("");
-  const [byLine, setByLine] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const debouncedQuery = useDebounce(query.trim(), 300);
 
   const listboxId = `${id}-listbox`;
-  const filterId = `${id}-filters`;
 
-  const { data, isLoading, isError } = useStopSearch(debouncedQuery, {
-    mode: mode || undefined,
-    region: region || undefined,
-    operator: operator || undefined,
-    byLine: byLine || undefined,
-  });
+  const { data, isLoading, isError } = useStopSearch(debouncedQuery);
   const results = useMemo(() => data?.data ?? [], [data]);
-
-  // Regions + operators dropdowns are populated from the union of
-  // currently-rendered results. Keeps the FE self-contained — no extra
-  // Pelias call to enumerate localities, and the lists stay relevant to
-  // what the search actually returned.
-  const regionOptions = useMemo(() => {
-    const seen = new Set<string>();
-    for (const r of results) {
-      if (r.city) seen.add(r.city);
-    }
-    return Array.from(seen).sort();
-  }, [results]);
-  const operatorOptions = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const r of results) {
-      for (const a of r.agencies ?? []) seen.set(a.gtfsId, a.name);
-    }
-    return Array.from(seen.entries())
-      .map(([gtfsId, name]) => ({ gtfsId, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [results]);
 
   const prevResultsLength = useRef(0);
   useEffect(() => {
     if (
       results.length > 0 &&
       prevResultsLength.current === 0 &&
-      (debouncedQuery.length >= 2 || byLine)
+      debouncedQuery.length >= 2
     ) {
       setOpen(true);
     }
     prevResultsLength.current = results.length;
-  }, [results.length, debouncedQuery.length, byLine]);
+  }, [results.length, debouncedQuery.length]);
 
   useEffect(() => {
     return () => {
@@ -127,176 +94,56 @@ export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
     blurTimerRef.current = setTimeout(() => setOpen(false), 200);
   };
 
-  const showDropdown = open && (debouncedQuery.length >= 2 || Boolean(byLine));
+  const showDropdown = open && debouncedQuery.length >= 2;
   const activeDescendant =
     activeIndex >= 0 ? `${id}-result-${activeIndex}` : undefined;
-
-  const lineCodeShortcutVisible =
-    !byLine &&
-    debouncedQuery.length > 0 &&
-    looksLikeLineCode(debouncedQuery) &&
-    results.length === 0 &&
-    !isLoading;
 
   return (
     <div className="stop-search">
       <label htmlFor={id} className="visually-hidden">
         <FormattedMessage id="transit.stopSearch.inputLabel" />
       </label>
-      <div className="stop-search__input-row">
-        <svg
-          className="stop-search__icon"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input
-          ref={inputRef}
-          id={id}
-          type="text"
-          role="combobox"
-          aria-expanded={showDropdown}
-          aria-haspopup="listbox"
-          aria-autocomplete="list"
-          aria-controls={listboxId}
-          aria-activedescendant={activeDescendant}
-          autoComplete="off"
-          placeholder={intl.formatMessage({
-            id: "transit.stopSearch.placeholder",
-          })}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActiveIndex(-1);
-            if (e.target.value.trim().length < 2 && !byLine) setOpen(false);
-          }}
-          onFocus={() => {
-            if (results.length > 0 && (debouncedQuery.length >= 2 || byLine)) {
-              setOpen(true);
-            }
-          }}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-        />
-      </div>
-
-      <div
-        id={filterId}
-        className="stop-search__filters"
-        role="group"
-        aria-label={intl.formatMessage({
-          id: "transit.stopSearch.filtersLabel",
-        })}
+      <svg
+        className="stop-search__icon"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
       >
-        <div className="stop-search__mode-chips" role="radiogroup">
-          <button
-            type="button"
-            role="radio"
-            aria-checked={mode === ""}
-            className={`stop-search__chip${
-              mode === "" ? " stop-search__chip--on" : ""
-            }`}
-            onClick={() => setMode("")}
-          >
-            <FormattedMessage id="transit.stopSearch.mode.all" />
-          </button>
-          {MODE_CHIPS.map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="radio"
-              aria-checked={mode === m}
-              className={`stop-search__chip${
-                mode === m ? " stop-search__chip--on" : ""
-              }`}
-              onClick={() => setMode(mode === m ? "" : m)}
-            >
-              {vehicleModeLabel(m)}
-            </button>
-          ))}
-        </div>
-        <div className="stop-search__select-row">
-          <label className="stop-search__select-label">
-            <FormattedMessage id="transit.stopSearch.region.label" />
-            <select
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              disabled={regionOptions.length === 0}
-            >
-              <option value="">
-                {intl.formatMessage({ id: "transit.stopSearch.region.all" })}
-              </option>
-              {regionOptions.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="stop-search__select-label">
-            <FormattedMessage id="transit.stopSearch.operator.label" />
-            <select
-              value={operator}
-              onChange={(e) => setOperator(e.target.value)}
-              disabled={operatorOptions.length === 0}
-            >
-              <option value="">
-                {intl.formatMessage({
-                  id: "transit.stopSearch.operator.all",
-                })}
-              </option>
-              {operatorOptions.map((op) => (
-                <option key={op.gtfsId} value={op.gtfsId}>
-                  {op.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      {(lineCodeShortcutVisible || byLine) && (
-        <p className="stop-search__line-shortcut" aria-live="polite">
-          {byLine ? (
-            <>
-              <FormattedMessage
-                id="transit.stopSearch.byLine.active"
-                values={{ line: byLine }}
-              />{" "}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => {
-                  setByLine("");
-                  setQuery("");
-                }}
-              >
-                <FormattedMessage id="transit.stopSearch.byLine.clear" />
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setByLine(debouncedQuery)}
-            >
-              <FormattedMessage
-                id="transit.stopSearch.byLine.hint"
-                values={{ line: debouncedQuery }}
-              />
-            </button>
-          )}
-        </p>
-      )}
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input
+        ref={inputRef}
+        id={id}
+        type="text"
+        role="combobox"
+        aria-expanded={showDropdown}
+        aria-haspopup="listbox"
+        aria-autocomplete="list"
+        aria-controls={listboxId}
+        aria-activedescendant={activeDescendant}
+        autoComplete="off"
+        placeholder={intl.formatMessage({
+          id: "transit.stopSearch.placeholder",
+        })}
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setActiveIndex(-1);
+          if (e.target.value.trim().length < 2) setOpen(false);
+        }}
+        onFocus={() => {
+          if (results.length > 0 && debouncedQuery.length >= 2) setOpen(true);
+        }}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+      />
 
       {showDropdown && (
         <ul

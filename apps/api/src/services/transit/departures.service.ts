@@ -22,14 +22,16 @@ const MAX_PARALLEL_STOP_QUERIES = 10;
 
 export type ArrivalDepartureMode = "departures" | "arrivals" | "both";
 
-const ARRIVAL_DEPARTURE_MAP: Record<
-  ArrivalDepartureMode,
-  "DEPARTURES" | "ARRIVALS" | "BOTH"
-> = {
-  departures: "DEPARTURES",
-  arrivals: "ARRIVALS",
-  both: "BOTH",
-};
+/**
+ * OTP2 GTFS only exposes `omitNonPickups` (default false) to narrow
+ * stoptimes to "departures only" — there is no distinct ARRIVALS toggle on
+ * `stoptimesWithoutPatterns`. The FE three-way choice maps onto this
+ * single switch: departures → true (exclude terminus / drop-off only);
+ * arrivals / both → false (include drop-offs).
+ */
+function omitNonPickupsFor(mode: ArrivalDepartureMode | undefined): boolean {
+  return mode === undefined || mode === "departures";
+}
 
 export interface DeparturesOptions {
   /** Unix seconds. When set, future-time picker — departures after `at`. */
@@ -103,9 +105,7 @@ function buildOperationArgs(count: number, options: DeparturesOptions) {
   return {
     numberOfDepartures: count,
     startTime: options.at,
-    arrivalDeparture: options.mode
-      ? ARRIVAL_DEPARTURE_MAP[options.mode]
-      : undefined,
+    omitNonPickups: omitNonPickupsFor(options.mode),
     timeRange: options.arriveBy ? 12 * 60 * 60 : undefined,
   };
 }
