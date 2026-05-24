@@ -6,6 +6,7 @@ import { routes } from "./routes";
 import { useAuthStore } from "./stores/auth";
 import { useGeolocationStore } from "./stores/geolocation";
 import { useAuthLocaleSync } from "./hooks/useAuthLocaleSync";
+import { useAuthCacheCleanup } from "./hooks/useAuthCacheCleanup";
 import { useTheme } from "./hooks/useTheme";
 import { I18nShell } from "./i18n";
 import "./styles/global.css";
@@ -43,6 +44,7 @@ export function App() {
  */
 function AppShell() {
   useAuthLocaleSync();
+  useAuthCacheCleanup();
   useTheme();
   return (
     <Routes>
