@@ -1,8 +1,12 @@
+/** GTFS wheelchair-boarding status surfaced to the FE. */
+export type WheelchairBoarding = "POSSIBLE" | "NOT_POSSIBLE" | "NO_INFORMATION";
+
 export interface TransitSubStop {
   gtfsId: string;
   code: string | null;
   platformCode: string | null;
   vehicleMode: string | null;
+  wheelchairBoarding?: WheelchairBoarding;
 }
 
 export interface TransitStop {
@@ -23,6 +27,13 @@ export interface TransitStop {
   isStation?: boolean;
   /** Child stops within this station/cluster for the given mode. */
   subStops?: TransitSubStop[];
+  /**
+   * GTFS wheelchair-boarding flag for the stop/station. Stations propagate
+   * POSSIBLE if any child stop is POSSIBLE; NO_INFORMATION when the feed
+   * has no signal. The FE uses this for the persona-driven accessible-first
+   * sort and the A11Y-20 stop accessibility disclosure.
+   */
+  wheelchairBoarding?: WheelchairBoarding;
 }
 
 export interface TransitDeparture {

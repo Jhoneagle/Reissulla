@@ -17,6 +17,7 @@ const NEAREST_QUERY = `
               lon
               vehicleMode
               platformCode
+              wheelchairBoarding
             }
           }
         }

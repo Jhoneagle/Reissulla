@@ -113,10 +113,30 @@ export async function getNearbyStops(
     vehicleMode: edge.place.vehicleMode,
     platformCode: edge.place.platformCode,
     distance: edge.distance,
+    wheelchairBoarding: edge.place.wheelchairBoarding ?? undefined,
   }));
+
+  sortAccessibleFirstIfPersona(data, persona);
 
   await tryCache(() => cacheSet(key, data, STOPS_TTL));
   return { data, cached: false };
+}
+
+/**
+ * When the persona wants accessibility prioritised, lift POSSIBLE rows to
+ * the top of the list. NO_INFORMATION stays in its original position so
+ * the user still sees feed-uncertain stops without burying them.
+ */
+function sortAccessibleFirstIfPersona(
+  stops: TransitStop[],
+  persona: Persona,
+): void {
+  if (!persona.wheelchair && !persona.noStairs) return;
+  stops.sort((a, b) => {
+    const accA = a.wheelchairBoarding === "POSSIBLE" ? 1 : 0;
+    const accB = b.wheelchairBoarding === "POSSIBLE" ? 1 : 0;
+    return accB - accA;
+  });
 }
 
 export async function searchStops(
@@ -137,6 +157,8 @@ export async function searchStops(
   );
 
   await enrichStopsWithCity(data);
+
+  sortAccessibleFirstIfPersona(data, persona);
 
   await tryCache(() => cacheSet(key, data, STOPS_TTL));
   return { data, cached: false };

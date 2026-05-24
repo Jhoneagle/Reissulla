@@ -12,6 +12,7 @@ const SEARCH_QUERY = `
       lon
       vehicleMode
       platformCode
+      wheelchairBoarding
     }
     stations(name: $name) {
       gtfsId
@@ -19,12 +20,14 @@ const SEARCH_QUERY = `
       lat
       lon
       vehicleMode
+      wheelchairBoarding
       stops {
         gtfsId
         name
         code
         platformCode
         vehicleMode
+        wheelchairBoarding
       }
     }
   }
