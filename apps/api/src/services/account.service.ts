@@ -1,6 +1,8 @@
 import * as usersRepo from "../db/repositories/users.repo.js";
 import * as savedLocationsRepo from "../db/repositories/saved-locations.repo.js";
 import * as recentPlacesRepo from "../db/repositories/recent-places.repo.js";
+import * as pinnedStopsRepo from "../db/repositories/pinned-stops.repo.js";
+import * as recentStopsRepo from "../db/repositories/recent-stops.repo.js";
 import * as preferencesRepo from "../db/repositories/preferences.repo.js";
 import type { PreferencesExtra } from "../db/repositories/preferences-extra.js";
 import { NotFoundError } from "../utils/error-envelope.js";
@@ -28,15 +30,12 @@ export interface AccountExport {
   preferences: ExportedPreferences | null;
   savedLocations: ExportedSavedLocation[];
   recentPlaces: ExportedRecentPlace[];
-  /** Phase 2. */
   pinnedStops: ExportedPinnedStop[];
-  /** Phase 2. */
+  recentStops: ExportedRecentStop[];
+  /** Populated when the lines view ships. */
   pinnedLines: ExportedPinnedLine[];
-  /** Phase 4. */
   tripLog: ExportedTripLogEntry[];
-  /** Phase 4. */
   alertSeen: ExportedAlertSeenEntry[];
-  /** Phase 5. */
   shareTokens: ExportedShareTokenSummary[];
 }
 
@@ -77,19 +76,26 @@ interface ExportedRecentPlace {
   lastVisitedAt: string;
 }
 
-// Future-phase shapes — declared empty here so the AccountExport contract is
-// stable and adding the table doesn't change the JSON envelope.
 interface ExportedPinnedStop {
   gtfsId: string;
-  label: string;
-  sortOrder: number;
-  createdAt: string;
+  name: string;
+  vehicleMode: string | null;
+  pinnedAt: string;
 }
+interface ExportedRecentStop {
+  gtfsId: string;
+  name: string;
+  vehicleMode: string | null;
+  visitCount: number;
+  lastVisitedAt: string;
+}
+// Future-table shape — declared empty here so the AccountExport contract is
+// stable and adding the table later doesn't change the JSON envelope.
 interface ExportedPinnedLine {
   gtfsId: string;
-  label: string;
-  sortOrder: number;
-  createdAt: string;
+  name: string;
+  vehicleMode: string;
+  pinnedAt: string;
 }
 interface ExportedTripLogEntry {
   id: string;
@@ -112,10 +118,18 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
     throw new NotFoundError("User not found");
   }
 
-  const [preferences, savedLocations, recentPlaces] = await Promise.all([
+  const [
+    preferences,
+    savedLocations,
+    recentPlaces,
+    pinnedStopRows,
+    recentStopRows,
+  ] = await Promise.all([
     preferencesRepo.findByUserId(userId),
     savedLocationsRepo.listByUser(userId),
     recentPlacesRepo.listByUser(userId, 1000),
+    pinnedStopsRepo.listByUser(userId),
+    recentStopsRepo.listByUser(userId, 1000),
   ]);
 
   return {
@@ -165,7 +179,19 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
       visitCount: row.visitCount,
       lastVisitedAt: row.lastVisitedAt.toISOString(),
     })),
-    pinnedStops: [],
+    pinnedStops: pinnedStopRows.map((row) => ({
+      gtfsId: row.gtfsId,
+      name: row.name,
+      vehicleMode: row.vehicleMode,
+      pinnedAt: row.pinnedAt.toISOString(),
+    })),
+    recentStops: recentStopRows.map((row) => ({
+      gtfsId: row.gtfsId,
+      name: row.name,
+      vehicleMode: row.vehicleMode,
+      visitCount: row.visitCount,
+      lastVisitedAt: row.lastVisitedAt.toISOString(),
+    })),
     pinnedLines: [],
     tripLog: [],
     alertSeen: [],

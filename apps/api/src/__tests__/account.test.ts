@@ -119,9 +119,11 @@ describe("GET /api/v1/account/export", () => {
     expect(body.recentPlaces).toHaveLength(1);
     expect(body.recentPlaces[0].displayName).toBe("Pasila");
 
-    // Phase 2-5 fields are present as empty arrays — the forcing function
-    // for adding those tables later.
+    // Tables that exist but the test user has not populated round-trip as
+    // empty arrays; future-table fields stay declared so the export shape is
+    // stable when those tables ship.
     expect(body.pinnedStops).toEqual([]);
+    expect(body.recentStops).toEqual([]);
     expect(body.pinnedLines).toEqual([]);
     expect(body.tripLog).toEqual([]);
     expect(body.alertSeen).toEqual([]);
