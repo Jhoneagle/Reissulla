@@ -1,10 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as featureFlagService from "../services/featureFlag.service.js";
 import {
+  HSL_PREFIXES,
+  VARELY_PREFIXES,
+  WALTTI_PREFIXES,
   adapterForGtfsId,
   defaultAdapter,
 } from "../adapters/digitransit-routing/dispatch.js";
 import { AppError } from "../utils/error-envelope.js";
+
+function enableAll() {
+  vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
+    feed: { finland: true, hsl: true, waltti: true, varely: true },
+  });
+}
 
 describe("adapter dispatch", () => {
   beforeEach(() => {
@@ -76,5 +85,46 @@ describe("adapter dispatch", () => {
 
     const adapter = defaultAdapter();
     expect(adapter.name).toBe("digitransit-hsl");
+  });
+
+  // ---- prefix-matrix coverage ----------------------------------------------
+
+  it.each(HSL_PREFIXES)("routes prefix %s to the HSL adapter", (prefix) => {
+    enableAll();
+    expect(adapterForGtfsId(`${prefix}:1234`).name).toBe("digitransit-hsl");
+  });
+
+  it.each(WALTTI_PREFIXES)(
+    "routes prefix %s to the Waltti adapter",
+    (prefix) => {
+      enableAll();
+      expect(adapterForGtfsId(`${prefix}:1234`).name).toBe(
+        "digitransit-waltti",
+      );
+    },
+  );
+
+  it.each(VARELY_PREFIXES)(
+    "routes prefix %s to the Varely adapter",
+    (prefix) => {
+      enableAll();
+      expect(adapterForGtfsId(`${prefix}:1234`).name).toBe(
+        "digitransit-varely",
+      );
+    },
+  );
+
+  it("falls back to Finland when a Waltti prefix is disabled", () => {
+    vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
+      feed: { finland: true, hsl: true, waltti: false, varely: true },
+    });
+    expect(adapterForGtfsId("tampere:123").name).toBe("digitransit-finland");
+  });
+
+  it("falls back to Finland when a Varely prefix is disabled", () => {
+    vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
+      feed: { finland: true, hsl: true, waltti: true, varely: false },
+    });
+    expect(adapterForGtfsId("VARELY:123").name).toBe("digitransit-finland");
   });
 });

@@ -302,6 +302,12 @@ export interface RawStopsByRadiusData {
   stopsByRadius: RawStopsByRadiusPage | null;
 }
 
+// ---- Feed listing (used by scripts/list-feeds.ts) --------------------------
+
+export interface RawFeedsData {
+  feeds: { feedId: string }[];
+}
+
 // ---- Canceled trips / alerts (Phase 4 prep, no consumer yet) ---------------
 
 export interface RawCanceledTripNode {
