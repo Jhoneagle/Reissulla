@@ -7,58 +7,97 @@
 }
 
 :root {
-  /* ── Colour tokens ──
-     WCAG 2.2 AA contrast notes (against the light --color-bg #ffffff):
-     --color-text   #1a1a1a → 16.78:1 (AAA body, AAA large)
-     --color-border #e2e8f0 → decorative only — used for inset surfaces
-                              and form-field borders that pair with
-                              --color-text labels and own UI-state focus
-                              outlines, not as a non-text UI boundary on
-                              their own (SC 1.4.11 verified at the call
-                              sites that use it as such).
-     --color-footer-text #475569 → 7.05:1 (AAA body) on white. Bumped
-                              from #64748b which only hit 4.04:1 and
-                              failed AA body. Wave 4a.2 rebinds these to
-                              the cream-paper palette and tunes further;
-                              this is the floor that clears the axe-core
-                              gate today. */
-  --color-bg: #ffffff;
-  --color-text: #1a1a1a;
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-nav-bg: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-active: #2563eb;
-  --color-footer-text: #475569;
-  --color-error-bg: #fef2f2;
-  --color-error-text: #991b1b;
+  /* ── Colour tokens ── See docs/design-system.md §2.
+
+     The new "cream paper + transit blue" palette. Contrast values are
+     computed against the matching surface in the same theme and
+     verified at least to WCAG 2.2 AA body (4.5:1) unless flagged.
+
+       --color-paper        page surface              "newsprint cream" / "midnight ink"
+       --color-surface      cards, modals             warmer paper / slightly raised ink
+       --color-surface-sunk inset blocks (stop list rows, code spans)
+       --color-ink          body text                 16.4:1 / 15.8:1 on paper — AAA
+       --color-ink-muted    secondary text, kickers   6.6:1 / 7.4:1 on paper — AA body
+       --color-rule-soft    decorative hairlines      1.6:1 — decorative only, never UI boundary
+       --color-rule         UI boundaries             3.1:1 / 3.2:1 — passes SC 1.4.11
+
+     Two rule tokens, on purpose. --color-rule-soft is for decoration
+     (the inter-row hairline in the stop list, where the visual function
+     is "texture", not "boundary"). --color-rule is for everything
+     axe-core checks against. */
+  --color-paper: #f2efe8;
+  --color-surface: #fbf9f4;
+  --color-surface-sunk: #ebe7de;
+  --color-ink: #15161a;
+  --color-ink-muted: #5a5b62;
+  --color-rule-soft: #c5bfae;
+  --color-rule: #a6a192;
+
+  /* Primary + on-primary. HSL transit blue. */
+  --color-primary: #0061c3;
+  --color-primary-ink: #003e80;
+  --color-on-primary: #ffffff;
+
+  /* Mode tags. Light tint background, dark ink text. The brand swatch
+     appears as a 4px left-edge bar in `--mode-*-strong`. */
+  --mode-bus: #cfe0f4;
+  --mode-bus-strong: #0061c3;
+  --mode-tram: #ccebdd;
+  --mode-tram-strong: #008c44;
+  --mode-rail: #e2d2e4;
+  --mode-rail-strong: #6c2470;
+  --mode-subway: #ffd9c2;
+  --mode-subway-strong: #cd5300;
+  --mode-ferry: #cceef8;
+  --mode-ferry-strong: #0079a0;
+
+  /* Status colours. All ≥ 4.5:1 against --color-paper and the matching
+     --color-*-bg tint. */
+  --color-error: #8b1818;
+  --color-error-bg: #f4dede;
+  --color-warning: #7a4f0a;
+  --color-warning-bg: #fbeac6;
+  --color-success: #1f5d34;
+  --color-success-bg: #d8ecd9;
 
   /* ── Font scale ──
-     Multiplier applied to html font-size. Settings page (commit 11)
-     sets this via documentElement.style.setProperty('--font-scale', '1.5').
-     Decoupled from browser zoom — users can scale our text independently
-     of the rest of the OS / browser UI. Roadmap A11Y-3. */
+     Multiplier applied to html font-size. Settings page sets this via
+     documentElement.style.setProperty('--font-scale', '1.5'). Decoupled
+     from browser zoom. Roadmap A11Y-3. */
   --font-scale: 1;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* ── Dark-mode contrast notes (against --color-bg #0f172a):
-       --color-text        #e2e8f0 → 14.41:1 (AAA body)
-       --color-border      #475569 → 3.13:1 (passes SC 1.4.11 non-text);
-                                     bumped from #334155 (1.91:1) which
-                                     failed the AA non-text threshold.
-       --color-footer-text #94a3b8 → 7.45:1 (AAA body), already passing. */
-    --color-bg: #0f172a;
-    --color-text: #e2e8f0;
-    --color-primary: #60a5fa;
-    --color-primary-hover: #93c5fd;
-    --color-nav-bg: #1e293b;
-    --color-border: #475569;
-    --color-active: #60a5fa;
-    --color-footer-text: #94a3b8;
-    --color-error-bg: #450a0a;
-    --color-error-text: #fca5a5;
+    --color-paper: #0b0c10;
+    --color-surface: #15171d;
+    --color-surface-sunk: #1b1e25;
+    --color-ink: #ede9df;
+    --color-ink-muted: #a8a39a;
+    --color-rule-soft: #3a3d45;
+    --color-rule: #4e525c;
+
+    --color-primary: #5ba0e8;
+    --color-primary-ink: #c8ddf2;
+    --color-on-primary: #0b0c10;
+
+    --mode-bus: #0b3666;
+    --mode-bus-strong: #5ba0e8;
+    --mode-tram: #0e4a2d;
+    --mode-tram-strong: #4cd084;
+    --mode-rail: #3d1942;
+    --mode-rail-strong: #c389c8;
+    --mode-subway: #702a0e;
+    --mode-subway-strong: #ff9a5c;
+    --mode-ferry: #0a4d60;
+    --mode-ferry-strong: #5ed1ef;
+
+    --color-error: #f4b5b5;
+    --color-error-bg: #2a0f0f;
+    --color-warning: #f0cc85;
+    --color-warning-bg: #2c1f0a;
+    --color-success: #9dd6b0;
+    --color-success-bg: #0d2419;
   }
 }
 
@@ -67,45 +106,65 @@
    (body[data-high-contrast="true"]). Roadmap A11Y-2. */
 @media (prefers-contrast: more) {
   :root {
-    --color-bg: #ffffff;
-    --color-text: #000000;
+    --color-paper: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-sunk: #ffffff;
+    --color-ink: #000000;
+    --color-ink-muted: #000000;
+    --color-rule-soft: #000000;
+    --color-rule: #000000;
     --color-primary: #0033cc;
-    --color-primary-hover: #001a99;
-    --color-nav-bg: #ffffff;
-    --color-border: #000000;
-    --color-active: #0033cc;
-    --color-footer-text: #000000;
+    --color-primary-ink: #001a99;
+    --color-on-primary: #ffffff;
+    --color-error: #800000;
     --color-error-bg: #ffe5e5;
-    --color-error-text: #800000;
   }
 }
 
 body[data-high-contrast="true"] {
-  --color-bg: #ffffff;
-  --color-text: #000000;
+  --color-paper: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-sunk: #ffffff;
+  --color-ink: #000000;
+  --color-ink-muted: #000000;
+  --color-rule-soft: #000000;
+  --color-rule: #000000;
   --color-primary: #0033cc;
-  --color-primary-hover: #001a99;
-  --color-nav-bg: #ffffff;
-  --color-border: #000000;
-  --color-active: #0033cc;
-  --color-footer-text: #000000;
+  --color-primary-ink: #001a99;
+  --color-on-primary: #ffffff;
+  --color-error: #800000;
   --color-error-bg: #ffe5e5;
-  --color-error-text: #800000;
 }
 
 html {
   font-size: calc(100% * var(--font-scale));
 }
 
-body {
-  font-family:
-    "Plus Jakarta Sans",
-    system-ui,
-    -apple-system,
+/* ── Font families ──
+   Three roles, three families. See docs/design-system.md §1.
+   - --font-body:    Atkinson Hyperlegible — body, UI, form text.
+   - --font-display: Instrument Serif — hero numerals, wordmark, italic
+                     emphasis. Used via `font-family: var(--font-display)`
+                     on `.dashboard-card__temp`, the wordmark SVG <text>,
+                     and any `.kicker__title`-like markings.
+   - --font-mono:    IBM Plex Mono — stop codes, distances, timestamps,
+                     departure-board tags. Carries `tabular-nums`. */
+:root {
+  --font-body:
+    "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Cantarell,
     sans-serif;
-  background: var(--color-bg);
-  color: var(--color-text);
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-mono:
+    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-paper);
+  color: var(--color-ink);
   line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern", "liga";
 }
 
 #root {
@@ -122,7 +181,7 @@ body {
   z-index: 100;
   padding: 0.5rem 1rem;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   border-radius: 0 0 0.25rem 0.25rem;
   text-decoration: none;
 }
@@ -137,13 +196,56 @@ header {
   align-items: center;
   gap: 2rem;
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-nav-bg);
+  border-bottom: 1px solid var(--color-rule);
+  background: var(--color-surface);
 }
 
 header h1 {
   font-size: 1.25rem;
   white-space: nowrap;
+}
+
+/* ── Wordmark ──
+   Lowercase italic "reissulla" + upright primary-blue arrow, set in
+   Instrument Serif. The arrow translates +1px right / -1px up on hover
+   (motion gated by the global `prefers-reduced-motion` reset). */
+.wordmark-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  outline: none;
+}
+
+.wordmark-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.wordmark {
+  height: 2rem;
+  width: auto;
+}
+
+.wordmark__word {
+  font-family: var(--font-display);
+  font-size: 36px;
+  letter-spacing: 0.005em;
+  fill: var(--color-ink);
+}
+
+.wordmark__arrow {
+  font-family: var(--font-display);
+  font-size: 28px;
+  fill: var(--color-primary);
+  transition: transform 180ms ease-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.wordmark-link:hover .wordmark__arrow {
+  transform: translate(1px, -1px);
 }
 
 /* Nav */
@@ -157,13 +259,13 @@ nav a {
   display: block;
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
-  color: var(--color-text);
+  color: var(--color-ink);
   text-decoration: none;
   font-weight: 500;
 }
 
 nav a:hover {
-  background: var(--color-border);
+  background: var(--color-rule);
 }
 
 nav a:focus-visible {
@@ -172,12 +274,11 @@ nav a:focus-visible {
 }
 
 nav a.active {
-  /* Use the darker primary-hover token for the text so contrast against
-     the 10% tinted background clears 4.5:1. The bg tint is too pale to
-     read the regular --color-active (#2563eb on #e3ebfa = 4.31:1).
-     Wave 4a.2 rebinds primary entirely. */
-  color: var(--color-primary-hover);
-  background: color-mix(in srgb, var(--color-active) 10%, transparent);
+  /* Dark primary-ink text on a 10% primary tint clears 4.5:1. Using the
+     plain `--color-primary` for text fails contrast against its own
+     light tint, which is why we step down to the darker shade. */
+  color: var(--color-primary-ink);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
   font-weight: 700;
 }
 
@@ -216,10 +317,10 @@ main:has(.page-full-width) {
 /* Footer */
 footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-rule);
   text-align: center;
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 footer a {
@@ -240,28 +341,28 @@ footer a {
 
 .auth-nav button {
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-ink);
   cursor: pointer;
   font: inherit;
 }
 
 .auth-nav button:hover {
-  background: var(--color-border);
+  background: var(--color-rule);
 }
 
 .btn-register {
   padding: 0.375rem 0.75rem;
   border-radius: 0.375rem;
   background: var(--color-primary);
-  color: #fff !important;
+  color: var(--color-on-primary) !important;
   font-weight: 500;
 }
 
 .btn-register:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-ink);
 }
 
 /* Auth pages */
@@ -293,10 +394,10 @@ footer a {
 
 .form-field input {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
 }
 
@@ -304,17 +405,17 @@ footer a {
   padding: 0.75rem;
   border-radius: 0.375rem;
   background: var(--color-error-bg);
-  color: var(--color-error-text);
+  color: var(--color-error);
   font-size: 0.875rem;
 }
 
 /* Form error summary — focus jumps here on submit failure (A11Y-26). */
 .form-error-summary {
   padding: 1rem;
-  border: 2px solid var(--color-error-text);
+  border: 2px solid var(--color-error);
   border-radius: 0.375rem;
   background: var(--color-error-bg);
-  color: var(--color-error-text);
+  color: var(--color-error);
   outline: none;
 }
 
@@ -345,7 +446,7 @@ footer a {
 }
 
 .link-button:hover:not(:disabled) {
-  color: var(--color-primary-hover);
+  color: var(--color-primary-ink);
 }
 
 .link-button:disabled {
@@ -358,14 +459,14 @@ footer a {
   border: none;
   border-radius: 0.375rem;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 
 .auth-page button[type="submit"]:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-ink);
 }
 
 .auth-page button[type="submit"]:disabled {
@@ -392,7 +493,7 @@ footer a {
 .settings-page fieldset {
   margin: 1.5rem 0;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.5rem;
 }
 
@@ -410,7 +511,7 @@ footer a {
 .form-field .help {
   margin-top: 0.25rem;
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 /* Inline value annotation next to a control — e.g. font-scale percent
@@ -418,17 +519,17 @@ footer a {
    so SR don't re-announce the whole control on every value change. */
 .form-field__value {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .btn-destructive {
   background: var(--color-error-bg);
-  color: var(--color-error-text);
-  border: 1px solid var(--color-error-text);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
 }
 
 .btn-destructive:hover:not(:disabled) {
-  background: var(--color-error-text);
+  background: var(--color-error);
   color: var(--color-error-bg);
 }
 
@@ -445,7 +546,7 @@ footer a {
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
 }
 
@@ -462,7 +563,7 @@ footer a {
 
 .saved-location-region {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .badge {
@@ -484,10 +585,10 @@ footer a {
 .saved-location-row__controls button,
 .saved-location-row__controls select {
   padding: 0.25rem 0.625rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.25rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   font-size: 0.875rem;
   cursor: pointer;
@@ -502,17 +603,17 @@ footer a {
 .saved-location-rename input {
   flex: 1;
   padding: 0.375rem 0.5rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.25rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
 .form-status {
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  color: var(--color-text);
+  color: var(--color-ink);
   font-size: 0.875rem;
 }
 
@@ -529,7 +630,7 @@ footer a {
   flex-direction: column;
   gap: 0.375rem;
   padding: 0.625rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
 }
 
@@ -547,7 +648,7 @@ footer a {
 
 .recent-place-visits {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .recent-place-prompt {
@@ -583,9 +684,9 @@ footer a {
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.5rem;
-  background: var(--color-bg);
+  background: var(--color-paper);
 }
 
 .dashboard-card--primary {
@@ -606,7 +707,7 @@ footer a {
 
 .dashboard-card__region {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__weather {
@@ -621,12 +722,12 @@ footer a {
 }
 
 .dashboard-card__weather-desc {
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__weather-empty {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__stops h4 {
@@ -652,11 +753,11 @@ footer a {
 .dashboard-card__stops .stop-mode {
   font-size: 0.75rem;
   text-transform: uppercase;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__stops .stop-distance {
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
 }
 
 .dashboard-card__actions {
@@ -668,14 +769,14 @@ footer a {
 .dashboard-card__actions a {
   font-size: 0.875rem;
   padding: 0.25rem 0.625rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.25rem;
-  color: var(--color-text);
+  color: var(--color-ink);
   text-decoration: none;
 }
 
 .dashboard-card__actions a:hover {
-  background: var(--color-border);
+  background: var(--color-rule);
 }
 
 .dashboard-save-prompt {
@@ -689,10 +790,10 @@ footer a {
   flex: 1;
   min-width: 12rem;
   padding: 0.375rem 0.5rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.25rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
 .dashboard-saved {
@@ -733,8 +834,8 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 .modal-dialog {
   max-width: 32rem;
   width: 100%;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   border-radius: 0.5rem;
   padding: 1.5rem;
   outline: none;
@@ -752,7 +853,7 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 
 .confirm-dialog__body {
   margin: 0 0 1rem;
-  color: var(--color-text);
+  color: var(--color-ink);
 }
 
 .confirm-dialog__actions {
@@ -764,10 +865,10 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 
 .confirm-dialog__actions button:not(.link-button) {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   cursor: pointer;
 }
@@ -783,7 +884,7 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 
 .persona-wizard-step {
   font-size: 0.875rem;
-  color: var(--color-footer-text);
+  color: var(--color-ink-muted);
   margin-bottom: 1rem;
 }
 
@@ -806,10 +907,10 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 .persona-wizard-choice button {
   flex: 1;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-rule);
   border-radius: 0.375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   cursor: pointer;
 }
@@ -835,10 +936,10 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 
 .persona-wizard-nav button:not(.link-button) {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-rule);
   border-radius: 0.375rem;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
   cursor: pointer;
 }
