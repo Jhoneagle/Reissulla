@@ -154,6 +154,10 @@ export const pinnedStops = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     // BUS / TRAM / RAIL / SUBWAY / FERRY — null for stations spanning modes.
     vehicleMode: varchar("vehicle_mode", { length: 32 }),
+    // Persist whether the original entry was a station or a stop so a recall
+    // hits the right Digitransit query path; otherwise station-only gtfsIds
+    // (e.g. railway terminals) silently 404 the stop query.
+    isStation: boolean("is_station").notNull().default(false),
     pinnedAt: timestamp("pinned_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -176,6 +180,8 @@ export const recentStops = pgTable(
     gtfsId: varchar("gtfs_id", { length: 255 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     vehicleMode: varchar("vehicle_mode", { length: 32 }),
+    /** True when the original entry was a station; see pinned_stops. */
+    isStation: boolean("is_station").notNull().default(false),
     visitCount: integer("visit_count").notNull().default(1),
     lastVisitedAt: timestamp("last_visited_at", { withTimezone: true })
       .notNull()

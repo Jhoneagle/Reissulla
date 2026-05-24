@@ -41,7 +41,9 @@ export function PinnedStopsCard() {
         {pins.map((pin) => (
           <li key={pin.id} className="pinned-stops-card__item">
             <Link
-              to={`/transit?stopId=${encodeURIComponent(pin.gtfsId)}`}
+              to={`/transit?stopId=${encodeURIComponent(pin.gtfsId)}${
+                pin.isStation ? "&isStation=1" : ""
+              }`}
               className="pinned-stops-card__link"
             >
               <span className="pinned-stops-card__name">{pin.name}</span>

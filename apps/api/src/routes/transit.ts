@@ -6,7 +6,10 @@ import {
   searchStops,
   getStopDepartures,
   getMultiStopDepartures,
+  getFirstLastOfDay,
   planRoute,
+  type DeparturesOptions,
+  type ArrivalDepartureMode,
 } from "../services/transit/index.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
 import { parseJson } from "../utils/json.js";
@@ -113,6 +116,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       mode?: string;
       region?: string;
       byLine?: string;
+      operator?: string;
     };
   }>(
     "/api/v1/transit/stops/search",
@@ -125,6 +129,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             mode: { type: "string" },
             region: { type: "string" },
             byLine: { type: "string" },
+            operator: { type: "string" },
           },
         },
       },
@@ -141,13 +146,23 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         mode: request.query.mode?.trim() || undefined,
         region: request.query.region?.trim() || undefined,
         byLine,
+        operator: request.query.operator?.trim() || undefined,
       });
       return { data, cached };
     },
   );
 
   server.get<{
-    Querystring: { stopId: string; count?: string; isStation?: string };
+    Querystring: {
+      stopId: string;
+      count?: string;
+      isStation?: string;
+      at?: string;
+      mode?: string;
+      lineFilter?: string;
+      directionFilter?: string;
+      lowFloorOnly?: string;
+    };
   }>(
     "/api/v1/transit/departures",
     {
@@ -159,6 +174,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             stopId: { type: "string" },
             count: { type: "string" },
             isStation: { type: "string" },
+            at: { type: "string" },
+            mode: { type: "string" },
+            lineFilter: { type: "string" },
+            directionFilter: { type: "string" },
+            lowFloorOnly: { type: "string" },
           },
         },
       },
@@ -179,11 +199,15 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       }
 
       const isStation = request.query.isStation === "true";
+      const options = parseDeparturesOptions(request.query);
+      if (typeof options === "string") return badRequest(options);
+
       const { data, cached } = await getStopDepartures(
         stopId,
         count,
         isStation,
         request.persona,
+        options,
       );
       return { data, cached };
     },
@@ -196,6 +220,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       stationId?: string;
       countPerStop?: string;
       totalCount?: string;
+      at?: string;
+      mode?: string;
+      lineFilter?: string;
+      directionFilter?: string;
+      lowFloorOnly?: string;
     };
   }>(
     "/api/v1/transit/departures/multi",
@@ -210,6 +239,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             stationId: { type: "string" },
             countPerStop: { type: "string" },
             totalCount: { type: "string" },
+            at: { type: "string" },
+            mode: { type: "string" },
+            lineFilter: { type: "string" },
+            directionFilter: { type: "string" },
+            lowFloorOnly: { type: "string" },
           },
         },
       },
@@ -223,8 +257,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       if (ids.length === 0) {
         return badRequest("stopIds must not be empty");
       }
-      if (ids.length > 20) {
-        return badRequest("stopIds must contain at most 20 IDs");
+      // 50 covers the largest Finnish station clusters (Helsinki long-
+      // distance terminal, Kamppi bus terminal). MAX_PARALLEL_STOP_QUERIES
+      // in the service already throttles upstream load.
+      if (ids.length > 50) {
+        return badRequest("stopIds must contain at most 50 IDs");
       }
 
       let subStops: TransitSubStop[] = [];
@@ -256,6 +293,8 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       }
 
       const stationId = request.query.stationId?.trim() || undefined;
+      const options = parseDeparturesOptions(request.query);
+      if (typeof options === "string") return badRequest(options);
 
       const { data, cached } = await getMultiStopDepartures(
         ids,
@@ -263,6 +302,36 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         countPerStop,
         totalCount,
         stationId,
+        request.persona,
+        options,
+      );
+      return { data, cached };
+    },
+  );
+
+  // First / last departure of the day at a stop (DEP-9).
+  server.get<{ Querystring: { stopId: string; date?: string } }>(
+    "/api/v1/transit/departures/first-last",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          required: ["stopId"],
+          properties: {
+            stopId: { type: "string" },
+            // YYYYMMDD; defaults to today in the feed's timezone.
+            date: { type: "string", pattern: "^\\d{8}$" },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const stopId = request.query.stopId.trim();
+      if (stopId === "") return badRequest("stopId must not be empty");
+      const date = request.query.date?.trim() || todayServiceDateYYYYMMDD();
+      const { data, cached } = await getFirstLastOfDay(
+        stopId,
+        date,
         request.persona,
       );
       return { data, cached };
@@ -327,7 +396,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
     });
 
     s.post<{
-      Body: { gtfsId: string; name: string; vehicleMode?: string | null };
+      Body: {
+        gtfsId: string;
+        name: string;
+        vehicleMode?: string | null;
+        isStation?: boolean;
+      };
     }>(
       "/api/v1/transit/pinned-stops",
       {
@@ -339,6 +413,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
               gtfsId: { type: "string", minLength: 1, maxLength: 255 },
               name: { type: "string", minLength: 1, maxLength: 255 },
               vehicleMode: { type: ["string", "null"], maxLength: 32 },
+              isStation: { type: "boolean" },
             },
           },
         },
@@ -350,6 +425,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           gtfsId: request.body.gtfsId,
           name: request.body.name,
           vehicleMode: request.body.vehicleMode ?? null,
+          isStation: request.body.isStation ?? false,
         });
         return reply.status(201).send({ data: pinnedStopToResponse(row) });
       },
@@ -395,7 +471,12 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
     );
 
     s.post<{
-      Body: { gtfsId: string; name: string; vehicleMode?: string | null };
+      Body: {
+        gtfsId: string;
+        name: string;
+        vehicleMode?: string | null;
+        isStation?: boolean;
+      };
     }>(
       "/api/v1/transit/recent-stops",
       {
@@ -407,6 +488,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
               gtfsId: { type: "string", minLength: 1, maxLength: 255 },
               name: { type: "string", minLength: 1, maxLength: 255 },
               vehicleMode: { type: ["string", "null"], maxLength: 32 },
+              isStation: { type: "boolean" },
             },
           },
         },
@@ -418,6 +500,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           gtfsId: request.body.gtfsId,
           name: request.body.name,
           vehicleMode: request.body.vehicleMode ?? null,
+          isStation: request.body.isStation ?? false,
         });
         return reply.status(201).send({ data: recentStopToResponse(row) });
       },
@@ -431,6 +514,7 @@ function pinnedStopToResponse(row: pinnedStopsRepo.PinnedStopRow) {
     gtfsId: row.gtfsId,
     name: row.name,
     vehicleMode: row.vehicleMode,
+    isStation: row.isStation,
     pinnedAt: row.pinnedAt.toISOString(),
   };
 }
@@ -441,6 +525,7 @@ function recentStopToResponse(row: recentStopsRepo.RecentStopRow) {
     gtfsId: row.gtfsId,
     name: row.name,
     vehicleMode: row.vehicleMode,
+    isStation: row.isStation,
     visitCount: row.visitCount,
     lastVisitedAt: row.lastVisitedAt.toISOString(),
   };
@@ -453,4 +538,66 @@ function parseRecentLimit(raw: string | undefined): number {
   const n = Number(raw);
   if (!Number.isInteger(n) || n < 1) return 20;
   return Math.min(n, RECENT_STOPS_MAX_LIMIT);
+}
+
+function todayServiceDateYYYYMMDD(): string {
+  // Default service date is today in Europe/Helsinki — the feed timezone.
+  // `en-CA` formats with `YYYY-MM-DD` separators which we strip to GTFS's
+  // YYYYMMDD shape.
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return parts.replace(/-/g, "");
+}
+
+const ALLOWED_ARRIVAL_DEPARTURE = new Set<ArrivalDepartureMode>([
+  "departures",
+  "arrivals",
+  "both",
+]);
+
+/**
+ * Parse the at / mode / filter query params for departures. Returns a
+ * `DeparturesOptions` on success, or an error string on the first
+ * validation failure (route caller wraps it in a 400). Empty/unset params
+ * leave the option undefined.
+ */
+function parseDeparturesOptions(query: {
+  at?: string;
+  mode?: string;
+  lineFilter?: string;
+  directionFilter?: string;
+  lowFloorOnly?: string;
+}): DeparturesOptions | string {
+  const options: DeparturesOptions = {};
+  if (query.at) {
+    const at = Number(query.at);
+    if (!Number.isFinite(at) || at <= 0) {
+      return "at must be a positive unix timestamp";
+    }
+    options.at = Math.floor(at);
+  }
+  if (query.mode) {
+    const m = query.mode as ArrivalDepartureMode;
+    if (!ALLOWED_ARRIVAL_DEPARTURE.has(m)) {
+      return "mode must be one of departures | arrivals | both";
+    }
+    options.mode = m;
+  }
+  if (query.lineFilter) {
+    const list = query.lineFilter
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (list.length > 0) options.lineFilter = list;
+  }
+  if (query.directionFilter) {
+    const dir = query.directionFilter.trim();
+    if (dir.length > 0) options.directionFilter = dir;
+  }
+  if (query.lowFloorOnly === "true") options.lowFloorOnly = true;
+  return options;
 }

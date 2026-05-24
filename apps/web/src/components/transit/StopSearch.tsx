@@ -10,6 +10,16 @@ interface StopSearchProps {
   onSelect: (stop: TransitStop) => void;
 }
 
+/**
+ * Find a stop by name. Results carry city + mode labels per row — that's
+ * the disambiguation. Multiple "Rautatieasema" hits across cities, or a
+ * Bus / Tram / Subway split at the same name, surface as separate
+ * grouped rows in the results list; the user picks the one they want.
+ *
+ * No extra filter chips here: per-row labels already do the job, and the
+ * "find a line" affordance lives in its own Lines tab — not under stop
+ * search.
+ */
 export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
   const intl = useIntl();
   const [query, setQuery] = useState("");

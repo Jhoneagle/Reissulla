@@ -17,6 +17,7 @@ export interface PinInput {
   gtfsId: string;
   name: string;
   vehicleMode?: string | null;
+  isStation?: boolean;
 }
 
 /**
@@ -45,6 +46,7 @@ export async function pin(input: PinInput): Promise<PinnedStopRow> {
         gtfsId: input.gtfsId,
         name: input.name,
         vehicleMode: input.vehicleMode ?? null,
+        isStation: input.isStation ?? false,
       })
       .returning();
     return row!;

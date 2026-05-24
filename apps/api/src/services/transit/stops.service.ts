@@ -192,6 +192,8 @@ export interface SearchOptions {
   region?: string;
   /** Line shortname — returns the stops served by that line instead. */
   byLine?: string;
+  /** Operator filter — matches one of the agencies serving the stop. */
+  operator?: string;
 }
 
 export async function searchStops(
@@ -209,6 +211,9 @@ export async function searchStops(
   const segments: string[] = [query.toLowerCase()];
   if (options.mode) segments.push(options.mode);
   if (options.region) segments.push(`region=${options.region.toLowerCase()}`);
+  if (options.operator) {
+    segments.push(`op=${options.operator.toLowerCase()}`);
+  }
   const key = cacheKey("transit", "stops-search", 1, ...segments);
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
@@ -231,6 +236,16 @@ export async function searchStops(
   if (options.region) {
     const wanted = options.region.toLowerCase();
     data = data.filter((s) => s.city?.toLowerCase() === wanted);
+  }
+
+  if (options.operator) {
+    const wantedId = options.operator;
+    const wantedName = options.operator.toLowerCase();
+    data = data.filter((s) =>
+      s.agencies?.some(
+        (a) => a.gtfsId === wantedId || a.name.toLowerCase() === wantedName,
+      ),
+    );
   }
 
   sortAccessibleFirstIfPersona(data, persona);

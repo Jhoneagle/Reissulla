@@ -1,3 +1,5 @@
+import type { ServiceDay } from "../utils/service-day.js";
+
 /** GTFS wheelchair-boarding status surfaced to the FE. */
 export type WheelchairBoarding = "POSSIBLE" | "NOT_POSSIBLE" | "NO_INFORMATION";
 
@@ -34,12 +36,29 @@ export interface TransitStop {
    * sort and the A11Y-20 stop accessibility disclosure.
    */
   wheelchairBoarding?: WheelchairBoarding;
+  /**
+   * Operators serving this stop, deduplicated by gtfsId. Populated only
+   * by the search endpoint (which fetches routes per stop); nearby and
+   * single-stop queries skip the route fan-out and leave this undefined.
+   * Backs the operator dropdown on the search filter row.
+   */
+  agencies?: { gtfsId: string; name: string }[];
 }
 
 export interface TransitDeparture {
   routeShortName: string;
   routeLongName: string;
   headsign: string;
+  /**
+   * Times are seconds within the service day. The same row carries
+   * both arrival and departure times because a GTFS stoptime at a
+   * through-stop is *both* events for the same vehicle: it arrives,
+   * dwells, then departs. The FE picks which column to render based
+   * on the user's arrivals/departures/both toggle.
+   */
+  scheduledArrival: number;
+  realtimeArrival: number;
+  arrivalDelay: number;
   scheduledDeparture: number;
   realtimeDeparture: number;
   departureDelay: number;
@@ -50,6 +69,45 @@ export interface TransitDeparture {
   stopId?: string;
   /** Platform code of the sub-stop (for display in platform filter). */
   platformCode?: string | null;
+  /** Trip id — opens the trip drill-down. */
+  tripId?: string;
+  /** GTFS wheelchairAccessible on the trip; POSSIBLE means low-floor. */
+  wheelchairAccessible?: WheelchairBoarding;
+  /**
+   * False when GTFS pickupType is NONE — no boarding here (terminus).
+   * `mode=departures` hides rows where this is false. Default true.
+   */
+  canBoard?: boolean;
+  /**
+   * False when GTFS dropoffType is NONE — no alighting here (origin).
+   * `mode=arrivals` hides rows where this is false. Default true.
+   */
+  canAlight?: boolean;
+}
+
+/**
+ * How busy the stop's schedule is around the anchor moment. Drives the
+ * masthead kicker copy on the departure board:
+ *
+ * - `dense`: surface "N lähtöä tunnissa" — the urban-hub treatment
+ * - `moderate`: surface "Lähtöjä noin N minuutin välein" — suburban
+ * - `sparse`: surface "Seuraava {time}" — rural / schooldays-only,
+ *   paired with `TransitDeparturesResult.serviceNote`
+ */
+export type TransitFrequencyRegime = "dense" | "moderate" | "sparse";
+
+export interface TransitFrequency {
+  regime: TransitFrequencyRegime;
+  /** Departures in the next 60 minutes after the anchor. */
+  nextHourCount: number;
+  /** Mean gap between departures in minutes within a representative window. */
+  avgIntervalMin?: number;
+  /**
+   * Unix seconds of the next upcoming departure. Populated for sparse
+   * regimes so the kicker can read "Seuraava huomenna 06.45" without
+   * the FE re-deriving from the array.
+   */
+  nextDepartureUnix?: number;
 }
 
 export interface TransitDeparturesResult {
@@ -58,6 +116,21 @@ export interface TransitDeparturesResult {
   message?: string;
   /** Sub-stop metadata for building the platform filter UI. */
   subStops?: TransitSubStop[];
+  /**
+   * Service day the response is anchored to (now or the future-time
+   * picker target). Lets the FE render "Tomorrow's schedule" kickers
+   * and resolve cross-midnight times consistently.
+   */
+  serviceDay?: ServiceDay;
+  /**
+   * Free-form day-type qualifier ("schooldays only", "summer only",
+   * "weekends"). Populated for sparse-frequency stops where the
+   * `tripsForDate` walk surfaced a meaningful pattern. Empty / absent
+   * means the schedule has no notable qualifier.
+   */
+  serviceNote?: string;
+  /** Departure-frequency classification — drives the kicker variant. */
+  frequency?: TransitFrequency;
 }
 
 export interface TransitItineraryLeg {

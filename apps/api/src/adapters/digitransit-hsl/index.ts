@@ -19,9 +19,8 @@ export const digitransitHsl: DigitransitAdapter = {
     nearestOperation(client, { lat, lon, radius }, ctx),
   searchStopsAndStations: (name, ctx) =>
     searchStopsAndStationsOperation(client, { name }, ctx),
-  stopDepartures: (stopId, n, ctx) =>
-    stopDeparturesOperation(client, { stopId, n }, ctx),
-  stationDepartures: (stationId, n, ctx) =>
-    stationDeparturesOperation(client, { stationId, n }, ctx),
+  stopDepartures: (args, ctx) => stopDeparturesOperation(client, args, ctx),
+  stationDepartures: (args, ctx) =>
+    stationDeparturesOperation(client, args, ctx),
   planConnection: (args, ctx) => planConnectionOperation(client, args, ctx),
 };

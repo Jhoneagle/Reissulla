@@ -2,42 +2,71 @@ import type { AdapterContext } from "../../types.js";
 import type { GraphQLClient } from "../client.js";
 import type { RawStationDeparturesData } from "../types.js";
 
-const STATION_DEPARTURES_QUERY = `
-  query StationDepartures($id: String!, $n: Int!) {
-    station(id: $id) {
-      name
-      stoptimesWithoutPatterns(numberOfDepartures: $n) {
-        scheduledDeparture
-        realtimeDeparture
-        departureDelay
-        realtime
-        serviceDay
-        headsign
-        stop {
-          gtfsId
-          platformCode
-          code
-        }
-        trip {
-          route {
-            shortName
-            longName
-            mode
+export interface StationDeparturesArgs {
+  stationId: string;
+  numberOfDepartures: number;
+  startTime?: number;
+  /** See StopDeparturesArgs — same semantics. */
+  omitNonPickups?: boolean;
+  omitCanceled?: boolean;
+  timeRange?: number;
+}
+
+function buildQuery(args: StationDeparturesArgs): string {
+  const parts: string[] = [`numberOfDepartures: ${args.numberOfDepartures}`];
+  if (args.startTime !== undefined) parts.push(`startTime: ${args.startTime}`);
+  if (args.omitNonPickups !== undefined) {
+    parts.push(`omitNonPickups: ${args.omitNonPickups}`);
+  }
+  if (args.omitCanceled !== undefined) {
+    parts.push(`omitCanceled: ${args.omitCanceled}`);
+  }
+  if (args.timeRange !== undefined) parts.push(`timeRange: ${args.timeRange}`);
+  return `
+    query StationDepartures($id: String!) {
+      station(id: $id) {
+        name
+        stoptimesWithoutPatterns(${parts.join(", ")}) {
+          scheduledArrival
+          realtimeArrival
+          arrivalDelay
+          scheduledDeparture
+          realtimeDeparture
+          departureDelay
+          realtime
+          serviceDay
+          headsign
+          pickupType
+          dropoffType
+          stop {
+            gtfsId
+            platformCode
+            code
+          }
+          trip {
+            gtfsId
+            wheelchairAccessible
+            route {
+              gtfsId
+              shortName
+              longName
+              mode
+            }
           }
         }
       }
     }
-  }
-`;
+  `;
+}
 
 export async function stationDeparturesOperation(
   client: GraphQLClient,
-  args: { stationId: string; n: number },
+  args: StationDeparturesArgs,
   ctx: AdapterContext,
 ): Promise<RawStationDeparturesData> {
   return client.graphql<RawStationDeparturesData>(
-    STATION_DEPARTURES_QUERY,
-    { id: args.stationId, n: args.n },
+    buildQuery(args),
+    { id: args.stationId },
     ctx,
   );
 }

@@ -424,7 +424,8 @@ describe("GET /api/v1/transit/stops/search", () => {
 
 describe("GET /api/v1/transit/departures", () => {
   beforeEach(async () => {
-    await cacheDel("transit:departures:v1:HSL:1040602:20:false");
+    await cacheDel("transit:departures:v2:HSL:1040602:20:false");
+    await cacheDel("transit:departures:v2:UNKNOWN:9999:20:false");
     vi.restoreAllMocks();
   });
 

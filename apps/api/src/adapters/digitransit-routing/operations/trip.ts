@@ -9,6 +9,7 @@ const TRIP_QUERY = `
     trip(id: $id) {
       gtfsId
       tripHeadsign
+      activeDates
       route {
         gtfsId
         shortName

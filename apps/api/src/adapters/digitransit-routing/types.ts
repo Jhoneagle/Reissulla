@@ -39,6 +39,10 @@ export interface RawStationChildStop {
   wheelchairBoarding: RawWheelchairBoarding;
 }
 
+export interface RawRouteAgency {
+  agency: { gtfsId: string; name: string } | null;
+}
+
 export interface RawStop {
   gtfsId: string;
   name: string;
@@ -48,6 +52,7 @@ export interface RawStop {
   vehicleMode: string | null;
   platformCode: string | null;
   wheelchairBoarding: RawWheelchairBoarding;
+  routes?: RawRouteAgency[] | null;
 }
 
 export interface RawStation {
@@ -57,6 +62,7 @@ export interface RawStation {
   lon: number;
   vehicleMode: string | null;
   wheelchairBoarding: RawWheelchairBoarding;
+  routes?: RawRouteAgency[] | null;
   stops: RawStationChildStop[];
 }
 
@@ -65,20 +71,42 @@ export interface RawSearchStopsAndStationsData {
   stations: RawStation[];
 }
 
+/**
+ * GTFS pickup/dropoff type. `NONE` on `pickupType` = no boarding here;
+ * `NONE` on `dropoffType` = no alighting here. SCHEDULED is the normal
+ * case at a through-stop where both apply.
+ */
+export type RawPickupDropoffType =
+  | "SCHEDULED"
+  | "NONE"
+  | "CALL_AGENCY"
+  | "COORDINATE_WITH_DRIVER";
+
 export interface RawStoptime {
+  scheduledArrival: number;
+  realtimeArrival: number;
+  arrivalDelay: number;
   scheduledDeparture: number;
   realtimeDeparture: number;
   departureDelay: number;
   realtime: boolean;
   serviceDay: number;
   headsign: string;
+  /** `NONE` = no boarding allowed at this stop on this trip. */
+  pickupType?: RawPickupDropoffType;
+  /** `NONE` = no alighting allowed at this stop on this trip. */
+  dropoffType?: RawPickupDropoffType;
   stop?: {
     gtfsId: string;
     platformCode: string | null;
     code: string | null;
   };
   trip: {
+    gtfsId?: string;
+    /** GTFS wheelchairAccessible — POSSIBLE means low-floor. */
+    wheelchairAccessible?: RawWheelchairBoarding;
     route: {
+      gtfsId?: string;
       shortName: string;
       longName: string;
       mode: string;
@@ -236,6 +264,8 @@ export interface RawTripStoptime {
 export interface RawTrip {
   gtfsId: string;
   tripHeadsign: string;
+  /** YYYYMMDD strings — service dates the trip is active on. */
+  activeDates: string[];
   route: RawRouteMeta;
   stoptimes: RawTripStoptime[];
 }

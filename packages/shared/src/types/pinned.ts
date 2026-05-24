@@ -12,6 +12,11 @@ export interface PinnedStop {
   name: string;
   /** BUS / TRAM / RAIL / SUBWAY / FERRY. Null for stations spanning modes. */
   vehicleMode: string | null;
+  /**
+   * True when the original entry was a station (use station departures
+   * query on recall). False or missing for single-stop pins.
+   */
+  isStation?: boolean;
   /** ISO-8601 timestamp. */
   pinnedAt: string;
 }
