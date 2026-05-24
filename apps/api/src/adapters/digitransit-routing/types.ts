@@ -182,3 +182,53 @@ export interface RawPatternData {
 export interface RawPatternsData {
   route: { patterns: RawPattern[] } | null;
 }
+
+// ---- Agency / service time range -------------------------------------------
+
+export interface RawAgencyData {
+  agency: RawAgency | null;
+}
+
+export interface RawServiceTimeRange {
+  /** Unix seconds. */
+  start: number;
+  /** Unix seconds. */
+  end: number;
+}
+
+export interface RawServiceTimeRangeData {
+  serviceTimeRange: RawServiceTimeRange;
+}
+
+// ---- Trip drill-down -------------------------------------------------------
+
+export interface RawTripStoptime {
+  stop: {
+    gtfsId: string;
+    name: string;
+    lat: number;
+    lon: number;
+    code: string | null;
+    platformCode: string | null;
+  };
+  scheduledArrival: number;
+  scheduledDeparture: number;
+  realtimeArrival: number;
+  realtimeDeparture: number;
+  arrivalDelay: number;
+  departureDelay: number;
+  realtime: boolean;
+  timepoint: boolean;
+  stopPosition: number;
+}
+
+export interface RawTrip {
+  gtfsId: string;
+  tripHeadsign: string;
+  route: RawRouteMeta;
+  stoptimes: RawTripStoptime[];
+}
+
+export interface RawTripData {
+  trip: RawTrip | null;
+}
