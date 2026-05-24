@@ -62,6 +62,14 @@ jobs:
 
       - run: pnpm test
 
+      # Schema drift gate: re-fetch the OTP2 SDL + per-adapter feed list and
+      # fail the build if the committed baselines no longer match. Doubles
+      # as the upstream-change alarm for Digitransit feed additions.
+      - run: pnpm --filter @reissulla/api test:graphql-snapshot
+
+      - name: Detect Digitransit schema or feed drift
+        run: git diff --exit-code apps/api/src/adapters/digitransit-finland/schema.snapshot.graphql apps/api/src/adapters/digitransit-hsl/schema.snapshot.graphql apps/api/src/adapters/digitransit-waltti/schema.snapshot.graphql apps/api/src/adapters/digitransit-varely/schema.snapshot.graphql apps/api/src/adapters/digitransit-finland/feeds.snapshot.json apps/api/src/adapters/digitransit-hsl/feeds.snapshot.json apps/api/src/adapters/digitransit-waltti/feeds.snapshot.json apps/api/src/adapters/digitransit-varely/feeds.snapshot.json
+
       # E2E suite: install Chromium (cached in the next step's actions
       # cache), then run Playwright against a freshly-started api + web.
       # Single worker so the shared Postgres / Redis isn't fought over
