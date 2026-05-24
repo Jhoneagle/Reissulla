@@ -567,52 +567,61 @@ main:has(.page-full-width) {
   flex-direction: column;
 }
 
-/* ── Row actions kebab ──
-   At ≥40rem the <details>/<summary> chrome is stripped and the menu
-   items render inline. Below 40rem, <summary> is the kebab affordance
-   that toggles a popover-style menu. */
-.row-actions-menu {
-  display: contents;
+/* ── Row actions: two-variant CSS ──
+   The earlier display:contents + <details> approach lost the
+   buttons at desktop widths — closed <details> hides non-summary
+   children before display:contents can hoist them out, so the row
+   ended up with category-select + nothing else. The fix is to
+   render the buttons twice, once for each viewport range, and let
+   CSS hide whichever doesn't apply.
+
+   .row-actions-desktop  — visible at ≥40rem, hidden at <40rem
+   .row-actions-mobile   — visible at <40rem, hidden at ≥40rem  */
+.row-actions-desktop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
 }
 
-.row-actions-menu__summary {
+.row-actions-mobile {
   display: none;
-  cursor: pointer;
-  list-style: none;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-}
-
-.row-actions-menu__summary::-webkit-details-marker {
-  display: none;
-}
-
-.row-actions-menu__summary:hover {
-  background: var(--color-surface-sunk);
-}
-
-.row-actions-menu__items {
-  display: contents;
 }
 
 @media (max-width: 39.99rem) {
-  .row-actions-menu {
+  .row-actions-desktop {
+    display: none;
+  }
+
+  .row-actions-mobile {
     display: block;
     position: relative;
   }
 
-  .row-actions-menu__summary {
+  .row-actions-mobile__summary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    list-style: none;
+    padding: var(--space-1) var(--space-2);
     font-size: var(--text-xl);
     line-height: 1;
     color: var(--color-ink);
     min-width: 2.25rem;
     min-height: 2.25rem;
+    border-radius: var(--radius-sm);
   }
 
-  .row-actions-menu__items {
+  .row-actions-mobile__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .row-actions-mobile__summary:hover {
+    background: var(--color-surface-sunk);
+  }
+
+  .row-actions-mobile[open] > .row-actions-mobile__items {
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
@@ -622,9 +631,14 @@ main:has(.page-full-width) {
     border-radius: var(--radius-md);
     background: var(--color-surface);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 10;
+    min-width: 12rem;
   }
 
-  .row-actions-menu__items .btn {
+  .row-actions-mobile__items .btn {
     justify-content: flex-start;
   }
 }
