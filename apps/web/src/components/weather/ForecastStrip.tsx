@@ -1,3 +1,4 @@
+import { useIntl } from "react-intl";
 import type { DailyForecast } from "@reissulla/shared";
 import { WeatherIcon } from "./WeatherIcon";
 import { shortDay, isToday } from "../../lib/weather-utils";
@@ -13,11 +14,12 @@ export function ForecastStrip({
   isLoading,
   isError,
 }: ForecastStripProps) {
+  const intl = useIntl();
   if (isLoading) {
     return (
       <div
         className="forecast-strip forecast-strip--loading"
-        aria-label="Loading forecast"
+        aria-label={intl.formatMessage({ id: "weather.forecast.loading" })}
       >
         {Array.from({ length: 7 }, (_, i) => (
           <div key={i} className="forecast-day forecast-day--skel">
@@ -35,20 +37,36 @@ export function ForecastStrip({
   }
 
   return (
-    <div className="forecast-strip" role="list" aria-label="7-day forecast">
+    <div
+      className="forecast-strip"
+      role="list"
+      aria-label={intl.formatMessage({ id: "weather.forecast.label" })}
+    >
       {days.map((day) => {
         const dayName = shortDay(day.date);
         const today = isToday(day.date);
+        const todayLabel = intl.formatMessage({ id: "weather.forecast.today" });
+        const ariaLabel = intl.formatMessage(
+          { id: "weather.forecast.dayLabel" },
+          {
+            day: today ? todayLabel : dayName,
+            description: day.weatherDescription,
+            high: Math.round(day.temperatureMax),
+            low: Math.round(day.temperatureMin),
+            precip: day.precipitationProbability > 0 ? "true" : "false",
+            precipChance: day.precipitationProbability,
+          },
+        );
 
         return (
           <div
             key={day.date}
             className={`forecast-day${today ? " forecast-day--today" : ""}`}
             role="listitem"
-            aria-label={`${today ? "Today" : dayName}: ${day.weatherDescription}, high ${Math.round(day.temperatureMax)}°, low ${Math.round(day.temperatureMin)}°${day.precipitationProbability > 0 ? `, ${day.precipitationProbability}% chance of precipitation` : ""}`}
+            aria-label={ariaLabel}
           >
             <span className="forecast-day__label">
-              {today ? "Today" : dayName}
+              {today ? todayLabel : dayName}
             </span>
             <WeatherIcon
               code={day.weatherCode}
@@ -58,14 +76,17 @@ export function ForecastStrip({
             />
             <div className="forecast-day__temps">
               <span className="forecast-day__high">
+                {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
                 {Math.round(day.temperatureMax)}°
               </span>
               <span className="forecast-day__low">
+                {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
                 {Math.round(day.temperatureMin)}°
               </span>
             </div>
             {day.precipitationProbability > 0 && (
               <span className="forecast-day__precip">
+                {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
                 {day.precipitationProbability}%
               </span>
             )}

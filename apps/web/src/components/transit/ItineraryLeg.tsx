@@ -1,3 +1,4 @@
+import { FormattedMessage } from "react-intl";
 import type { TransitItineraryLeg } from "@reissulla/shared";
 import {
   formatDuration,
@@ -5,6 +6,8 @@ import {
   vehicleModeLabel,
   vehicleModeColor,
 } from "../../lib/transit-utils";
+
+const RIGHT_ARROW = "→";
 
 interface ItineraryLegProps {
   leg: TransitItineraryLeg;
@@ -27,10 +30,17 @@ export function ItineraryLeg({ leg }: ItineraryLegProps) {
       <div className="leg__content">
         {isWalk ? (
           <p className="leg__summary">
-            <span className="leg__mode-label">Walk</span>{" "}
+            <span className="leg__mode-label" style={{ marginRight: "0.25em" }}>
+              <FormattedMessage id="transit.leg.walk" />
+            </span>
             <span className="leg__detail">
-              {formatDuration(leg.duration)} ({formatWalkDistance(leg.distance)}
-              )
+              <FormattedMessage
+                id="transit.leg.walkDetail"
+                values={{
+                  duration: formatDuration(leg.duration),
+                  distance: formatWalkDistance(leg.distance),
+                }}
+              />
             </span>
           </p>
         ) : (
@@ -48,14 +58,18 @@ export function ItineraryLeg({ leg }: ItineraryLegProps) {
                 {vehicleModeLabel(leg.mode)}
               </span>
               <span className="leg__arrow" aria-hidden="true">
-                →
+                {RIGHT_ARROW}
               </span>
               <span className="leg__headsign">{leg.to.name}</span>
             </p>
             <p className="leg__detail">
               {formatDuration(leg.duration)}
-              {stopsCount > 0 &&
-                ` · ${stopsCount} stop${stopsCount !== 1 ? "s" : ""}`}
+              {stopsCount > 0 && (
+                <FormattedMessage
+                  id="transit.leg.stopsCount"
+                  values={{ count: stopsCount }}
+                />
+              )}
             </p>
           </>
         )}

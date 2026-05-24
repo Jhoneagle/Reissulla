@@ -1,3 +1,4 @@
+import { useIntl } from "react-intl";
 import type { TransitDeparture } from "@reissulla/shared";
 import {
   departureToEpoch,
@@ -15,10 +16,14 @@ export function DepartureRow({
   departure: d,
   showPlatform,
 }: DepartureRowProps) {
+  const intl = useIntl();
   const realtimeEpoch = departureToEpoch(d.serviceDay, d.realtimeDeparture);
   const scheduledEpoch = departureToEpoch(d.serviceDay, d.scheduledDeparture);
   const isDelayed = d.departureDelay > 30;
   const isEarly = d.departureDelay < -30;
+  const rtLabel = intl.formatMessage({
+    id: d.realtime ? "transit.depart.realtime" : "transit.depart.scheduled",
+  });
 
   return (
     <tr className="departure-row">
@@ -62,8 +67,8 @@ export function DepartureRow({
       <td className="departure-row__rt">
         <span
           className={`rt-dot${d.realtime ? " rt-dot--live" : ""}`}
-          aria-label={d.realtime ? "Real-time" : "Scheduled"}
-          title={d.realtime ? "Real-time" : "Scheduled"}
+          aria-label={rtLabel}
+          title={rtLabel}
         />
       </td>
     </tr>

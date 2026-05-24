@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { FormattedMessage } from "react-intl";
 import type { GeocodingResult } from "@reissulla/shared";
 import { LocationSearch } from "../LocationSearch";
 import { useRoutePlan } from "../../hooks/useTransit";
@@ -33,13 +34,13 @@ export function RoutePlanner() {
       <div className="route-planner__form">
         <div className="route-planner__field">
           <label htmlFor="transit-from" className="route-planner__label">
-            From
+            <FormattedMessage id="transit.plan.from" />
           </label>
           <LocationSearch id="transit-from" onSelect={handleOriginSelect} />
         </div>
         <div className="route-planner__field">
           <label htmlFor="transit-to" className="route-planner__label">
-            To
+            <FormattedMessage id="transit.plan.to" />
           </label>
           <LocationSearch id="transit-to" onSelect={handleDestinationSelect} />
         </div>
@@ -78,13 +79,15 @@ export function RoutePlanner() {
 
       {plan.isError && (
         <div className="route-planner__error">
-          <p>Route planning temporarily unavailable</p>
+          <p>
+            <FormattedMessage id="transit.plan.unavailable" />
+          </p>
           <button
             type="button"
             className="retry-btn"
             onClick={() => plan.refetch()}
           >
-            Try again
+            <FormattedMessage id="transit.plan.retry" />
           </button>
         </div>
       )}
@@ -115,7 +118,9 @@ export function RoutePlanner() {
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <p>Choose origin and destination to plan a route.</p>
+          <p>
+            <FormattedMessage id="transit.plan.empty.choose" />
+          </p>
         </div>
       )}
 

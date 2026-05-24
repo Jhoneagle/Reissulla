@@ -17,6 +17,7 @@ import { DEFAULT_PERSONA, type Persona } from "@reissulla/shared";
 export interface PreferencesExtra {
   persona?: Persona;
   layerDefaults?: Record<string, unknown>;
+  personaBannerDismissed?: boolean;
 }
 
 export function parseExtra(raw: unknown): PreferencesExtra {
@@ -30,6 +31,10 @@ export function parseExtra(raw: unknown): PreferencesExtra {
 
   if (typeof r.layerDefaults === "object" && r.layerDefaults !== null) {
     extra.layerDefaults = r.layerDefaults as Record<string, unknown>;
+  }
+
+  if (r.personaBannerDismissed === true) {
+    extra.personaBannerDismissed = true;
   }
 
   return extra;

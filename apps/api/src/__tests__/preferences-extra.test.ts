@@ -89,4 +89,21 @@ describe("parseExtra", () => {
     expect(extra).not.toHaveProperty("futureField");
     expect(extra.persona?.wheelchair).toBe(true);
   });
+
+  it("round-trips personaBannerDismissed when set to true", () => {
+    const extra = parseExtra({ personaBannerDismissed: true });
+    expect(extra.personaBannerDismissed).toBe(true);
+  });
+
+  it("drops personaBannerDismissed when not strictly true", () => {
+    expect(parseExtra({ personaBannerDismissed: false })).not.toHaveProperty(
+      "personaBannerDismissed",
+    );
+    expect(parseExtra({ personaBannerDismissed: "true" })).not.toHaveProperty(
+      "personaBannerDismissed",
+    );
+    expect(parseExtra({ personaBannerDismissed: 1 })).not.toHaveProperty(
+      "personaBannerDismissed",
+    );
+  });
 });

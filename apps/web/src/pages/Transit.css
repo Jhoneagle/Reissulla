@@ -13,37 +13,25 @@
   display: none !important;
 }
 
-/* --- Tab toggle (segmented pill, static position) ---------- */
+/* --- Tab toggle (segmented pill, static position) ----------
+   Selected tab uses the editorial primary blue; unselected tabs
+   read as muted ink on the cream paper. Token-driven so the
+   dark theme swap happens automatically. */
 .transit-tabs {
   display: flex;
   gap: 0.25rem;
   padding: 0.25rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.1),
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  border: 1px solid var(--color-rule);
   width: fit-content;
   margin: 0 auto 1.5rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  .transit-tabs {
-    background: rgba(30, 41, 59, 0.85);
-    box-shadow:
-      0 4px 24px rgba(0, 0, 0, 0.35),
-      0 1px 3px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  }
 }
 
 .transit-tabs button {
   padding: 0.5rem 1.25rem;
   border: none;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-ink-muted);
   font: inherit;
@@ -59,21 +47,12 @@
 
 .transit-tabs button:hover:not([aria-selected="true"]) {
   color: var(--color-ink);
-  background: rgba(0, 0, 0, 0.04);
-}
-
-@media (prefers-color-scheme: dark) {
-  .transit-tabs button:hover:not([aria-selected="true"]) {
-    background: rgba(255, 255, 255, 0.06);
-  }
+  background: var(--color-surface-sunk);
 }
 
 .transit-tabs button[aria-selected="true"] {
-  background: #b45309;
-  color: #fffbeb;
-  box-shadow:
-    0 2px 8px rgba(180, 83, 9, 0.3),
-    0 1px 2px rgba(180, 83, 9, 0.2);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 /* --- Stop search ------------------------------------------- */
@@ -110,8 +89,9 @@
 
 .stop-search input:focus {
   outline: none;
-  border-color: #b45309;
-  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 .stop-search__results {
@@ -131,12 +111,6 @@
   z-index: 100;
 }
 
-@media (prefers-color-scheme: dark) {
-  .stop-search__results {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
-}
-
 .stop-search__results li {
   padding: 0.625rem 0.75rem;
   cursor: pointer;
@@ -150,14 +124,7 @@
 
 .stop-search__results li[aria-selected="true"],
 .stop-search__results li:hover {
-  background: rgba(180, 83, 9, 0.08);
-}
-
-@media (prefers-color-scheme: dark) {
-  .stop-search__results li[aria-selected="true"],
-  .stop-search__results li:hover {
-    background: rgba(217, 119, 6, 0.12);
-  }
+  background: var(--color-surface-sunk);
 }
 
 .stop-search__status {
@@ -252,17 +219,10 @@
   font-size: 0.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #b45309;
-  background: rgba(180, 83, 9, 0.08);
+  color: var(--color-primary-ink);
+  background: var(--color-surface-sunk);
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  .departure-table__code {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.1);
-  }
 }
 
 .departure-table__mode {
@@ -293,7 +253,7 @@
   padding: 0.375rem 0.625rem;
   border: 1px solid var(--color-rule);
   border-radius: 0.5rem;
-  background: var(--color-paper);
+  background: var(--color-surface);
   color: var(--color-ink);
   font: inherit;
   font-size: 0.8125rem;
@@ -305,14 +265,9 @@
 
 .departure-table__filter-select:focus {
   outline: none;
-  border-color: #b45309;
-  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
-}
-
-@media (prefers-color-scheme: dark) {
-  .departure-table__filter-select {
-    background: var(--color-surface);
-  }
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 /* --- Platform badge in departure row ----------------------- */
@@ -326,17 +281,10 @@
   font-size: 0.6875rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #b45309;
-  background: rgba(180, 83, 9, 0.08);
+  color: var(--color-primary-ink);
+  background: var(--color-surface-sunk);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  .platform-badge {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.1);
-  }
 }
 
 .departure-table {
@@ -361,13 +309,7 @@
 }
 
 .departure-table tbody tr:hover {
-  background: rgba(180, 83, 9, 0.04);
-}
-
-@media (prefers-color-scheme: dark) {
-  .departure-table tbody tr:hover {
-    background: rgba(217, 119, 6, 0.06);
-  }
+  background: var(--color-surface-sunk);
 }
 
 .departure-table tbody td {
@@ -381,7 +323,7 @@
   display: inline-block;
   padding: 0.125rem 0.5rem;
   border-radius: 0.3125rem;
-  color: #fff;
+  color: var(--color-on-primary);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -423,17 +365,11 @@
 }
 
 .departure-row__actual--late {
-  color: #b45309;
-}
-
-@media (prefers-color-scheme: dark) {
-  .departure-row__actual--late {
-    color: #fbbf24;
-  }
+  color: var(--color-warning);
 }
 
 .departure-row__actual--early {
-  color: #059669;
+  color: var(--color-success);
 }
 
 .departure-row__relative {
@@ -458,7 +394,7 @@
 }
 
 .rt-dot--live {
-  background: #22c55e;
+  background: var(--color-success);
   box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
   animation: rt-pulse 2.5s ease-out infinite;
 }
@@ -506,7 +442,7 @@
   margin-top: 0.75rem;
   padding: 0.375rem 0.875rem;
   border: 1px solid var(--color-rule);
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-ink);
   font: inherit;
@@ -519,8 +455,8 @@
 }
 
 .retry-btn:hover {
-  border-color: #b45309;
-  background: rgba(180, 83, 9, 0.06);
+  border-color: var(--color-primary);
+  background: var(--color-surface-sunk);
 }
 
 /* --- Route planner ----------------------------------------- */
@@ -576,8 +512,9 @@
 
 .route-planner__field .search-box input:focus {
   outline: none;
-  border-color: #b45309;
-  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 .route-planner__field .search-box .search-results {
@@ -607,7 +544,7 @@
 
 .route-planner__field .search-box .search-results li[aria-selected="true"],
 .route-planner__field .search-box .search-results li:hover {
-  background: rgba(180, 83, 9, 0.08);
+  background: var(--color-surface-sunk);
 }
 
 /* Hide the visually-hidden label inside LocationSearch when we provide our own */
@@ -663,31 +600,16 @@
   margin-bottom: 0.75rem;
 }
 
-/* --- Itinerary card ---------------------------------------- */
+/* --- Itinerary card ----------------------------------------
+   Editorial accent move: solid primary left edge instead of the
+   old warm gradient bar. Matches the dashboard primary card. */
 .itinerary-card {
   border: 1px solid var(--color-rule);
-  border-radius: 0.875rem;
-  background: var(--color-paper);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
   overflow: hidden;
   position: relative;
-}
-
-/* Warm gradient top-bar, matching weather cards */
-.itinerary-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #b45309, #d97706, #f59e0b);
-  opacity: 0.7;
-}
-
-@media (prefers-color-scheme: dark) {
-  .itinerary-card {
-    background: var(--color-surface);
-  }
 }
 
 .itinerary-card__header {
@@ -760,34 +682,21 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2.5px solid #b45309;
+  border: 2.5px solid var(--color-primary);
   background: var(--color-paper);
   flex-shrink: 0;
   z-index: 1;
 }
 
-@media (prefers-color-scheme: dark) {
-  .leg__dot {
-    border-color: #fbbf24;
-    background: var(--color-surface);
-  }
-}
-
 .leg__line {
   flex: 1;
-  border-left: 2.5px solid #b45309;
+  border-left: 2.5px solid var(--color-primary);
   min-height: 1rem;
 }
 
 .leg__line--dashed {
   border-left-style: dashed;
   opacity: 0.5;
-}
-
-@media (prefers-color-scheme: dark) {
-  .leg__line {
-    border-left-color: #fbbf24;
-  }
 }
 
 .leg__content {

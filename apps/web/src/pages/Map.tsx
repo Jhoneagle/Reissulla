@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 import { useQuery } from "@tanstack/react-query";
 import { geocodingApi } from "@reissulla/api-client";
 import type { GeocodingResult, SavedLocation } from "@reissulla/shared";
@@ -27,6 +28,7 @@ const EMPTY_LOCATIONS: import("@reissulla/shared").SavedLocation[] = [];
 type ViewMode = "map" | "list";
 
 export function MapPage() {
+  const intl = useIntl();
   const [view, setView] = useState<ViewMode>("map");
   const geoPosition = useGeolocationStore((s) => s.position);
   const geoDenied = useGeolocationStore((s) => s.denied);
@@ -96,31 +98,37 @@ export function MapPage() {
   const popupName =
     selectedLocation?.name ??
     reverseQuery.data?.data.displayName ??
-    (reverseQuery.isLoading ? undefined : "Selected location");
+    (reverseQuery.isLoading
+      ? undefined
+      : intl.formatMessage({ id: "map.popup.unnamedLocation" }));
 
   // Short label for the weather panel heading
   const weatherLocationName = selectedLocation
     ? (selectedLocation.name?.split(",")[0] ??
       reverseQuery.data?.data.name ??
-      "Selected location")
+      intl.formatMessage({ id: "map.weather.heading.selectedFallback" }))
     : geoPosition
-      ? "Your location"
+      ? intl.formatMessage({ id: "map.weather.heading.you" })
       : null;
 
   return (
     <div className="page-full-width map-page">
       <h2 className="visually-hidden" id="map-heading">
-        Map
+        <FormattedMessage id="map.heading" />
       </h2>
 
       {geoDenied && (
         <div className="gps-banner" role="status">
-          Allow location access for local results, or search for a place.
+          <FormattedMessage id="map.banner.allowAccess" />
         </div>
       )}
 
       {/* View toggle — positioned at bottom center */}
-      <div role="tablist" aria-label="View mode" className="view-toggle">
+      <div
+        role="tablist"
+        aria-label={intl.formatMessage({ id: "map.viewToggle.label" })}
+        className="view-toggle"
+      >
         <button
           id="tab-map"
           role="tab"
@@ -143,7 +151,7 @@ export function MapPage() {
             <line x1="8" y1="2" x2="8" y2="18" />
             <line x1="16" y1="6" x2="16" y2="22" />
           </svg>
-          Map
+          <FormattedMessage id="map.tab.map" />
         </button>
         <button
           id="tab-list"
@@ -170,7 +178,7 @@ export function MapPage() {
             <line x1="3" y1="12" x2="3.01" y2="12" />
             <line x1="3" y1="18" x2="3.01" y2="18" />
           </svg>
-          List
+          <FormattedMessage id="map.tab.list" />
         </button>
       </div>
 
@@ -193,7 +201,7 @@ export function MapPage() {
         {weatherTarget && (
           <div
             className="weather-panel"
-            aria-label="Weather for active location"
+            aria-label={intl.formatMessage({ id: "map.weather.panelLabel" })}
           >
             {weatherLocationName && (
               <p className="weather-panel__heading">{weatherLocationName}</p>

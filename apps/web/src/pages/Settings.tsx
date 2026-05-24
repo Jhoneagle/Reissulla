@@ -8,6 +8,7 @@ import { usePersonaStore } from "../stores/persona";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import { changeLocale, type Locale } from "../i18n";
 import { PersonaWizard } from "../components/PersonaWizard";
+import { PersonaBanner } from "../components/PersonaBanner";
 import { SavedLocationsManager } from "../components/SavedLocationsManager";
 import { RecentPlacesList } from "../components/RecentPlacesList";
 import { useConfirm } from "../hooks/useConfirm";
@@ -143,9 +144,6 @@ export function Settings() {
         <h2 id="settings-heading">
           <FormattedMessage id="settings.heading" />
         </h2>
-        <p role="status">
-          <FormattedMessage id="settings.notSignedIn" />
-        </p>
         <AnonymousPersonaSection
           persona={personaStore.persona}
           onChange={(key, value) =>
@@ -179,6 +177,7 @@ export function Settings() {
         <SettingsNav items={[...SETTINGS_SECTIONS]} />
 
         <div className="settings-page__content">
+          <PersonaBanner onOpenWizard={() => setWizardOpen(true)} />
           <ProfileSection id="settings-profile" currentName={user.name} />
 
           <fieldset id="settings-display">
@@ -551,15 +550,22 @@ function AnonymousPersonaSection({
   const [wizardOpen, setWizardOpen] = useState(false);
   return (
     <>
-      <p className="settings-anonymous-cta">
-        <FormattedMessage
-          id="settings.anonymousCta"
-          values={{
-            login: (chunks) => <Link to="/login">{chunks}</Link>,
-            register: (chunks) => <Link to="/register">{chunks}</Link>,
-          }}
-        />
-      </p>
+      <aside className="cta-card" aria-labelledby="settings-cta-heading">
+        <h3 id="settings-cta-heading" className="cta-card__heading">
+          <FormattedMessage id="settings.anonymous.cta.heading" />
+        </h3>
+        <p className="cta-card__description">
+          <FormattedMessage id="settings.anonymous.cta.description" />
+        </p>
+        <div className="cta-card__actions">
+          <Link to="/login" className="btn btn--primary">
+            <FormattedMessage id="settings.anonymous.cta.signIn" />
+          </Link>
+          <Link to="/register" className="btn btn--secondary">
+            <FormattedMessage id="settings.anonymous.cta.createAccount" />
+          </Link>
+        </div>
+      </aside>
       <fieldset>
         <legend>
           <FormattedMessage id="settings.section.persona" />

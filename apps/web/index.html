@@ -25,6 +25,29 @@
       rel="stylesheet"
     />
     <title>Reissulla — Weather, Travel &amp; Maps</title>
+    <!--
+      Set data-theme before React mounts so dark-mode loads don't
+      flash light first. Reads localStorage (mirrored from server
+      preferences by useTheme) and falls back to prefers-color-scheme.
+      The useTheme hook takes over once React hydrates.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("reissulla:theme");
+          var resolved =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.setAttribute("data-theme", resolved);
+        } catch (_e) {
+          // localStorage / matchMedia unavailable (incognito, old browser):
+          // leave the attribute unset; default light CSS applies.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -53,7 +53,7 @@ export function Layout() {
           <div className="auth-nav">
             {user ? (
               <>
-                <span className="user-name">{user.name}</span>
+                <span className="user-name hide-on-mobile">{user.name}</span>
                 <button
                   type="button"
                   onClick={signOut}
@@ -67,7 +67,10 @@ export function Layout() {
                 <Link to="/login" className="btn btn--ghost btn--sm">
                   <FormattedMessage id="nav.logIn" />
                 </Link>
-                <Link to="/register" className="btn btn--primary btn--sm">
+                <Link
+                  to="/register"
+                  className="btn btn--primary btn--sm hide-on-mobile"
+                >
                   <FormattedMessage id="nav.register" />
                 </Link>
               </>

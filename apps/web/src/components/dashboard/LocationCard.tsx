@@ -1,9 +1,14 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useCurrentWeather } from "../../hooks/useWeather";
 import { useNearbyStops } from "../../hooks/useTransit";
 import { WeatherIcon } from "../weather/WeatherIcon";
-import { buildWeatherLede } from "../../lib/lede";
+import {
+  buildWeatherLede,
+  type CardinalDirection,
+  type WindBucket,
+} from "../../lib/lede";
 import { useWeatherTheme } from "../../hooks/useWeatherTheme";
 
 /**
@@ -60,6 +65,35 @@ export function LocationCard({
     ? Math.round(weather.data.data.temperature)
     : null;
 
+  // Memoise the formatters object: useMemo keyed on intl.locale so we
+  // don't rebuild on every parent re-render, but do swap catalogues
+  // when the user changes language.
+  const ledeFormatters = useMemo(
+    () => ({
+      formatWind: (
+        direction: CardinalDirection | "Variable",
+        bucket: WindBucket,
+      ) => intl.formatMessage({ id: "lede.wind" }, { direction, bucket }),
+      formatCalm: () => intl.formatMessage({ id: "lede.wind.calm" }),
+      formatSun: (
+        event: "rise" | "set",
+        tense: "past" | "future",
+        time: string,
+      ) => {
+        const key =
+          event === "rise"
+            ? tense === "future"
+              ? "lede.sun.rises_at"
+              : "lede.sun.rose_at"
+            : tense === "future"
+              ? "lede.sun.sets_at"
+              : "lede.sun.set_at";
+        return intl.formatMessage({ id: key }, { time });
+      },
+    }),
+    [intl],
+  );
+
   const lede = weather.data
     ? buildWeatherLede({
         weather: weather.data.data,
@@ -68,7 +102,7 @@ export function LocationCard({
             id: `weather.code.${code}`,
             defaultMessage: weather.data!.data.weatherDescription,
           }),
-        locale: intl.locale,
+        ...ledeFormatters,
       })
     : null;
 
@@ -112,63 +146,68 @@ export function LocationCard({
         </div>
       )}
 
-      {lede && (
-        <p
-          className="dashboard-card__lede"
-          // Decorative summary; the underlying data has its own slots.
-          role="presentation"
-        >
-          {lede}
-        </p>
-      )}
-
-      {weather.isError && tempRounded === null && (
-        <p className="dashboard-card__weather-empty">
-          <FormattedMessage id="dashboard.card.weatherUnavailable" />
-        </p>
-      )}
-
-      <div className="dashboard-card__stops">
-        <h4>
-          <FormattedMessage id="dashboard.card.nearestStops" />
-        </h4>
-        {stops.data?.data && stops.data.data.length > 0 ? (
-          <ol className="stops-board">
-            {stops.data.data.slice(0, STOPS_VISIBLE).map((stop, index) => {
-              const mode = (stop.vehicleMode ?? "bus").toLowerCase();
-              return (
-                <li key={stop.gtfsId} className="stops-board__row">
-                  <span className="stops-board__num" aria-hidden="true">
-                    {`${index + 1}`.padStart(2, "0")}
-                  </span>
-                  <span className={`stops-board__mode mode-${mode}`}>
-                    <span aria-hidden="true">{mode.toUpperCase()}</span>
-                    <span className="visually-hidden">
-                      <FormattedMessage
-                        id={`transit.vehicleMode.${mode}`}
-                        defaultMessage={mode}
-                      />
-                    </span>
-                  </span>
-                  <span className="stops-board__name">{stop.name}</span>
-                  {stop.distance !== undefined && (
-                    <span className="stops-board__distance">
-                      {Math.round(stop.distance)} m
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        ) : stops.data ? (
-          <p className="help">
-            <FormattedMessage id="dashboard.card.nearestStopsNone" />
+      <div className="dashboard-card__body">
+        {lede && (
+          <p
+            className="dashboard-card__lede"
+            // Decorative summary; the underlying data has its own slots.
+            role="presentation"
+          >
+            {lede}
           </p>
-        ) : null}
+        )}
+
+        {weather.isError && tempRounded === null && (
+          <p className="dashboard-card__weather-empty">
+            <FormattedMessage id="dashboard.card.weatherUnavailable" />
+          </p>
+        )}
+
+        <div className="dashboard-card__stops">
+          <h4>
+            <FormattedMessage id="dashboard.card.nearestStops" />
+          </h4>
+          {stops.data?.data && stops.data.data.length > 0 ? (
+            <ol className="stops-board">
+              {stops.data.data.slice(0, STOPS_VISIBLE).map((stop, index) => {
+                const mode = (stop.vehicleMode ?? "bus").toLowerCase();
+                return (
+                  <li key={stop.gtfsId} className="stops-board__row">
+                    <span className="stops-board__num" aria-hidden="true">
+                      {`${index + 1}`.padStart(2, "0")}
+                    </span>
+                    <span className={`stops-board__mode mode-${mode}`}>
+                      <span aria-hidden="true">{mode.toUpperCase()}</span>
+                      <span className="visually-hidden">
+                        <FormattedMessage
+                          id={`transit.vehicleMode.${mode}`}
+                          defaultMessage={mode}
+                        />
+                      </span>
+                    </span>
+                    <span className="stops-board__name">{stop.name}</span>
+                    {stop.distance !== undefined && (
+                      <span className="stops-board__distance">
+                        {Math.round(stop.distance)} m
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          ) : stops.data ? (
+            <p className="help">
+              <FormattedMessage id="dashboard.card.nearestStopsNone" />
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="dashboard-card__actions">
-        <Link to={`/map?lat=${lat}&lon=${lon}`}>
+        <Link
+          to={`/map?lat=${lat}&lon=${lon}`}
+          className={isPrimary ? "btn btn--ghost btn--sm" : undefined}
+        >
           <FormattedMessage id="dashboard.card.openOnMap" />
         </Link>
       </div>

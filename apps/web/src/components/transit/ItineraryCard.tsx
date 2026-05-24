@@ -1,3 +1,4 @@
+import { FormattedMessage, useIntl } from "react-intl";
 import type { TransitItinerary } from "@reissulla/shared";
 import {
   formatDepartureTime,
@@ -6,22 +7,34 @@ import {
 } from "../../lib/transit-utils";
 import { ItineraryLeg } from "./ItineraryLeg";
 
+const RIGHT_ARROW = "→";
+
 interface ItineraryCardProps {
   itinerary: TransitItinerary;
   index: number;
 }
 
 export function ItineraryCard({ itinerary, index }: ItineraryCardProps) {
+  const intl = useIntl();
+  const transfersLabel = intl.formatMessage(
+    { id: "transit.itinerary.transfers" },
+    { n: itinerary.transfers },
+  );
   return (
     <article className="itinerary-card">
       <header className="itinerary-card__header">
-        <span className="itinerary-card__label">Option {index + 1}</span>
+        <span className="itinerary-card__label">
+          <FormattedMessage
+            id="transit.itinerary.option"
+            values={{ n: index + 1 }}
+          />
+        </span>
         <div className="itinerary-card__times">
           <span className="itinerary-card__time">
             {formatDepartureTime(itinerary.startTime)}
           </span>
           <span className="itinerary-card__arrow" aria-hidden="true">
-            →
+            {RIGHT_ARROW}
           </span>
           <span className="itinerary-card__time">
             {formatDepartureTime(itinerary.endTime)}
@@ -29,15 +42,22 @@ export function ItineraryCard({ itinerary, index }: ItineraryCardProps) {
         </div>
         <div className="itinerary-card__meta">
           <span>{formatDuration(itinerary.duration)}</span>
-          <span
-            aria-label={`${itinerary.transfers} transfer${itinerary.transfers !== 1 ? "s" : ""}`}
-          >
-            {itinerary.transfers === 0
-              ? "Direct"
-              : `${itinerary.transfers} transfer${itinerary.transfers !== 1 ? "s" : ""}`}
+          <span aria-label={transfersLabel}>
+            {itinerary.transfers === 0 ? (
+              <FormattedMessage id="transit.itinerary.direct" />
+            ) : (
+              transfersLabel
+            )}
           </span>
           {itinerary.walkDistance > 0 && (
-            <span>{formatWalkDistance(itinerary.walkDistance)} walk</span>
+            <span>
+              <FormattedMessage
+                id="transit.itinerary.walkSuffix"
+                values={{
+                  distance: formatWalkDistance(itinerary.walkDistance),
+                }}
+              />
+            </span>
           )}
         </div>
       </header>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FormattedMessage } from "react-intl";
 import type { TransitStop } from "@reissulla/shared";
 import { StopSearch } from "./StopSearch";
 import { DepartureTable } from "./DepartureTable";
@@ -26,7 +27,9 @@ export function DepartureBoard() {
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <p>Search for a transit stop to see departures.</p>
+          <p>
+            <FormattedMessage id="transit.depart.empty.searchHint" />
+          </p>
         </div>
       )}
 

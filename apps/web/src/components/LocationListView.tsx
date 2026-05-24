@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 import type { GeocodingResult, SavedLocation } from "@reissulla/shared";
 import { ListRowWeather } from "./weather/ListRowWeather";
 import { ListRowForecast } from "./weather/ListRowForecast";
@@ -60,6 +61,7 @@ export function LocationListView({
   selectedLocation,
   savedLocations,
 }: LocationListViewProps) {
+  const intl = useIntl();
   const isAuthenticated = !!useAuthStore((s) => s.user);
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortAsc, setSortAsc] = useState(true);
@@ -132,7 +134,9 @@ export function LocationListView({
       )
     ) {
       selectionRows.push({
-        displayName: selectedLocation.name ?? "Selected location",
+        displayName:
+          selectedLocation.name ??
+          intl.formatMessage({ id: "locationList.selectedLocation" }),
         lat: selectedLocation.lat,
         lon: selectedLocation.lon,
         distance: distFor(selectedLocation.lat, selectedLocation.lon),
@@ -163,6 +167,7 @@ export function LocationListView({
       otherRows: sortRows([...selectionRows, ...searchRows]),
     };
   }, [
+    intl,
     results,
     selectedLocation,
     userPosition,
@@ -190,6 +195,11 @@ export function LocationListView({
   const showDivider = savedRows.length > 0 && otherRows.length > 0;
   const colCount = isAuthenticated ? 5 : 4;
 
+  // Arrow glyphs for the sort indicators. Pulled out of JSX so the
+  // formatjs/no-literal-string-in-jsx rule doesn't trip over them —
+  // they're purely typographic, locale-neutral.
+  const sortGlyph = (active: boolean) => (active ? (sortAsc ? "↑" : "↓") : "");
+
   if (totalRows === 0) {
     return (
       <div className="location-list">
@@ -207,7 +217,9 @@ export function LocationListView({
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
-          <p>Search for a location or click on the map to see results here.</p>
+          <p>
+            <FormattedMessage id="locationList.empty.searchHint" />
+          </p>
         </div>
       </div>
     );
@@ -252,16 +264,28 @@ export function LocationListView({
     <div className="location-list">
       <table>
         <caption className="visually-hidden">
-          Locations &mdash;{" "}
-          {savedRows.length > 0
-            ? `${savedRows.length} saved, ${otherRows.length} search results`
-            : `${otherRows.length} ${otherRows.length === 1 ? "result" : "results"}`}
+          {savedRows.length > 0 ? (
+            <FormattedMessage
+              id="locationList.caption.withSaved"
+              values={{
+                saved: savedRows.length,
+                results: otherRows.length,
+              }}
+            />
+          ) : (
+            <FormattedMessage
+              id="locationList.caption.resultsOnly"
+              values={{ count: otherRows.length }}
+            />
+          )}
         </caption>
         <thead>
           <tr>
             {isAuthenticated && (
               <th scope="col" className="cell-actions">
-                <span className="visually-hidden">Save</span>
+                <span className="visually-hidden">
+                  <FormattedMessage id="locationList.column.save" />
+                </span>
               </th>
             )}
             <th
@@ -269,23 +293,27 @@ export function LocationListView({
               aria-sort={ariaSortValue("name", sortField, sortAsc)}
             >
               <button type="button" onClick={() => toggleSort("name")}>
-                Name{" "}
-                {sortField === "name" ? (sortAsc ? "\u2191" : "\u2193") : ""}
+                <FormattedMessage id="locationList.column.name" />
+                <span aria-hidden="true" style={{ marginLeft: "0.25em" }}>
+                  {sortGlyph(sortField === "name")}
+                </span>
               </button>
             </th>
-            <th scope="col">Weather</th>
-            <th scope="col">Forecast</th>
+            <th scope="col">
+              <FormattedMessage id="locationList.column.weather" />
+            </th>
+            <th scope="col">
+              <FormattedMessage id="locationList.column.forecast" />
+            </th>
             <th
               scope="col"
               aria-sort={ariaSortValue("distance", sortField, sortAsc)}
             >
               <button type="button" onClick={() => toggleSort("distance")}>
-                Distance{" "}
-                {sortField === "distance"
-                  ? sortAsc
-                    ? "\u2191"
-                    : "\u2193"
-                  : ""}
+                <FormattedMessage id="locationList.column.distance" />
+                <span aria-hidden="true" style={{ marginLeft: "0.25em" }}>
+                  {sortGlyph(sortField === "distance")}
+                </span>
               </button>
             </th>
           </tr>

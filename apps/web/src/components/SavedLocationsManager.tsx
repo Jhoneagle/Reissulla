@@ -209,68 +209,87 @@ export function SavedLocationsManager() {
                         </option>
                       ))}
                     </select>
-                    {/* The row's secondary controls. On desktop these render
-                        inline; below 40rem the CSS collapses them into a
-                        kebab <details> — see styles in global.css. */}
-                    <RowActionsMenu
-                      rowLabel={intl.formatMessage(
-                        { id: "savedLocations.rowActionsLabel" },
-                        { name: loc.name },
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => moveBy(loc, -1)}
-                        disabled={isFirst}
-                        aria-label={intl.formatMessage({
-                          id: "locations.moveUp",
-                        })}
-                        className="btn btn--ghost btn--sm"
-                      >
-                        <span aria-hidden="true">↑</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveBy(loc, 1)}
-                        disabled={isLast}
-                        aria-label={intl.formatMessage({
-                          id: "locations.moveDown",
-                        })}
-                        className="btn btn--ghost btn--sm"
-                      >
-                        <span aria-hidden="true">↓</span>
-                      </button>
-                      {!loc.isPrimary && (
-                        <button
-                          type="button"
-                          onClick={() => setPrimary(loc)}
-                          className="btn btn--secondary btn--sm"
-                        >
-                          <FormattedMessage id="locations.makePrimary" />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(loc.id)}
-                        className="btn btn--secondary btn--sm"
-                      >
-                        <FormattedMessage id="locations.rename" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => share(loc)}
-                        className="btn btn--secondary btn--sm"
-                      >
-                        <FormattedMessage id="locations.share" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => remove(loc)}
-                        className="btn btn--destructive btn--sm"
-                      >
-                        <FormattedMessage id="locations.delete" />
-                      </button>
-                    </RowActionsMenu>
+                    {/* The row's secondary controls. We render the same
+                        buttons twice — once for desktop (visible inline)
+                        and once for mobile (hidden inside a kebab
+                        <details>). CSS shows whichever fits the viewport.
+                        Older single-DOM <details> + display:contents
+                        approach lost the buttons at desktop widths
+                        because the closed <details> hides non-summary
+                        children before display:contents can hoist them. */}
+                    {(() => {
+                      const actionButtons = (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => moveBy(loc, -1)}
+                            disabled={isFirst}
+                            aria-label={intl.formatMessage({
+                              id: "locations.moveUp",
+                            })}
+                            className="btn btn--ghost btn--sm"
+                          >
+                            <span aria-hidden="true">↑</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveBy(loc, 1)}
+                            disabled={isLast}
+                            aria-label={intl.formatMessage({
+                              id: "locations.moveDown",
+                            })}
+                            className="btn btn--ghost btn--sm"
+                          >
+                            <span aria-hidden="true">↓</span>
+                          </button>
+                          {!loc.isPrimary && (
+                            <button
+                              type="button"
+                              onClick={() => setPrimary(loc)}
+                              className="btn btn--secondary btn--sm"
+                            >
+                              <FormattedMessage id="locations.makePrimary" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(loc.id)}
+                            className="btn btn--secondary btn--sm"
+                          >
+                            <FormattedMessage id="locations.rename" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => share(loc)}
+                            className="btn btn--secondary btn--sm"
+                          >
+                            <FormattedMessage id="locations.share" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(loc)}
+                            className="btn btn--destructive btn--sm"
+                          >
+                            <FormattedMessage id="locations.delete" />
+                          </button>
+                        </>
+                      );
+                      return (
+                        <>
+                          <div className="row-actions-desktop">
+                            {actionButtons}
+                          </div>
+                          <RowActionsMobile
+                            rowLabel={intl.formatMessage(
+                              { id: "savedLocations.rowActionsLabel" },
+                              { name: loc.name },
+                            )}
+                          >
+                            {actionButtons}
+                          </RowActionsMobile>
+                        </>
+                      );
+                    })()}
                   </div>
                 </>
               )}
@@ -284,17 +303,17 @@ export function SavedLocationsManager() {
 }
 
 /**
- * Wraps row-secondary buttons in a `<details>` element. At ≥40rem the
- * CSS strips the kebab affordance and renders the children inline; at
- * narrower viewports the `<details>` collapses to a `⋯` summary that
- * expands the menu on click.
+ * Mobile-only kebab popover for row-secondary buttons. The companion
+ * `.row-actions-desktop` div (inline siblings of this component in
+ * the markup above) carries the same buttons for ≥40rem viewports;
+ * CSS hides whichever subtree doesn't apply.
  *
  * `<details>` doesn't auto-wire `aria-expanded`, so the effect below
  * mirrors `open` onto `aria-expanded` on the summary — gives SR users
  * a proper announcement of menu state without competing with the
  * default disclosure behaviour.
  */
-function RowActionsMenu({
+function RowActionsMobile({
   rowLabel,
   children,
 }: {
@@ -317,15 +336,15 @@ function RowActionsMenu({
   }, []);
 
   return (
-    <details ref={detailsRef} className="row-actions-menu">
+    <details ref={detailsRef} className="row-actions-mobile">
       <summary
         ref={summaryRef as React.RefObject<HTMLElement>}
-        className="row-actions-menu__summary"
+        className="row-actions-mobile__summary"
         aria-label={rowLabel}
       >
         <span aria-hidden="true">⋯</span>
       </summary>
-      <div className="row-actions-menu__items">{children}</div>
+      <div className="row-actions-mobile__items">{children}</div>
     </details>
   );
 }
