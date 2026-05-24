@@ -114,7 +114,11 @@ export function Register() {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            aria-describedby="register-password-help"
           />
+          <p id="register-password-help" className="help">
+            <FormattedMessage id="register.passwordHelp" />
+          </p>
         </div>
         <button
           type="submit"

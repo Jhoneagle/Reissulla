@@ -5,6 +5,8 @@ import { useAuthStore } from "../stores/auth";
 import { usePersonaStore } from "../stores/persona";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import { Modal } from "./Modal";
+import { useConfirm } from "../hooks/useConfirm";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 /**
  * Skippable 3-question intro that captures the highest-value persona
@@ -59,6 +61,7 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
       >,
   );
   const [saveError, setSaveError] = useState<string | null>(null);
+  const { confirm, dialogProps } = useConfirm();
 
   const currentQuestion = QUESTIONS[step]!;
   const isFirstStep = step === 0;
@@ -66,6 +69,12 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
 
   function answer(value: boolean) {
     setAnswers((s) => ({ ...s, [currentQuestion.id]: value }));
+    // Auto-advance after a click — most users want momentum through
+    // a 3-question wizard. The last step is the exception (we wait
+    // for explicit "Finish" so the user can review before persist).
+    if (!isLastStep) {
+      setStep((s) => s + 1);
+    }
   }
 
   function next() {
@@ -76,15 +85,18 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
     }
   }
 
+  // Skipping is meaningfully different from "I answered no". Persisting
+  // `null` for unanswered questions keeps the personaStore's partial
+  // shape; the wire-format encoder drops keys that resolve to `null`.
+  // Wave 1 (and before) was conflating skip→false; this changes that.
   async function persistAndClose() {
     setSaveError(null);
     const resolved: Partial<Persona> = {};
     for (const q of QUESTIONS) {
-      resolved[q.id] = answers[q.id] === true;
+      const a = answers[q.id];
+      if (a === null) continue;
+      resolved[q.id] = a;
     }
-    // Merge into the local store first — that's the wire-header source of
-    // truth, and writing here means even a failed server PATCH doesn't lose
-    // the user's choices.
     personaStore.set(resolved);
 
     if (user) {
@@ -104,10 +116,27 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
     onClose();
   }
 
+  async function handleClose() {
+    const isDirty = Object.values(answers).some((v) => v !== null);
+    if (!isDirty) {
+      onClose();
+      return;
+    }
+    const ok = await confirm({
+      title: intl.formatMessage({ id: "personaWizard.discardConfirm.title" }),
+      body: intl.formatMessage({ id: "personaWizard.discardConfirm.body" }),
+      confirmLabel: intl.formatMessage({
+        id: "personaWizard.discardConfirm.confirm",
+      }),
+      destructive: true,
+    });
+    if (ok) onClose();
+  }
+
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       labelledBy="persona-wizard-heading"
       className="persona-wizard"
     >
@@ -137,7 +166,7 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
       )}
 
       <div className="persona-wizard-nav">
-        <button type="button" onClick={onClose} className="btn btn--link">
+        <button type="button" onClick={handleClose} className="btn btn--link">
           <FormattedMessage id="personaWizard.skipAll" />
         </button>
         <div className="persona-wizard-nav-right">
@@ -157,6 +186,7 @@ export function PersonaWizard({ isOpen, onClose }: PersonaWizardProps) {
           </button>
         </div>
       </div>
+      <ConfirmDialog {...dialogProps} />
     </Modal>
   );
 }

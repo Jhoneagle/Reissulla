@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { FormattedMessage } from "react-intl";
 import { useAuthStore } from "../../stores/auth";
 import { useSaveLocation } from "../../hooks/useSavedLocations";
 
@@ -18,7 +18,6 @@ interface Props {
 export function SaveCurrentLocationPrompt({ lat, lon }: Props) {
   const user = useAuthStore((s) => s.user);
   const saveLocation = useSaveLocation();
-  const intl = useIntl();
   const [name, setName] = useState("");
   const [saved, setSaved] = useState(false);
 
@@ -47,16 +46,26 @@ export function SaveCurrentLocationPrompt({ lat, lon }: Props) {
       <label htmlFor="save-current-name">
         <FormattedMessage id="dashboard.savePromptHere" />
       </label>
+      {/* Always-visible guidance — placeholder-as-guidance disappears
+          on type, which leaves SR users without a hint and sighted
+          users without context after they start. */}
+      <p id="save-current-name-help" className="help">
+        <FormattedMessage id="dashboard.savePromptHelp" />
+      </p>
       <input
         id="save-current-name"
         type="text"
-        placeholder={intl.formatMessage({ id: "dashboard.savePromptName" })}
         value={name}
         onChange={(e) => setName(e.target.value)}
         minLength={1}
         maxLength={255}
+        aria-describedby="save-current-name-help"
       />
-      <button type="submit" disabled={saveLocation.isPending || !name.trim()}>
+      <button
+        type="submit"
+        disabled={saveLocation.isPending || !name.trim()}
+        className="btn btn--primary"
+      >
         <FormattedMessage
           id={saveLocation.isPending ? "dashboard.saving" : "recentPlaces.save"}
         />

@@ -112,32 +112,37 @@ export function Login() {
             id="login-password"
             type="password"
             autoComplete="current-password"
-            required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            aria-describedby="login-password-help"
           />
+          <p id="login-password-help" className="help">
+            <FormattedMessage id="login.passwordOptionalHelp" />
+          </p>
         </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="btn btn--primary"
-        >
-          <FormattedMessage
-            id={submitting ? "login.submitting" : "login.submit"}
-          />
-        </button>
+        {/* Dual-affordance: password sign-in and magic-link sign-in get
+            equal-weight primary buttons. Password is only required for
+            the left button; the right one works on email alone. */}
+        <div className="auth-actions" role="group" aria-label="Sign in">
+          <button
+            type="submit"
+            disabled={submitting || !email || !password}
+            className="btn btn--primary"
+          >
+            <FormattedMessage
+              id={submitting ? "login.submitting" : "login.submitPassword"}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={handleMagicLinkOnly}
+            disabled={submitting || !email}
+            className="btn btn--primary"
+          >
+            <FormattedMessage id="login.submitMagicLink" />
+          </button>
+        </div>
       </form>
-      <p>
-        <FormattedMessage id="login.magicLinkPrompt" />{" "}
-        <button
-          type="button"
-          onClick={handleMagicLinkOnly}
-          disabled={submitting || !email}
-          className="btn btn--link"
-        >
-          <FormattedMessage id="login.magicLinkAction" />
-        </button>
-      </p>
       <p className="auth-switch">
         <FormattedMessage id="login.noAccount" />{" "}
         <Link to="/register">

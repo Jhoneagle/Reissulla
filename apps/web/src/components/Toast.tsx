@@ -17,6 +17,18 @@ export function Toast() {
       {toasts.map((t) => (
         <div key={t.id} className={`toast toast--${t.kind}`}>
           <span className="toast__message">{t.message}</span>
+          {t.action && (
+            <button
+              type="button"
+              className="toast__action"
+              onClick={() => {
+                t.action!.onClick();
+                dismiss(t.id);
+              }}
+            >
+              {t.action.label}
+            </button>
+          )}
           <button
             type="button"
             className="toast__dismiss"

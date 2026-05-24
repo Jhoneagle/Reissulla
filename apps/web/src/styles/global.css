@@ -354,6 +354,126 @@ main:has(.page-full-width) {
   flex-direction: column;
 }
 
+/* ── Row actions kebab ──
+   At ≥40rem the <details>/<summary> chrome is stripped and the menu
+   items render inline. Below 40rem, <summary> is the kebab affordance
+   that toggles a popover-style menu. */
+.row-actions-menu {
+  display: contents;
+}
+
+.row-actions-menu__summary {
+  display: none;
+  cursor: pointer;
+  list-style: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.row-actions-menu__summary::-webkit-details-marker {
+  display: none;
+}
+
+.row-actions-menu__summary:hover {
+  background: var(--color-surface-sunk);
+}
+
+.row-actions-menu__items {
+  display: contents;
+}
+
+@media (max-width: 39.99rem) {
+  .row-actions-menu {
+    display: block;
+    position: relative;
+  }
+
+  .row-actions-menu__summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-xl);
+    line-height: 1;
+    color: var(--color-ink);
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+  }
+
+  .row-actions-menu__items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    padding: var(--space-2);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .row-actions-menu__items .btn {
+    justify-content: flex-start;
+  }
+}
+
+/* ── Empty state ──
+   Used by saved-locations and recent-places when their lists are
+   empty. The art slot is left blank for now; W4b.5 fills it with
+   hand-drawn line-art SVGs (folded map, tram, satellite). The text
+   carries the meaning; the illustration is decorative. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--color-ink-muted);
+}
+
+.empty-state__art {
+  width: 6rem;
+  height: 6rem;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.empty-state a:hover {
+  color: var(--color-primary-ink);
+  text-decoration: underline;
+}
+
+.settings-anonymous-cta {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-sunk);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-xs);
+  margin: var(--space-4) 0;
+  font-size: var(--text-sm);
+}
+
+.settings-anonymous-cta a {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.form-field__preview {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-sunk);
+  border-radius: var(--radius-xs);
+  color: var(--color-ink);
+  font-style: italic;
+  line-height: var(--leading-tight);
+}
+
 /* ── Toast queue ──
    Singleton, mounted by Layout. Bottom-centre stack, each toast in a
    coloured surface tied to its kind. The container is an aria-live
@@ -398,6 +518,21 @@ main:has(.page-full-width) {
 
 .toast__message {
   white-space: pre-line;
+}
+
+.toast__action {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 var(--space-2);
+}
+
+.toast__action:hover {
+  opacity: 0.8;
 }
 
 .toast__dismiss {
@@ -631,6 +766,25 @@ footer a {
   margin-left: 1.25rem;
 }
 
+/* Dual-affordance Login: password and magic-link buttons sit side by
+   side at equal weight. On narrow screens (<24rem auth-page width),
+   they stack vertically. */
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 28rem) {
+  .auth-actions {
+    flex-direction: row;
+  }
+
+  .auth-actions .btn {
+    flex: 1;
+  }
+}
+
 .auth-switch {
   margin-top: 1rem;
   text-align: center;
@@ -643,19 +797,78 @@ footer a {
 
 /* ── Settings page ── */
 .settings-page {
-  max-width: 36rem;
+  max-width: var(--container-page);
   margin: 0 auto;
 }
 
+.settings-page__layout {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.settings-page__content {
+  flex: 1;
+  min-width: 0;
+  max-width: var(--container-narrow);
+}
+
 .settings-page fieldset {
-  margin: 1.5rem 0;
-  padding: 1rem 1.25rem;
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-rule);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
+  scroll-margin-top: var(--space-6);
 }
 
 .settings-page legend {
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
+  font-weight: 600;
+}
+
+/* ── Settings sub-nav ──
+   Sticky table-of-contents on the left at ≥48rem viewport. Hidden
+   below that — mobile already scrolls linearly. */
+.settings-nav {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .settings-nav {
+    display: block;
+    flex: 0 0 12rem;
+    position: sticky;
+    top: var(--space-5);
+    align-self: flex-start;
+  }
+}
+
+.settings-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-nav a {
+  display: block;
+  padding: var(--space-1) var(--space-3);
+  border-left: 2px solid transparent;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  font-size: var(--text-sm);
+}
+
+.settings-nav a:hover {
+  color: var(--color-ink);
+}
+
+.settings-nav a.active {
+  color: var(--color-primary-ink);
+  border-left-color: var(--color-primary);
+  background: transparent;
   font-weight: 600;
 }
 
