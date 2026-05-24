@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { TransitSubStop } from "@reissulla/shared";
 import {
   getNearbyStops,
+  getAdaptiveNearbyStops,
   searchStops,
   getStopDepartures,
   getMultiStopDepartures,
@@ -25,7 +26,14 @@ function coerceSubStop(raw: Record<string, unknown>): TransitSubStop {
 }
 
 export const transitRoutes: FastifyPluginAsync = async (server) => {
-  server.get<{ Querystring: { lat: string; lon: string; radius?: string } }>(
+  server.get<{
+    Querystring: {
+      lat: string;
+      lon: string;
+      radius?: string;
+      mode?: string;
+    };
+  }>(
     "/api/v1/transit/stops",
     {
       schema: {
@@ -36,6 +44,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             lat: { type: "string" },
             lon: { type: "string" },
             radius: { type: "string" },
+            mode: { type: "string" },
           },
         },
       },
@@ -52,34 +61,83 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         radius = parsed;
       }
 
+      const mode = request.query.mode?.trim() || undefined;
+
       const { data, cached } = await getNearbyStops(
         lat,
         lon,
         radius,
         request.persona,
+        { mode },
       );
       return { data, cached };
     },
   );
 
-  server.get<{ Querystring: { q: string } }>(
+  // Adaptive nearby — doubles radius up to 2 km until we surface five stops.
+  server.get<{ Querystring: { lat: string; lon: string; mode?: string } }>(
+    "/api/v1/transit/stops/nearby-adaptive",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          required: ["lat", "lon"],
+          properties: {
+            lat: { type: "string" },
+            lon: { type: "string" },
+            mode: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const { lat, lon } = parseCoordinates(request.query);
+      const mode = request.query.mode?.trim() || undefined;
+      const { data, cached, radiusUsed } = await getAdaptiveNearbyStops(
+        lat,
+        lon,
+        request.persona,
+        { mode },
+      );
+      return { data, cached, radiusUsed };
+    },
+  );
+
+  server.get<{
+    Querystring: {
+      q?: string;
+      mode?: string;
+      region?: string;
+      byLine?: string;
+    };
+  }>(
     "/api/v1/transit/stops/search",
     {
       schema: {
         querystring: {
           type: "object",
-          required: ["q"],
-          properties: { q: { type: "string" } },
+          properties: {
+            q: { type: "string" },
+            mode: { type: "string" },
+            region: { type: "string" },
+            byLine: { type: "string" },
+          },
         },
       },
     },
     async (request) => {
-      const q = request.query.q.trim();
-      if (q === "") {
-        return badRequest("q must not be empty");
+      const q = (request.query.q ?? "").trim();
+      const byLine = request.query.byLine?.trim() || undefined;
+      // byLine is a standalone query path — q is optional when present.
+      if (!byLine && q === "") {
+        return badRequest("q must not be empty when byLine is not set");
       }
 
-      const { data, cached } = await searchStops(q, request.persona);
+      const { data, cached } = await searchStops(q, request.persona, {
+        mode: request.query.mode?.trim() || undefined,
+        region: request.query.region?.trim() || undefined,
+        byLine,
+      });
       return { data, cached };
     },
   );
