@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Marker, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import type { SavedLocation } from "@reissulla/shared";
@@ -16,6 +17,41 @@ interface SavedLocationMarkersProps {
   onSelect: (location: SavedLocation) => void;
 }
 
+interface SavedMarkerProps {
+  location: SavedLocation;
+  onSelect: (location: SavedLocation) => void;
+}
+
+// react-leaflet's <Marker> accepts `title` but no `aria-label`. SC 4.1.2
+// is satisfied either way (NVDA/VoiceOver fall back to `title` for the
+// accessible name), but `aria-label` is the more explicit modern signal
+// and what the design review asked for, so we set it directly on the
+// underlying Leaflet element via a ref.
+function SavedMarker({ location, onSelect }: SavedMarkerProps) {
+  const markerRef = useRef<L.Marker | null>(null);
+
+  useEffect(() => {
+    const el = markerRef.current?.getElement();
+    if (el) el.setAttribute("aria-label", location.name);
+  }, [location.name]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[location.latitude, location.longitude]}
+      icon={savedIcon}
+      title={location.name}
+      eventHandlers={{
+        click: () => onSelect(location),
+      }}
+    >
+      <Tooltip direction="top" offset={[0, -8]}>
+        {location.name}
+      </Tooltip>
+    </Marker>
+  );
+}
+
 export function SavedLocationMarkers({
   locations,
   onSelect,
@@ -23,20 +59,7 @@ export function SavedLocationMarkers({
   return (
     <>
       {locations.map((loc) => (
-        <Marker
-          key={loc.id}
-          position={[loc.latitude, loc.longitude]}
-          icon={savedIcon}
-          alt={loc.name}
-          title={loc.name}
-          eventHandlers={{
-            click: () => onSelect(loc),
-          }}
-        >
-          <Tooltip direction="top" offset={[0, -8]}>
-            {loc.name}
-          </Tooltip>
-        </Marker>
+        <SavedMarker key={loc.id} location={loc} onSelect={onSelect} />
       ))}
     </>
   );

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Marker } from "react-leaflet";
 import { useIntl } from "react-intl";
 import L from "leaflet";
@@ -19,12 +20,22 @@ interface UserLocationMarkerProps {
 export function UserLocationMarker({ position }: UserLocationMarkerProps) {
   const intl = useIntl();
   const label = intl.formatMessage({ id: "map.userLocation.label" });
+  const markerRef = useRef<L.Marker | null>(null);
+
+  // react-leaflet's <Marker> accepts `title` but no `aria-label`. Mirror
+  // the SavedLocationMarkers treatment so screen readers get the
+  // localised name on the same attribute everywhere.
+  useEffect(() => {
+    const el = markerRef.current?.getElement();
+    if (el) el.setAttribute("aria-label", label);
+  }, [label]);
+
   return (
     <Marker
+      ref={markerRef}
       position={position}
       icon={userIcon}
       interactive={false}
-      alt={label}
       title={label}
     />
   );

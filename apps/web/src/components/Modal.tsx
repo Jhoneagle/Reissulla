@@ -63,13 +63,15 @@ export function Modal({
     return () => {
       cancelAnimationFrame(id);
       const opener = openerRef.current;
-      // Only restore focus to the opener if focus is still inside the
-      // dialog at teardown — if the user clicked elsewhere or another
-      // dialog opened, we should leave their focus alone.
+      // Restore focus to the opener if it is still in the document.
+      // The previous `dialog.contains(document.activeElement)` guard
+      // always failed by cleanup time — React has already removed the
+      // dialog from the DOM, dropping focus to <body> — so the opener
+      // never got refocused on the normal Escape path.
       if (
         opener &&
-        dialog.contains(document.activeElement) &&
-        typeof opener.focus === "function"
+        typeof opener.focus === "function" &&
+        document.contains(opener)
       ) {
         opener.focus();
       }
