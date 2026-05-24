@@ -4,6 +4,7 @@ import { routes, navRoutes } from "../routes";
 import { useAuthStore } from "../stores/auth";
 import { Wordmark } from "./Wordmark";
 import { PageHeading } from "./PageHeading";
+import { Toast } from "./Toast";
 
 export function Layout() {
   const user = useAuthStore((s) => s.user);
@@ -53,16 +54,20 @@ export function Layout() {
             {user ? (
               <>
                 <span className="user-name">{user.name}</span>
-                <button type="button" onClick={signOut}>
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="btn btn--secondary btn--sm"
+                >
                   <FormattedMessage id="nav.logOut" />
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login">
+                <Link to="/login" className="btn btn--ghost btn--sm">
                   <FormattedMessage id="nav.logIn" />
                 </Link>
-                <Link to="/register" className="btn-register">
+                <Link to="/register" className="btn btn--primary btn--sm">
                   <FormattedMessage id="nav.register" />
                 </Link>
               </>
@@ -106,6 +111,7 @@ export function Layout() {
           />
         </p>
       </footer>
+      <Toast />
     </>
   );
 }

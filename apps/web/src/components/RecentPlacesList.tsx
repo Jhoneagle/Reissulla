@@ -61,6 +61,7 @@ export function RecentPlacesList() {
                     })
                   }
                   disabled={saveLocation.isPending}
+                  className="btn btn--secondary btn--sm"
                 >
                   <FormattedMessage id="recentPlaces.save" />
                 </button>
@@ -68,6 +69,7 @@ export function RecentPlacesList() {
                   type="button"
                   onClick={() => deletePlace.mutate(p.id)}
                   aria-label={intl.formatMessage({ id: "recentPlaces.remove" })}
+                  className="btn btn--ghost btn--sm"
                 >
                   <span aria-hidden="true">×</span>
                 </button>
@@ -86,7 +88,7 @@ export function RecentPlacesList() {
             });
             if (ok) clearAll.mutate();
           }}
-          className="link-button"
+          className="btn btn--link"
         >
           <FormattedMessage id="recentPlaces.clear" />
         </button>

@@ -10,6 +10,7 @@ import { ApiError } from "@reissulla/api-client";
 import { shareLocation } from "../lib/share-location";
 import { useConfirm } from "../hooks/useConfirm";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { showToast } from "../stores/toast";
 
 const CATEGORIES: ReadonlyArray<SavedLocationCategory> = [
   "home",
@@ -27,8 +28,6 @@ export function SavedLocationsManager() {
   const deleteLocation = useDeleteLocation();
   const intl = useIntl();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [shareNotice, setShareNotice] = useState<string | null>(null);
   const { confirm, dialogProps } = useConfirm();
 
   if (isLoading) return null;
@@ -45,15 +44,14 @@ export function SavedLocationsManager() {
   async function patch(
     update: Parameters<typeof updateLocation.mutateAsync>[0],
   ) {
-    setError(null);
     try {
       await updateLocation.mutateAsync(update);
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : intl.formatMessage({ id: "settings.saveError" }),
-      );
+          : intl.formatMessage({ id: "settings.saveError" });
+      showToast({ message, kind: "error" });
     }
   }
 
@@ -93,45 +91,39 @@ export function SavedLocationsManager() {
       destructive: true,
     });
     if (!ok) return;
-    setError(null);
     try {
       await deleteLocation.mutateAsync(loc.id);
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : intl.formatMessage({ id: "settings.saveError" }),
-      );
+          : intl.formatMessage({ id: "settings.saveError" });
+      showToast({ message, kind: "error" });
     }
   }
 
   async function share(loc: SavedLocation) {
-    setShareNotice(null);
     try {
       const shared = await shareLocation(
         { lat: loc.latitude, lon: loc.longitude, name: loc.name },
         loc.name,
       );
       if (shared) {
-        setShareNotice(intl.formatMessage({ id: "locations.shared" }));
+        showToast({
+          message: intl.formatMessage({ id: "locations.shared" }),
+          kind: "success",
+        });
       }
     } catch {
-      setShareNotice(intl.formatMessage({ id: "locations.shareError" }));
+      showToast({
+        message: intl.formatMessage({ id: "locations.shareError" }),
+        kind: "error",
+      });
     }
   }
 
   return (
     <div className="saved-locations-manager">
-      {error && (
-        <div role="alert" className="form-error">
-          {error}
-        </div>
-      )}
-      {shareNotice && (
-        <div role="status" className="form-status">
-          {shareNotice}
-        </div>
-      )}
       <ul className="saved-locations-list">
         {locations.map((loc, index) => {
           const isFirst = index === 0;
@@ -196,6 +188,7 @@ export function SavedLocationsManager() {
                       aria-label={intl.formatMessage({
                         id: "locations.moveUp",
                       })}
+                      className="btn btn--ghost btn--sm"
                     >
                       <span aria-hidden="true">↑</span>
                     </button>
@@ -206,24 +199,37 @@ export function SavedLocationsManager() {
                       aria-label={intl.formatMessage({
                         id: "locations.moveDown",
                       })}
+                      className="btn btn--ghost btn--sm"
                     >
                       <span aria-hidden="true">↓</span>
                     </button>
                     {!loc.isPrimary && (
-                      <button type="button" onClick={() => setPrimary(loc)}>
+                      <button
+                        type="button"
+                        onClick={() => setPrimary(loc)}
+                        className="btn btn--secondary btn--sm"
+                      >
                         <FormattedMessage id="locations.makePrimary" />
                       </button>
                     )}
-                    <button type="button" onClick={() => setEditingId(loc.id)}>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(loc.id)}
+                      className="btn btn--secondary btn--sm"
+                    >
                       <FormattedMessage id="locations.rename" />
                     </button>
-                    <button type="button" onClick={() => share(loc)}>
+                    <button
+                      type="button"
+                      onClick={() => share(loc)}
+                      className="btn btn--secondary btn--sm"
+                    >
                       <FormattedMessage id="locations.share" />
                     </button>
                     <button
                       type="button"
                       onClick={() => remove(loc)}
-                      className="btn-destructive"
+                      className="btn btn--destructive btn--sm"
                     >
                       <FormattedMessage id="locations.delete" />
                     </button>
@@ -282,10 +288,14 @@ function RenameForm({
         minLength={1}
         maxLength={255}
       />
-      <button type="submit">
+      <button type="submit" className="btn btn--primary btn--sm">
         <FormattedMessage id="locations.saveChanges" />
       </button>
-      <button type="button" onClick={onCancel} className="link-button">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="btn btn--ghost btn--sm"
+      >
         <FormattedMessage id="locations.cancel" />
       </button>
     </form>

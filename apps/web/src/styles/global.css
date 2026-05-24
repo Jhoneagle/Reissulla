@@ -156,6 +156,59 @@ html {
   --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
   --font-mono:
     "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ── Spacing scale ──
+     4px geometric base. Use --space-2 (8px) for tight gaps, --space-3
+     (12px) for related-element gaps, --space-4 (16px) for the standard
+     block rhythm. See docs/design-system.md §4. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+  --space-11: 10rem;
+  --space-12: 12rem;
+
+  /* ── Border radius ──
+     Default radius is --radius-xs (2px). Sharp corners are the editorial
+     choice. --radius-md (8px) reserved for inputs/pills; --radius-none
+     for inner list cells; --radius-pill for tag chips. */
+  --radius-none: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-pill: 9999px;
+
+  /* ── Type scale ──
+     1.25 modular scale anchored on --text-base (16px). --text-hero and
+     --text-display use --font-display (Instrument Serif); everything
+     else uses --font-body (Atkinson). */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-display: 3.75rem;
+  --text-hero: 6rem;
+
+  /* ── Line height ──
+     --leading-editorial reserved for --text-display / --text-hero — the
+     hero numeral and kicker. */
+  --leading-tight: 1.1;
+  --leading-body: 1.6;
+  --leading-loose: 1.8;
+  --leading-editorial: 1.15;
+
+  /* ── Container widths ── */
+  --container-narrow: 34rem;
+  --container-form: 28rem;
+  --container-page: 72rem;
 }
 
 body {
@@ -301,6 +354,67 @@ main:has(.page-full-width) {
   flex-direction: column;
 }
 
+/* ── Toast queue ──
+   Singleton, mounted by Layout. Bottom-centre stack, each toast in a
+   coloured surface tied to its kind. The container is an aria-live
+   polite region so SR announce each new message. */
+.toast-region {
+  position: fixed;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+}
+
+.toast--success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.toast--error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.toast__message {
+  white-space: pre-line;
+}
+
+.toast__dismiss {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: var(--text-lg);
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.toast__dismiss:hover {
+  opacity: 1;
+}
+
 /* Visually hidden — accessible to screen readers */
 .visually-hidden {
   position: absolute;
@@ -339,30 +453,114 @@ footer a {
   font-weight: 500;
 }
 
-.auth-nav button {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--color-rule);
-  border-radius: 0.375rem;
+/* ── Button system ──
+   One base, six variants. See docs/design-system.md §5.
+
+   Usage:
+     <button className="btn btn--primary">…</button>
+     <button className="btn btn--secondary btn--sm">…</button>
+     <button className="btn btn--destructive">…</button>
+     <button className="btn btn--ghost">…</button>
+     <button className="btn btn--link">…</button>
+
+   Anchor links styled as buttons get .btn too — the styling is the only
+   thing that distinguishes link semantic from action, which is a
+   feature not a bug. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-ink);
-  cursor: pointer;
   font: inherit;
-}
-
-.auth-nav button:hover {
-  background: var(--color-rule);
-}
-
-.btn-register {
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  background: var(--color-primary);
-  color: var(--color-on-primary) !important;
   font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
 }
 
-.btn-register:hover {
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.btn--md {
+  /* The default size; declared explicitly so callers can opt in. */
+  padding: var(--space-2) var(--space-4);
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}
+
+.btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--color-primary-ink);
+  border-color: var(--color-primary-ink);
+}
+
+.btn--secondary {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border-color: var(--color-rule);
+}
+
+.btn--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-surface-sunk);
+}
+
+.btn--destructive {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.btn--destructive:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-error);
+  color: var(--color-error-bg);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-ink);
+  border-color: transparent;
+}
+
+.btn--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-surface-sunk);
+}
+
+.btn--link {
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+  color: var(--color-primary);
+  text-decoration: underline;
+  font-weight: 400;
+}
+
+.btn--link:hover:not(:disabled):not([aria-disabled="true"]) {
+  color: var(--color-primary-ink);
 }
 
 /* Auth pages */
@@ -433,47 +631,6 @@ footer a {
   margin-left: 1.25rem;
 }
 
-/* Link button — looks like a link but is a <button> (used for magic-link
-   trigger inside auth forms). */
-.link-button {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--color-primary);
-  cursor: pointer;
-  text-decoration: underline;
-  font: inherit;
-}
-
-.link-button:hover:not(:disabled) {
-  color: var(--color-primary-ink);
-}
-
-.link-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.auth-page button[type="submit"] {
-  padding: 0.625rem;
-  border: none;
-  border-radius: 0.375rem;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.auth-page button[type="submit"]:hover:not(:disabled) {
-  background: var(--color-primary-ink);
-}
-
-.auth-page button[type="submit"]:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .auth-switch {
   margin-top: 1rem;
   text-align: center;
@@ -520,17 +677,6 @@ footer a {
 .form-field__value {
   font-size: 0.875rem;
   color: var(--color-ink-muted);
-}
-
-.btn-destructive {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
-}
-
-.btn-destructive:hover:not(:disabled) {
-  background: var(--color-error);
-  color: var(--color-error-bg);
 }
 
 /* ── Saved locations manager ── */
@@ -763,20 +909,27 @@ footer a {
 .dashboard-card__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-4);
 }
 
+/* Card action links read as plain text-with-arrow, not buttons. The
+   design system reserves button visuals for actual button semantics.
+   The arrow is appended via ::after and tracks the link's color, so
+   text and arrow stay visually unified. */
 .dashboard-card__actions a {
-  font-size: 0.875rem;
-  padding: 0.25rem 0.625rem;
-  border: 1px solid var(--color-rule);
-  border-radius: 0.25rem;
-  color: var(--color-ink);
+  font-size: var(--text-sm);
+  color: var(--color-primary);
   text-decoration: none;
 }
 
+.dashboard-card__actions a::after {
+  content: " →";
+  margin-left: var(--space-1);
+}
+
 .dashboard-card__actions a:hover {
-  background: var(--color-rule);
+  color: var(--color-primary-ink);
+  text-decoration: underline;
 }
 
 .dashboard-save-prompt {
@@ -863,16 +1016,6 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
   margin-top: 1rem;
 }
 
-.confirm-dialog__actions button:not(.link-button) {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-rule);
-  border-radius: 0.375rem;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font: inherit;
-  cursor: pointer;
-}
-
 .persona-wizard h2 {
   margin-bottom: 0.5rem;
 }
@@ -932,16 +1075,6 @@ body[data-sr-optimised="true"] .dashboard-card__stops li {
 .persona-wizard-nav-right {
   display: flex;
   gap: 0.5rem;
-}
-
-.persona-wizard-nav button:not(.link-button) {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-rule);
-  border-radius: 0.375rem;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font: inherit;
-  cursor: pointer;
 }
 
 /* ── SR-optimised mode ──
