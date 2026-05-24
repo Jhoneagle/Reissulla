@@ -16,6 +16,10 @@ import type { RawStoptime } from "../../adapters/digitransit-routing/types.js";
 import { createGraphQLClient } from "../../adapters/digitransit-routing/client.js";
 import { stoptimesForDateOperation } from "../../adapters/digitransit-routing/operations/stoptimesForDate.js";
 import { adapterRouter } from "./adapter-router.js";
+import {
+  classifyFrequency,
+  getServiceNoteForTrip,
+} from "./frequency.service.js";
 
 const MAX_PARALLEL_STOP_QUERIES = 10;
 /**
@@ -205,10 +209,24 @@ export async function getStopDepartures(
   }
 
   // Cache the superset; filter the response.
+  const mapped = mapStoptimes(stoptimes);
+  const anchorUnix = options.at ?? Math.floor(Date.now() / 1000);
+  const frequency = classifyFrequency(mapped, anchorUnix);
+  let serviceNote: string | undefined;
+  if (frequency?.regime === "sparse") {
+    const nextTrip = mapped.find(
+      (d) => d.serviceDay + d.realtimeDeparture >= anchorUnix,
+    );
+    if (nextTrip?.tripId) {
+      serviceNote = await getServiceNoteForTrip(nextTrip.tripId, persona);
+    }
+  }
   const supersetResult: TransitDeparturesResult = {
     stopName,
-    departures: mapStoptimes(stoptimes),
+    departures: mapped,
     serviceDay: serviceDayForResponse(options.at),
+    frequency,
+    serviceNote,
   };
   await tryCache(() => cacheSet(key, supersetResult, DEPARTURES_V2_TTL));
 
@@ -330,11 +348,24 @@ export async function getMultiStopDepartures(
   );
   allDepartures = allDepartures.slice(0, Math.ceil(totalCount * FETCH_BUFFER));
 
+  const anchorUnix = options.at ?? Math.floor(Date.now() / 1000);
+  const frequency = classifyFrequency(allDepartures, anchorUnix);
+  let serviceNote: string | undefined;
+  if (frequency?.regime === "sparse") {
+    const nextTrip = allDepartures.find(
+      (d) => d.serviceDay + d.realtimeDeparture >= anchorUnix,
+    );
+    if (nextTrip?.tripId) {
+      serviceNote = await getServiceNoteForTrip(nextTrip.tripId, persona);
+    }
+  }
   const supersetResult: TransitDeparturesResult = {
     stopName,
     departures: allDepartures,
     subStops,
     serviceDay: serviceDayForResponse(options.at),
+    frequency,
+    serviceNote,
   };
   await tryCache(() => cacheSet(key, supersetResult, DEPARTURES_V2_TTL));
 

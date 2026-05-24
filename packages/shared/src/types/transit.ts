@@ -85,6 +85,31 @@ export interface TransitDeparture {
   canAlight?: boolean;
 }
 
+/**
+ * How busy the stop's schedule is around the anchor moment. Drives the
+ * masthead kicker copy on the departure board:
+ *
+ * - `dense`: surface "N lähtöä tunnissa" — the urban-hub treatment
+ * - `moderate`: surface "Lähtöjä noin N minuutin välein" — suburban
+ * - `sparse`: surface "Seuraava {time}" — rural / schooldays-only,
+ *   paired with `TransitDeparturesResult.serviceNote`
+ */
+export type TransitFrequencyRegime = "dense" | "moderate" | "sparse";
+
+export interface TransitFrequency {
+  regime: TransitFrequencyRegime;
+  /** Departures in the next 60 minutes after the anchor. */
+  nextHourCount: number;
+  /** Mean gap between departures in minutes within a representative window. */
+  avgIntervalMin?: number;
+  /**
+   * Unix seconds of the next upcoming departure. Populated for sparse
+   * regimes so the kicker can read "Seuraava huomenna 06.45" without
+   * the FE re-deriving from the array.
+   */
+  nextDepartureUnix?: number;
+}
+
 export interface TransitDeparturesResult {
   stopName: string | null;
   departures: TransitDeparture[];
@@ -97,6 +122,15 @@ export interface TransitDeparturesResult {
    * and resolve cross-midnight times consistently.
    */
   serviceDay?: ServiceDay;
+  /**
+   * Free-form day-type qualifier ("schooldays only", "summer only",
+   * "weekends"). Populated for sparse-frequency stops where the
+   * `tripsForDate` walk surfaced a meaningful pattern. Empty / absent
+   * means the schedule has no notable qualifier.
+   */
+  serviceNote?: string;
+  /** Departure-frequency classification — drives the kicker variant. */
+  frequency?: TransitFrequency;
 }
 
 export interface TransitItineraryLeg {

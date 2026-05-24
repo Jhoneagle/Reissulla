@@ -264,6 +264,8 @@ export interface RawTripStoptime {
 export interface RawTrip {
   gtfsId: string;
   tripHeadsign: string;
+  /** YYYYMMDD strings — service dates the trip is active on. */
+  activeDates: string[];
   route: RawRouteMeta;
   stoptimes: RawTripStoptime[];
 }
