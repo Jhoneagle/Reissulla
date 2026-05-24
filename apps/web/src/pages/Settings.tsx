@@ -143,9 +143,6 @@ export function Settings() {
         <h2 id="settings-heading">
           <FormattedMessage id="settings.heading" />
         </h2>
-        <p role="status">
-          <FormattedMessage id="settings.notSignedIn" />
-        </p>
         <AnonymousPersonaSection
           persona={personaStore.persona}
           onChange={(key, value) =>
@@ -551,15 +548,22 @@ function AnonymousPersonaSection({
   const [wizardOpen, setWizardOpen] = useState(false);
   return (
     <>
-      <p className="settings-anonymous-cta">
-        <FormattedMessage
-          id="settings.anonymousCta"
-          values={{
-            login: (chunks) => <Link to="/login">{chunks}</Link>,
-            register: (chunks) => <Link to="/register">{chunks}</Link>,
-          }}
-        />
-      </p>
+      <aside className="cta-card" aria-labelledby="settings-cta-heading">
+        <h3 id="settings-cta-heading" className="cta-card__heading">
+          <FormattedMessage id="settings.anonymous.cta.heading" />
+        </h3>
+        <p className="cta-card__description">
+          <FormattedMessage id="settings.anonymous.cta.description" />
+        </p>
+        <div className="cta-card__actions">
+          <Link to="/login" className="btn btn--primary">
+            <FormattedMessage id="settings.anonymous.cta.signIn" />
+          </Link>
+          <Link to="/register" className="btn btn--secondary">
+            <FormattedMessage id="settings.anonymous.cta.createAccount" />
+          </Link>
+        </div>
+      </aside>
       <fieldset>
         <legend>
           <FormattedMessage id="settings.section.persona" />

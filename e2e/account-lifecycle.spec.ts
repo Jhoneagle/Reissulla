@@ -47,13 +47,13 @@ test("account export → delete round-trip leaves the user signed out", async ({
   expect(deleteRes.status()).toBe(204);
 
   // Session is invalidated; navigating to settings should bounce to the
-  // anonymous view rather than the authenticated one.
+  // anonymous view rather than the authenticated one. The anonymous
+  // view carries a "Sign in" affordance instead of the authed Profile
+  // section — check the affordance, not the copy.
   await context.clearCookies();
   await page.goto("/settings");
   await expect(
-    page.getByText(
-      /Sign in to save preferences|Kirjaudu sisään tallentaaksesi/,
-    ),
+    page.getByRole("link", { name: /^Sign in$|^Kirjaudu sisään$/ }),
   ).toBeVisible();
 
   // Re-querying the account export now returns 401.

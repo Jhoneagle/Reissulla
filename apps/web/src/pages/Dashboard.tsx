@@ -1,4 +1,5 @@
 import { FormattedMessage, useIntl } from "react-intl";
+import { Link } from "react-router";
 import type { SavedLocation } from "@reissulla/shared";
 import { useAuthStore } from "../stores/auth";
 import { useGeolocationStore } from "../stores/geolocation";
@@ -54,7 +55,7 @@ export function Dashboard() {
       ) : gps ? (
         <GpsCard lat={gps.lat} lon={gps.lon} />
       ) : (
-        <EmptyState />
+        <EmptyState authed={!!user} />
       )}
 
       {secondary.length > 0 && (
@@ -108,15 +109,20 @@ function GpsCard({ lat, lon }: { lat: number; lon: number }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ authed }: { authed: boolean }) {
   return (
     <div className="empty-state" role="status">
-      <div className="empty-state__art" aria-hidden="true">
+      <div className="empty-state__art empty-state__art--lg" aria-hidden="true">
         <SatelliteArt />
       </div>
       <p className="empty-state__phrase">
         <FormattedMessage id="dashboard.gpsUnavailable" />
       </p>
+      {authed && (
+        <Link to="/map" className="btn btn--primary">
+          <FormattedMessage id="dashboard.gpsUnavailable.cta" />
+        </Link>
+      )}
     </div>
   );
 }
