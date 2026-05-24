@@ -548,6 +548,73 @@ nav a.active {
   font-weight: 700;
 }
 
+/* ── Mobile header (<40rem) ──
+   At narrow viewports the desktop flex row overflows: with FI
+   labels (Joukkoliikenne is 14 chars) and the user-name span,
+   "Log in" wraps to two lines and Register clips. Switch to a
+   two-row grid: wordmark + auth on top, nav as a horizontal-
+   scroll tab row below. Active link becomes an underline rather
+   than the pill — pills don't fit the tab register at this size. */
+@media (max-width: 39.99rem) {
+  header {
+    display: grid;
+    grid-template-areas:
+      "wordmark auth"
+      "nav nav";
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  header > a.wordmark-link {
+    grid-area: wordmark;
+  }
+
+  header > nav {
+    grid-area: nav;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  header > nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  header > nav ul {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-3);
+    padding-bottom: var(--space-1);
+  }
+
+  header > nav a {
+    white-space: nowrap;
+    padding: var(--space-1) var(--space-1);
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  header > nav a:hover {
+    background: transparent;
+    border-bottom-color: var(--color-rule);
+  }
+
+  header > nav a.active {
+    background: transparent;
+    border-bottom-color: var(--color-primary);
+  }
+
+  header > .auth-nav {
+    grid-area: auth;
+    margin-left: 0;
+    gap: var(--space-1);
+  }
+
+  .hide-on-mobile {
+    display: none;
+  }
+}
+
 /* Main — receives focus on route change via useFocusOnRouteChange so
    screen readers announce the new page. tabindex=-1 makes it programmatically
    focusable without entering the keyboard tab order. */
