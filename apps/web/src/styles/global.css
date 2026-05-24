@@ -748,6 +748,21 @@ main:has(.page-full-width) {
   line-height: var(--leading-tight);
 }
 
+/* ── Form controls: WCAG 2.2 target-size ──
+   Native checkboxes/radios used to render at the browser default
+   ~13px square, well under the SC 2.5.8 24px threshold. Forcing
+   them to 1.5rem (24px at root) gives the right hit area; accent
+   colour follows the primary brand. Persona-wizard buttons are
+   styled as .btn elsewhere and unaffected by this selector. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  accent-color: var(--color-primary);
+  margin: 0;
+  cursor: pointer;
+}
+
 /* ── Toast queue ──
    Singleton, mounted by Layout. Bottom-centre stack, each toast in a
    coloured surface tied to its kind. The container is an aria-live

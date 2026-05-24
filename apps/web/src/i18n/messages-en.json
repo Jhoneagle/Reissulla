@@ -203,6 +203,7 @@
   "map.weather.heading.selectedFallback": "Selected location",
   "map.weather.heading.you": "Your location",
   "map.popup.unnamedLocation": "Selected location",
+  "map.userLocation.label": "Your current location",
 
   "transit.heading": "Transit",
   "transit.sections.label": "Transit sections",

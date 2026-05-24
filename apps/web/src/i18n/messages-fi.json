@@ -203,6 +203,7 @@
   "map.weather.heading.selectedFallback": "Valittu sijainti",
   "map.weather.heading.you": "Sinun sijaintisi",
   "map.popup.unnamedLocation": "Valittu sijainti",
+  "map.userLocation.label": "Nykyinen sijaintisi",
 
   "transit.heading": "Joukkoliikenne",
   "transit.sections.label": "Joukkoliikenne-osiot",

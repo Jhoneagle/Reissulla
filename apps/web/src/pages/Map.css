@@ -191,8 +191,25 @@
   margin-top: 0.0625rem;
 }
 
-/* --- User location marker — primary-blue pulsing dot ------- */
+/* --- User location marker — primary-blue pulsing dot -------
+   24×24 wrapper hits SC 2.5.8 target-size; the visible 14px dot
+   is the ::before, centred inside the wrapper. The pulse glow
+   draws from the visible glyph so the ring stays visually
+   concentric with the dot, not with the larger hit halo. */
 .user-location-marker {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  position: relative;
+}
+
+.user-location-marker::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 14px;
   height: 14px;
   background: var(--color-primary);
@@ -307,8 +324,24 @@
   margin-top: 0.25rem;
 }
 
-/* --- Saved location marker --------------------------------- */
+/* --- Saved location marker ---------------------------------
+   24×24 wrapper hits SC 2.5.8 target-size; the visible 12px dot
+   is the ::before, centred inside the wrapper. The wrapper has
+   a transparent background but full cursor + click area. */
 .saved-location-marker {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  position: relative;
+}
+
+.saved-location-marker::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 12px;
   height: 12px;
   background: var(--color-primary);
