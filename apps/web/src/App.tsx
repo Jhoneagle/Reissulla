@@ -5,6 +5,7 @@ import { Layout } from "./components/Layout";
 import { routes } from "./routes";
 import { useAuthStore } from "./stores/auth";
 import { useGeolocationStore } from "./stores/geolocation";
+import { useAuthLocaleSync } from "./hooks/useAuthLocaleSync";
 import { I18nShell } from "./i18n";
 import "./styles/global.css";
 
@@ -27,20 +28,32 @@ export function App() {
     <I18nShell>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              {routes.map(({ path, Component }) => (
-                <Route
-                  key={path}
-                  index={path === "/"}
-                  path={path === "/" ? undefined : path.slice(1)}
-                  element={<Component />}
-                />
-              ))}
-            </Route>
-          </Routes>
+          <AppShell />
         </BrowserRouter>
       </QueryClientProvider>
     </I18nShell>
+  );
+}
+
+/**
+ * Inside QueryClientProvider so the locale-sync hook can use react-query
+ * (usePreferences). Outside the route Outlet so the sync runs regardless
+ * of which page is mounted.
+ */
+function AppShell() {
+  useAuthLocaleSync();
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        {routes.map(({ path, Component }) => (
+          <Route
+            key={path}
+            index={path === "/"}
+            path={path === "/" ? undefined : path.slice(1)}
+            element={<Component />}
+          />
+        ))}
+      </Route>
+    </Routes>
   );
 }
