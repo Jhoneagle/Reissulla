@@ -25,6 +25,7 @@ import {
   vehicleModeLabel,
   vehicleModeToken,
   formatRelativeTime,
+  formatNextDeparture,
   departureToEpoch,
 } from "../../lib/transit-utils";
 import { useAuthStore } from "../../stores/auth";
@@ -166,6 +167,14 @@ export function DepartureTable({
   const modeToken = vehicleModeToken(vehicleMode);
   const firstLastData = firstLast.data?.data;
   const hasFirstLast = Boolean(firstLastData?.first && firstLastData?.last);
+  const frequency = result?.frequency;
+  const serviceNote = result?.serviceNote;
+  const hasActiveFilters =
+    filterStopId !== null ||
+    advanced.lineFilter.length > 0 ||
+    advanced.directionFilter.trim().length > 0 ||
+    advanced.lowFloorOnly ||
+    at !== undefined;
 
   const timeButtonLabel =
     at === undefined
@@ -201,6 +210,46 @@ export function DepartureTable({
             }}
           />
         </div>
+
+        {frequency && (
+          <p className="departure-masthead__frequency">
+            {frequency.regime === "dense" && (
+              <FormattedMessage
+                id="transit.depart.frequency.dense"
+                values={{ count: frequency.nextHourCount }}
+              />
+            )}
+            {frequency.regime === "moderate" && frequency.avgIntervalMin && (
+              <FormattedMessage
+                id="transit.depart.frequency.moderate"
+                values={{ avg: frequency.avgIntervalMin }}
+              />
+            )}
+            {frequency.regime === "moderate" && !frequency.avgIntervalMin && (
+              <FormattedMessage
+                id="transit.depart.frequency.moderateCount"
+                values={{ count: frequency.nextHourCount }}
+              />
+            )}
+            {frequency.regime === "sparse" && frequency.nextDepartureUnix && (
+              <FormattedMessage
+                id="transit.depart.frequency.sparseNext"
+                values={{
+                  next: formatNextDeparture(frequency.nextDepartureUnix, "fi"),
+                }}
+              />
+            )}
+            {frequency.regime === "sparse" && !frequency.nextDepartureUnix && (
+              <FormattedMessage id="transit.depart.frequency.sparseQuiet" />
+            )}
+            {serviceNote && (
+              <>
+                <span className="departure-masthead__sep" aria-hidden="true" />
+                <span>{serviceNote}</span>
+              </>
+            )}
+          </p>
+        )}
 
         {hasFirstLast && (
           <p className="departure-masthead__kicker">
@@ -349,13 +398,40 @@ export function DepartureTable({
         </div>
       )}
 
-      {!isLoading && !isError && departures.length === 0 && !message && (
-        <div className="departure-table__empty">
-          <p>
-            <FormattedMessage id="transit.depart.empty.noUpcoming" />
-          </p>
-        </div>
-      )}
+      {!isLoading &&
+        !isError &&
+        departures.length === 0 &&
+        !message &&
+        hasActiveFilters && (
+          <div className="departure-table__empty">
+            <p>
+              <FormattedMessage id="transit.depart.empty.filtered" />
+            </p>
+            <button
+              type="button"
+              className="btn btn--link"
+              onClick={() => {
+                setFilterStopId(null);
+                setAdvanced(EMPTY_FILTERS);
+                setAt(undefined);
+              }}
+            >
+              <FormattedMessage id="transit.depart.empty.clearFilters" />
+            </button>
+          </div>
+        )}
+
+      {!isLoading &&
+        !isError &&
+        departures.length === 0 &&
+        !message &&
+        !hasActiveFilters && (
+          <div className="departure-table__empty">
+            <p>
+              <FormattedMessage id="transit.depart.empty.noUpcoming" />
+            </p>
+          </div>
+        )}
 
       {departures.length > 0 && (
         <>

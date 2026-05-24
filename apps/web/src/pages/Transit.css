@@ -224,12 +224,36 @@
 }
 
 .departure-masthead__kicker {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-1) 0 0;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--color-ink-muted);
+}
+
+/* Frequency clause — the primary kicker for stops where the upstream
+   schedule classified itself as dense / moderate / sparse. Reads
+   slightly heavier than the first/last line so the eye lands on
+   "how often does it come" before "when does it start". */
+.departure-masthead__frequency {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  color: var(--color-ink);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.departure-masthead__sep {
+  color: var(--color-rule);
+}
+
+.departure-masthead__sep::before {
+  content: "\00b7";
 }
 
 /* --- Shared mode tag (real-word, brand-tinted, 4px edge) ---

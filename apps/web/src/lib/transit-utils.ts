@@ -72,3 +72,47 @@ export function formatUnixTime(unixSeconds: number): string {
     minute: "2-digit",
   });
 }
+
+/**
+ * Format the "next departure" clock-time used by the sparse-frequency
+ * kicker. Same-day departures show just the clock; departures on the
+ * next calendar day get a "huomenna"/"tomorrow" qualifier; anything
+ * further out gets a short date prefix.
+ *
+ * `nowUnix` defaults to the current wall clock — passed in primarily
+ * for deterministic tests.
+ */
+export function formatNextDeparture(
+  unixSeconds: number,
+  locale: "fi" | "en",
+  nowUnix: number = Math.floor(Date.now() / 1000),
+): string {
+  const tz = "Europe/Helsinki";
+  const dateKey = (sec: number) =>
+    new Date(sec * 1000).toLocaleDateString("en-CA", { timeZone: tz });
+  const clock = (sec: number) =>
+    new Date(sec * 1000).toLocaleTimeString("fi-FI", {
+      timeZone: tz,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+  const today = dateKey(nowUnix);
+  const target = dateKey(unixSeconds);
+
+  if (today === target) return clock(unixSeconds);
+
+  const tomorrow = dateKey(nowUnix + 24 * 60 * 60);
+  if (tomorrow === target) {
+    return locale === "fi"
+      ? `huomenna ${clock(unixSeconds)}`
+      : `tomorrow ${clock(unixSeconds)}`;
+  }
+
+  const datePart = new Date(unixSeconds * 1000).toLocaleDateString("fi-FI", {
+    timeZone: tz,
+    day: "2-digit",
+    month: "2-digit",
+  });
+  return `${datePart} ${clock(unixSeconds)}`;
+}
