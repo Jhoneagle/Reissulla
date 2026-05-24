@@ -67,38 +67,42 @@
   --font-scale: 1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-paper: #0b0c10;
-    --color-surface: #15171d;
-    --color-surface-sunk: #1b1e25;
-    --color-ink: #ede9df;
-    --color-ink-muted: #a8a39a;
-    --color-rule-soft: #3a3d45;
-    --color-rule: #4e525c;
+/* Dark tokens. Gated on html[data-theme="dark"], which is set by
+   apps/web/src/hooks/useTheme.ts (and the inline boot script in
+   index.html). The hook resolves user preference "system" by reading
+   prefers-color-scheme and writes the resolved value here, so this
+   block doesn't need its own @media — it fires whenever the
+   attribute is "dark", regardless of how that decision was made. */
+html[data-theme="dark"] {
+  --color-paper: #0b0c10;
+  --color-surface: #15171d;
+  --color-surface-sunk: #1b1e25;
+  --color-ink: #ede9df;
+  --color-ink-muted: #a8a39a;
+  --color-rule-soft: #3a3d45;
+  --color-rule: #4e525c;
 
-    --color-primary: #5ba0e8;
-    --color-primary-ink: #c8ddf2;
-    --color-on-primary: #0b0c10;
+  --color-primary: #5ba0e8;
+  --color-primary-ink: #c8ddf2;
+  --color-on-primary: #0b0c10;
 
-    --mode-bus: #0b3666;
-    --mode-bus-strong: #5ba0e8;
-    --mode-tram: #0e4a2d;
-    --mode-tram-strong: #4cd084;
-    --mode-rail: #3d1942;
-    --mode-rail-strong: #c389c8;
-    --mode-subway: #702a0e;
-    --mode-subway-strong: #ff9a5c;
-    --mode-ferry: #0a4d60;
-    --mode-ferry-strong: #5ed1ef;
+  --mode-bus: #0b3666;
+  --mode-bus-strong: #5ba0e8;
+  --mode-tram: #0e4a2d;
+  --mode-tram-strong: #4cd084;
+  --mode-rail: #3d1942;
+  --mode-rail-strong: #c389c8;
+  --mode-subway: #702a0e;
+  --mode-subway-strong: #ff9a5c;
+  --mode-ferry: #0a4d60;
+  --mode-ferry-strong: #5ed1ef;
 
-    --color-error: #f4b5b5;
-    --color-error-bg: #2a0f0f;
-    --color-warning: #f0cc85;
-    --color-warning-bg: #2c1f0a;
-    --color-success: #9dd6b0;
-    --color-success-bg: #0d2419;
-  }
+  --color-error: #f4b5b5;
+  --color-error-bg: #2a0f0f;
+  --color-warning: #f0cc85;
+  --color-warning-bg: #2c1f0a;
+  --color-success: #9dd6b0;
+  --color-success-bg: #0d2419;
 }
 
 /* ── High-contrast tokens ──
