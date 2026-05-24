@@ -1,3 +1,4 @@
+import { FormattedMessage, useIntl } from "react-intl";
 import type { CurrentWeather } from "@reissulla/shared";
 import { WeatherIcon } from "./WeatherIcon";
 import { windDirectionLabel, timeAgo } from "../../lib/weather-utils";
@@ -19,11 +20,12 @@ export function CurrentWeatherCard({
   dataUpdatedAt,
   onRetry,
 }: CurrentWeatherCardProps) {
+  const intl = useIntl();
   if (isLoading) {
     return (
       <section
         className="weather-card weather-card--loading"
-        aria-label="Loading weather"
+        aria-label={intl.formatMessage({ id: "weather.card.loading" })}
       >
         <div className="weather-skeleton">
           <div className="skel skel-icon" />
@@ -45,7 +47,9 @@ export function CurrentWeatherCard({
     return (
       <section
         className="weather-card weather-card--error"
-        aria-label="Weather unavailable"
+        aria-label={intl.formatMessage({
+          id: "weather.card.unavailable.label",
+        })}
       >
         <div className="weather-error">
           <svg
@@ -63,10 +67,12 @@ export function CurrentWeatherCard({
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <p>Weather data temporarily unavailable</p>
+          <p>
+            <FormattedMessage id="weather.card.unavailable.message" />
+          </p>
           {onRetry && (
             <button type="button" className="weather-retry" onClick={onRetry}>
-              Try again
+              <FormattedMessage id="weather.card.retry" />
             </button>
           )}
         </div>
@@ -81,10 +87,16 @@ export function CurrentWeatherCard({
     : timeAgo(data.timestamp);
 
   return (
-    <section className="weather-card" aria-label="Current weather">
+    <section
+      className="weather-card"
+      aria-label={intl.formatMessage({ id: "weather.card.current.label" })}
+    >
       {isStale && (
         <div className="weather-stale" role="status">
-          Last updated {updatedLabel} — refreshing…
+          <FormattedMessage
+            id="weather.card.stale"
+            values={{ time: updatedLabel }}
+          />
         </div>
       )}
 
@@ -98,6 +110,7 @@ export function CurrentWeatherCard({
         />
         <div className="weather-current__main">
           <span className="weather-current__temp">
+            {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
             {Math.round(data.temperature)}°
           </span>
           <span className="weather-current__desc">
@@ -108,23 +121,39 @@ export function CurrentWeatherCard({
 
       <dl className="weather-details">
         <div className="weather-detail">
-          <dt>Feels like</dt>
+          <dt>
+            <FormattedMessage id="weather.card.feelsLike" />
+          </dt>
+          {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
           <dd>{Math.round(data.feelsLike)}°</dd>
         </div>
         <div className="weather-detail">
-          <dt>Wind</dt>
+          <dt>
+            <FormattedMessage id="weather.card.wind" />
+          </dt>
           <dd>
+            {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
             {Math.round(data.windSpeed)} m/s{" "}
             {windDirectionLabel(data.windDirection)}
           </dd>
         </div>
         <div className="weather-detail">
-          <dt>Humidity</dt>
+          <dt>
+            <FormattedMessage id="weather.card.humidity" />
+          </dt>
+          {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
           <dd>{data.humidity}%</dd>
         </div>
       </dl>
 
-      {!isStale && <p className="weather-timestamp">Updated {updatedLabel}</p>}
+      {!isStale && (
+        <p className="weather-timestamp">
+          <FormattedMessage
+            id="weather.card.updated"
+            values={{ time: updatedLabel }}
+          />
+        </p>
+      )}
     </section>
   );
 }

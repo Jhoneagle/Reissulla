@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 import type { TransitStop } from "@reissulla/shared";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useStopSearch } from "../../hooks/useTransit";
@@ -10,6 +11,7 @@ interface StopSearchProps {
 }
 
 export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
+  const intl = useIntl();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -89,7 +91,7 @@ export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
   return (
     <div className="stop-search">
       <label htmlFor={id} className="visually-hidden">
-        Search transit stops
+        <FormattedMessage id="transit.stopSearch.inputLabel" />
       </label>
       <svg
         className="stop-search__icon"
@@ -117,7 +119,9 @@ export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
         aria-controls={listboxId}
         aria-activedescendant={activeDescendant}
         autoComplete="off"
-        placeholder="Search for a transit stop..."
+        placeholder={intl.formatMessage({
+          id: "transit.stopSearch.placeholder",
+        })}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -135,7 +139,9 @@ export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
         <ul
           id={listboxId}
           role="listbox"
-          aria-label="Stop search results"
+          aria-label={intl.formatMessage({
+            id: "transit.stopSearch.resultsLabel",
+          })}
           className="stop-search__results"
         >
           {isLoading && (
@@ -145,7 +151,7 @@ export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
               aria-disabled="true"
               className="stop-search__status"
             >
-              Searching...
+              <FormattedMessage id="locationSearch.loading" />
             </li>
           )}
           {isError && (
@@ -155,7 +161,7 @@ export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
               aria-disabled="true"
               className="stop-search__status"
             >
-              Search temporarily unavailable
+              <FormattedMessage id="locationSearch.error" />
             </li>
           )}
           {!isLoading && !isError && results.length === 0 && (
@@ -165,7 +171,7 @@ export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
               aria-disabled="true"
               className="stop-search__status"
             >
-              No stops found
+              <FormattedMessage id="transit.stopSearch.noResults" />
             </li>
           )}
           {results.map((stop, index) => (
@@ -197,7 +203,10 @@ export function StopSearch({ id = "stop-search", onSelect }: StopSearchProps) {
 
       <div aria-live="polite" className="visually-hidden">
         {showDropdown && !isLoading && results.length > 0
-          ? `${results.length} stops found`
+          ? intl.formatMessage(
+              { id: "transit.stopSearch.resultsAnnouncement" },
+              { count: results.length },
+            )
           : ""}
       </div>
     </div>

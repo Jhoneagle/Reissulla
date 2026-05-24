@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 import { useQuery } from "@tanstack/react-query";
 import { geocodingApi } from "@reissulla/api-client";
 import type { GeocodingResult } from "@reissulla/shared";
@@ -17,6 +18,7 @@ export function LocationSearch({
   onSelect,
   onResults,
 }: LocationSearchProps) {
+  const intl = useIntl();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -112,7 +114,7 @@ export function LocationSearch({
   return (
     <div className="search-box">
       <label htmlFor={id} className="visually-hidden">
-        Search locations
+        <FormattedMessage id="locationSearch.inputLabel" />
       </label>
       <svg
         className="search-icon"
@@ -140,7 +142,7 @@ export function LocationSearch({
         aria-controls={listboxId}
         aria-activedescendant={activeDescendant}
         autoComplete="off"
-        placeholder="Search for a location..."
+        placeholder={intl.formatMessage({ id: "locationSearch.placeholder" })}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -158,7 +160,7 @@ export function LocationSearch({
         <ul
           id={listboxId}
           role="listbox"
-          aria-label="Search results"
+          aria-label={intl.formatMessage({ id: "locationSearch.resultsLabel" })}
           className="search-results"
         >
           {isLoading && (
@@ -168,7 +170,7 @@ export function LocationSearch({
               aria-disabled="true"
               className="search-status"
             >
-              Searching...
+              <FormattedMessage id="locationSearch.loading" />
             </li>
           )}
           {isError && (
@@ -178,7 +180,7 @@ export function LocationSearch({
               aria-disabled="true"
               className="search-status"
             >
-              Search temporarily unavailable
+              <FormattedMessage id="locationSearch.error" />
             </li>
           )}
           {!isLoading && !isError && results.length === 0 && (
@@ -188,7 +190,7 @@ export function LocationSearch({
               aria-disabled="true"
               className="search-status"
             >
-              No locations found
+              <FormattedMessage id="locationSearch.noResults" />
             </li>
           )}
           {results.map((result, index) => {
@@ -218,7 +220,10 @@ export function LocationSearch({
 
       <div aria-live="polite" className="visually-hidden">
         {showDropdown && !isLoading && results.length > 0
-          ? `${results.length} results available`
+          ? intl.formatMessage(
+              { id: "locationSearch.resultsAvailable" },
+              { count: results.length },
+            )
           : ""}
       </div>
     </div>

@@ -49,6 +49,39 @@ export default tseslint.config(
     },
   },
 
+  // Scoped escalation for files that have been fully migrated to i18n.
+  // Defaults of the rule only check JSX children; the include matchers
+  // bring aria-label / placeholder / title / alt under the same gate so
+  // regressions on attributes are caught too.
+  {
+    files: [
+      "apps/web/src/pages/Map.tsx",
+      "apps/web/src/pages/Transit.tsx",
+      "apps/web/src/pages/Login.tsx",
+      "apps/web/src/components/transit/**/*.tsx",
+      "apps/web/src/components/LocationSearch.tsx",
+      "apps/web/src/components/LocationListView.tsx",
+      "apps/web/src/components/weather/CurrentWeatherCard.tsx",
+      "apps/web/src/components/weather/ForecastStrip.tsx",
+    ],
+    plugins: { formatjs },
+    rules: {
+      "formatjs/no-literal-string-in-jsx": [
+        "error",
+        {
+          props: {
+            include: [
+              ["*", "aria-label"],
+              ["*", "placeholder"],
+              ["*", "title"],
+              ["*", "alt"],
+            ],
+          },
+        },
+      ],
+    },
+  },
+
   // Prettier must be last to override formatting rules
   eslintConfigPrettier,
 );

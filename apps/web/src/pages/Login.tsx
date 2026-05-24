@@ -123,7 +123,11 @@ export function Login() {
         {/* Dual-affordance: password sign-in and magic-link sign-in get
             equal-weight primary buttons. Password is only required for
             the left button; the right one works on email alone. */}
-        <div className="auth-actions" role="group" aria-label="Sign in">
+        <div
+          className="auth-actions"
+          role="group"
+          aria-label={intl.formatMessage({ id: "login.signInGroupLabel" })}
+        >
           <button
             type="submit"
             disabled={submitting || !email || !password}
@@ -144,8 +148,8 @@ export function Login() {
         </div>
       </form>
       <p className="auth-switch">
-        <FormattedMessage id="login.noAccount" />{" "}
-        <Link to="/register">
+        <FormattedMessage id="login.noAccount" />
+        <Link to="/register" style={{ marginLeft: "0.25em" }}>
           <FormattedMessage id="nav.register" />
         </Link>
       </p>

@@ -6,6 +6,7 @@ import {
   useCallback,
   useSyncExternalStore,
 } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 import type { TransitSubStop } from "@reissulla/shared";
 import { useDepartures } from "../../hooks/useTransit";
 import {
@@ -36,6 +37,7 @@ export function DepartureTable({
   isStation,
   stationId,
 }: DepartureTableProps) {
+  const intl = useIntl();
   const { data, isLoading, isError, dataUpdatedAt, refetch } = useDepartures(
     subStops,
     isStation,
@@ -101,7 +103,7 @@ export function DepartureTable({
             htmlFor="platform-filter"
             className="departure-table__filter-label"
           >
-            Platform
+            <FormattedMessage id="transit.depart.filter.platform" />
           </label>
           <select
             id="platform-filter"
@@ -109,7 +111,9 @@ export function DepartureTable({
             onChange={(e) => setFilterStopId(e.target.value || null)}
             className="departure-table__filter-select"
           >
-            <option value="">All platforms</option>
+            <option value="">
+              {intl.formatMessage({ id: "transit.depart.filter.allPlatforms" })}
+            </option>
             {subStops.map((ss) => (
               <option key={ss.gtfsId} value={ss.gtfsId}>
                 {subStopLabel(ss)}
@@ -136,9 +140,11 @@ export function DepartureTable({
 
       {isError && (
         <div className="departure-table__error">
-          <p>Departure data temporarily unavailable</p>
+          <p>
+            <FormattedMessage id="transit.depart.unavailable" />
+          </p>
           <button type="button" className="retry-btn" onClick={() => refetch()}>
-            Try again
+            <FormattedMessage id="transit.depart.retry" />
           </button>
         </div>
       )}
@@ -151,7 +157,9 @@ export function DepartureTable({
 
       {!isLoading && !isError && departures.length === 0 && !message && (
         <div className="departure-table__empty">
-          <p>No upcoming departures</p>
+          <p>
+            <FormattedMessage id="transit.depart.empty.noUpcoming" />
+          </p>
         </div>
       )}
 
@@ -159,16 +167,31 @@ export function DepartureTable({
         <>
           <table className="departure-table">
             <caption className="visually-hidden">
-              Departures from {stopName} — {departures.length} upcoming
+              <FormattedMessage
+                id="transit.depart.caption"
+                values={{ stopName, count: departures.length }}
+              />
             </caption>
             <thead>
               <tr>
-                <th scope="col">Line</th>
-                <th scope="col">Destination</th>
-                {showFilter && !filterStopId && <th scope="col">Platform</th>}
-                <th scope="col">Departs</th>
                 <th scope="col">
-                  <span className="visually-hidden">Status</span>
+                  <FormattedMessage id="transit.depart.column.line" />
+                </th>
+                <th scope="col">
+                  <FormattedMessage id="transit.depart.column.destination" />
+                </th>
+                {showFilter && !filterStopId && (
+                  <th scope="col">
+                    <FormattedMessage id="transit.depart.column.platform" />
+                  </th>
+                )}
+                <th scope="col">
+                  <FormattedMessage id="transit.depart.column.departs" />
+                </th>
+                <th scope="col">
+                  <span className="visually-hidden">
+                    <FormattedMessage id="transit.depart.column.status" />
+                  </span>
                 </th>
               </tr>
             </thead>
@@ -185,7 +208,10 @@ export function DepartureTable({
 
           {dataUpdatedAt > 0 && (
             <p className="departure-table__timestamp">
-              Updated {updatedAgo}s ago
+              <FormattedMessage
+                id="transit.depart.updatedAgo"
+                values={{ seconds: updatedAgo }}
+              />
             </p>
           )}
         </>
