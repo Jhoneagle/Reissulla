@@ -42,6 +42,8 @@ export const config = {
   digitransitApiKey: process.env.DIGITRANSIT_API_KEY ?? "",
   feedFinlandEnabled: process.env.FEED_FINLAND_ENABLED !== "false",
   feedHslEnabled: process.env.FEED_HSL_ENABLED !== "false",
+  feedWalttiEnabled: process.env.FEED_WALTTI_ENABLED !== "false",
+  feedVarelyEnabled: process.env.FEED_VARELY_ENABLED !== "false",
   rateLimitMax: positiveIntEnv("RATE_LIMIT_MAX", 200),
   recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY ?? "",
   recaptchaSecretKey: process.env.RECAPTCHA_SECRET_KEY ?? "",
