@@ -79,7 +79,11 @@ export function Settings() {
   }, [prefs?.extra.persona]);
 
   // Push display tokens to the document so the page reflects the user's
-  // settings live (font scale, high contrast, sr-optimised, reduce motion).
+  // settings live (font scale, high contrast, sr-optimised, reduce
+  // motion). The reduceMotion preference maps:
+  //   "on"     → body[data-reduce-motion="true"]  (kills ambient motion)
+  //   "off"    → body[data-reduce-motion="false"] (force-on even if OS reduce)
+  //   "system" → attribute removed; CSS falls back to the OS preference
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
@@ -87,7 +91,16 @@ export function Settings() {
     html.style.setProperty("--font-scale", String(scale));
     body.dataset.highContrast = prefs?.highContrast ? "true" : "false";
     body.dataset.srOptimised = prefs?.srOptimised ? "true" : "false";
-  }, [prefs?.fontScale, prefs?.highContrast, prefs?.srOptimised]);
+    const reduce = prefs?.reduceMotion;
+    if (reduce === "on") body.dataset.reduceMotion = "true";
+    else if (reduce === "off") body.dataset.reduceMotion = "false";
+    else delete body.dataset.reduceMotion;
+  }, [
+    prefs?.fontScale,
+    prefs?.highContrast,
+    prefs?.srOptimised,
+    prefs?.reduceMotion,
+  ]);
 
   async function patch(
     update: Parameters<typeof updatePreferences.mutateAsync>[0],

@@ -1,8 +1,10 @@
 import { Link } from "react-router";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { useCurrentWeather } from "../../hooks/useWeather";
 import { useNearbyStops } from "../../hooks/useTransit";
 import { WeatherIcon } from "../weather/WeatherIcon";
+import { buildWeatherLede } from "../../lib/lede";
+import { useWeatherTheme } from "../../hooks/useWeatherTheme";
 
 /**
  * Composite card for a single location: weather snippet + nearest stops +
@@ -13,13 +15,20 @@ import { WeatherIcon } from "../weather/WeatherIcon";
  * composition. Roadmap §6 Phase 1 calls explicitly for "client-side
  * composition only" — three parallel fetches per card, no server-side
  * aggregation.
+ *
+ * Layout (W4b.1): the primary card splits into a hero column (italic
+ * serif temperature numeral, weather icon underneath) and a body
+ * column (heading, lede sentence, nearest stops). DOM order remains
+ * heading → temperature → lede → stops so SR users and the mobile
+ * stack get the same narrative; `grid-template-areas` positions the
+ * hero on the left visually.
  */
 export interface LocationCardProps {
   lat: number;
   lon: number;
   name: string;
   region?: string | null;
-  /** When true, render the "primary" badge and use h3 for the heading. */
+  /** When true, render with editorial hero layout. */
   isPrimary?: boolean;
   /** Saved location's id, when present — enables the saved-row link. */
   savedId?: string;
@@ -37,6 +46,31 @@ export function LocationCard({
 }: LocationCardProps) {
   const weather = useCurrentWeather(lat, lon);
   const stops = useNearbyStops(lat, lon, NEARBY_RADIUS_M);
+  const intl = useIntl();
+
+  // Only the primary card drives the page-level ambient theme — having
+  // every secondary card overwrite the body attribute would race. The
+  // primary card is also the one whose weather the user is reading.
+  useWeatherTheme(
+    isPrimary ? weather.data?.data.weatherCode : undefined,
+    isPrimary ? weather.data?.data.isDay : undefined,
+  );
+
+  const tempRounded = weather.data
+    ? Math.round(weather.data.data.temperature)
+    : null;
+
+  const lede = weather.data
+    ? buildWeatherLede({
+        weather: weather.data.data,
+        formatWeatherCode: (code) =>
+          intl.formatMessage({
+            id: `weather.code.${code}`,
+            defaultMessage: weather.data!.data.weatherDescription,
+          }),
+        locale: intl.locale,
+      })
+    : null;
 
   return (
     <article
@@ -53,49 +87,79 @@ export function LocationCard({
         {region && <span className="dashboard-card__region">{region}</span>}
       </header>
 
-      <div className="dashboard-card__weather">
-        {weather.data ? (
-          <>
-            <WeatherIcon
-              code={weather.data.data.weatherCode}
-              isDay={weather.data.data.isDay}
-              size={32}
-            />
-            <span className="dashboard-card__temp">
-              {Math.round(weather.data.data.temperature)}°
+      {tempRounded !== null && (
+        <div className="dashboard-card__hero">
+          <span className="dashboard-card__temp">
+            <span aria-hidden="true">{tempRounded}</span>
+            <span aria-hidden="true" className="dashboard-card__deg">
+              °
             </span>
-            <span className="dashboard-card__weather-desc">
+            {/* The visible numeral is aria-hidden so SR don't read it
+                twice when paired with the lede below. The
+                visually-hidden span carries the announced value. */}
+            <span className="visually-hidden">
               <FormattedMessage
-                id={`weather.code.${weather.data.data.weatherCode}`}
-                defaultMessage={weather.data.data.weatherDescription}
+                id="dashboard.card.tempAnnounce"
+                values={{ value: tempRounded }}
               />
             </span>
-          </>
-        ) : weather.isError ? (
-          <span className="dashboard-card__weather-empty">
-            <FormattedMessage id="dashboard.card.weatherUnavailable" />
           </span>
-        ) : null}
-      </div>
+          <WeatherIcon
+            code={weather.data!.data.weatherCode}
+            isDay={weather.data!.data.isDay}
+            size={48}
+          />
+        </div>
+      )}
+
+      {lede && (
+        <p
+          className="dashboard-card__lede"
+          // Decorative summary; the underlying data has its own slots.
+          role="presentation"
+        >
+          {lede}
+        </p>
+      )}
+
+      {weather.isError && tempRounded === null && (
+        <p className="dashboard-card__weather-empty">
+          <FormattedMessage id="dashboard.card.weatherUnavailable" />
+        </p>
+      )}
 
       <div className="dashboard-card__stops">
         <h4>
           <FormattedMessage id="dashboard.card.nearestStops" />
         </h4>
         {stops.data?.data && stops.data.data.length > 0 ? (
-          <ul>
-            {stops.data.data.slice(0, STOPS_VISIBLE).map((stop) => (
-              <li key={stop.gtfsId}>
-                <span className="stop-mode">{stop.vehicleMode}</span>
-                <span className="stop-name">{stop.name}</span>
-                {stop.distance !== undefined && (
-                  <span className="stop-distance">
-                    {Math.round(stop.distance)} m
+          <ol className="stops-board">
+            {stops.data.data.slice(0, STOPS_VISIBLE).map((stop, index) => {
+              const mode = (stop.vehicleMode ?? "bus").toLowerCase();
+              return (
+                <li key={stop.gtfsId} className="stops-board__row">
+                  <span className="stops-board__num" aria-hidden="true">
+                    {`${index + 1}`.padStart(2, "0")}
                   </span>
-                )}
-              </li>
-            ))}
-          </ul>
+                  <span className={`stops-board__mode mode-${mode}`}>
+                    <span aria-hidden="true">{mode.toUpperCase()}</span>
+                    <span className="visually-hidden">
+                      <FormattedMessage
+                        id={`transit.vehicleMode.${mode}`}
+                        defaultMessage={mode}
+                      />
+                    </span>
+                  </span>
+                  <span className="stops-board__name">{stop.name}</span>
+                  {stop.distance !== undefined && (
+                    <span className="stops-board__distance">
+                      {Math.round(stop.distance)} m
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
         ) : stops.data ? (
           <p className="help">
             <FormattedMessage id="dashboard.card.nearestStopsNone" />

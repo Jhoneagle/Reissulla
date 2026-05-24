@@ -213,11 +213,219 @@ html {
 
 body {
   font-family: var(--font-body);
-  background: var(--color-paper);
+  background-color: var(--color-paper);
+  /* Subtle paper noise. SVG fractal-noise filter at 4% opacity — feels
+     like newsprint texture without being a visible pattern. See
+     docs/design-system.md §11. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.04 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
   color: var(--color-ink);
   line-height: 1.6;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern", "liga";
+  transition: background-color 1.5s ease;
+}
+
+/* Strip paper noise when contrast or transparency is reduced. */
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  body {
+    background-image: none;
+  }
+}
+body[data-high-contrast="true"] {
+  background-image: none;
+}
+
+/* Tabular numerals on every column-aligned numeric slot. */
+.stops-board__distance,
+.dashboard-card__temp,
+.dashboard-kicker__date,
+.recent-place-visits {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Finnish typography polish — compound words overflow narrow columns
+   without help. Scoped to body-text contexts; never applied to the
+   hero numeral, the kicker, or the wordmark (tracked layout, not
+   flowing text). */
+html[lang="fi"] :is(
+    .dashboard-card__lede,
+    .stops-board__name,
+    .recent-place-name,
+    .saved-location-name
+  ) {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+/* ── Weather-aware ambient paper ──
+   `<body data-weather="…">` is set by useWeatherTheme based on the
+   primary card's current conditions. The page background shifts
+   within the active theme — never overrides the user's light/dark
+   choice. See docs/design-system.md §8.
+
+   Each condition shifts the base background only. Decorative overlays
+   (rain streaks, snow dots, fog radials) live in W4b.6's polish pass;
+   here we keep it to flat colour so the contrast verification stays
+   tractable. */
+body[data-weather="clear-day"] {
+  background: #f8f4e5;
+}
+body[data-weather="clear-night"] {
+  background: #eceae3;
+}
+body[data-weather="cloudy"] {
+  background: #edebe3;
+}
+body[data-weather="rain"] {
+  background: #e8ebef;
+}
+body[data-weather="snow"] {
+  background: #f8f8f6;
+}
+body[data-weather="fog"] {
+  background: #e5e5e1;
+}
+body[data-weather="thunder"] {
+  background: #ddd9d0;
+}
+
+@media (prefers-color-scheme: dark) {
+  body[data-weather="clear-day"] {
+    background: #11151e;
+  }
+  body[data-weather="clear-night"] {
+    background: #0c0e15;
+  }
+  body[data-weather="cloudy"] {
+    background: #12141a;
+  }
+  body[data-weather="rain"] {
+    background: #0e1218;
+  }
+  body[data-weather="snow"] {
+    background: #1a1d24;
+  }
+  body[data-weather="fog"] {
+    background: #14161c;
+  }
+  body[data-weather="thunder"] {
+    background: #1f2128;
+  }
+}
+
+/* Accessibility overrides — high-contrast and high-contrast-toggle
+   users get the calm default paper, no weather tinting. */
+@media (prefers-contrast: more) {
+  body[data-weather] {
+    background-color: var(--color-paper) !important;
+  }
+}
+body[data-high-contrast="true"][data-weather] {
+  background-color: var(--color-paper) !important;
+}
+
+/* ── Motion ──
+   Three layers, gated by two independent controls:
+   - prefers-reduced-motion (OS)
+   - body[data-reduce-motion] (app-level — Settings reduceMotion pref).
+   "on" forces motion off even if OS allows it; "off" forces motion on
+   even if OS reduces it; "system" (no attribute) means follow OS.
+   See docs/design-system.md §9. */
+
+@keyframes card-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stop-row-entrance {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes sun-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dashboard-card {
+  animation: card-entrance 280ms ease-out backwards;
+}
+
+.dashboard-grid .dashboard-card:nth-child(1) {
+  animation-delay: 80ms;
+}
+.dashboard-grid .dashboard-card:nth-child(2) {
+  animation-delay: 160ms;
+}
+.dashboard-grid .dashboard-card:nth-child(3) {
+  animation-delay: 240ms;
+}
+.dashboard-grid .dashboard-card:nth-child(n + 4) {
+  animation-delay: 320ms;
+}
+
+.stops-board__row {
+  animation: stop-row-entrance 220ms ease-out backwards;
+}
+
+.stops-board__row:nth-child(1) {
+  animation-delay: 280ms;
+}
+.stops-board__row:nth-child(2) {
+  animation-delay: 320ms;
+}
+.stops-board__row:nth-child(3) {
+  animation-delay: 360ms;
+}
+.stops-board__row:nth-child(4) {
+  animation-delay: 400ms;
+}
+
+/* Hover lift on cards — 1px translation, no shadow elevation (shadows
+   compete with the editorial flatness). */
+.dashboard-card {
+  transition: transform 120ms ease-out;
+}
+.dashboard-card:hover {
+  transform: translateY(-1px);
+}
+
+/* OS-level OR app-level reduce: kill ambient and entrance motion.
+   Essential transitions (modal, page change) survive the reset. */
+@media (prefers-reduced-motion: reduce) {
+  body:not([data-reduce-motion="false"]) {
+    transition: none;
+  }
+  body:not([data-reduce-motion="false"]) .dashboard-card,
+  body:not([data-reduce-motion="false"]) .stops-board__row {
+    animation: none;
+  }
+  body:not([data-reduce-motion="false"]) .dashboard-card:hover {
+    transform: none;
+  }
+}
+
+body[data-reduce-motion="true"] .dashboard-card,
+body[data-reduce-motion="true"] .stops-board__row {
+  animation: none;
+}
+
+body[data-reduce-motion="true"] .dashboard-card:hover {
+  transform: none;
 }
 
 #root {
@@ -434,6 +642,24 @@ main:has(.page-full-width) {
 .empty-state__art {
   width: 6rem;
   height: 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state__art svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Type-face shift signals the editorial register without italicising
+   body text. The phrase uses Instrument Serif Roman; the action link
+   below stays in Atkinson — uppercase action links reduce legibility
+   for everyone. */
+.empty-state__phrase {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--color-ink);
 }
 
 .empty-state p {
@@ -1032,91 +1258,268 @@ footer a {
   gap: 1.5rem;
 }
 
+/* ── Dashboard kicker ──
+   Masthead-style date line above the primary card. Plex Mono,
+   uppercase, tracked. See docs/design-system.md §6. */
+.dashboard-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-rule-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-ink-muted);
+}
+
+.dashboard-kicker__publication {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.dashboard-kicker__sep {
+  color: var(--color-rule);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .dashboard-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-rule);
-  border-radius: 0.5rem;
-  background: var(--color-paper);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
 }
 
+/* Editorial hero for the primary card — full-width with a 4px
+   primary-blue left-edge accent (newspaper section divider energy).
+   Secondary cards stay calmer. */
 .dashboard-card--primary {
-  border-color: var(--color-primary);
-  border-width: 2px;
+  position: relative;
+  padding-left: calc(var(--space-5) + 4px);
+}
+
+.dashboard-card--primary::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-primary);
 }
 
 .dashboard-card__header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .dashboard-card__header h3 {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
 }
 
 .dashboard-card__region {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-ink-muted);
 }
 
-.dashboard-card__weather {
+/* The hero column: italic serif temperature numeral + weather icon.
+   On desktop, primary cards lay this out two-column; secondary cards
+   keep it inline-row for compactness. */
+.dashboard-card__hero {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: baseline;
+  gap: var(--space-3);
 }
 
 .dashboard-card__temp {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.02em;
+  line-height: var(--leading-editorial);
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
 }
 
-.dashboard-card__weather-desc {
-  color: var(--color-ink-muted);
+.dashboard-card__deg {
+  font-style: normal;
+  margin-left: 0.05em;
+}
+
+.dashboard-card--primary .dashboard-card__temp {
+  font-size: var(--text-hero);
+  letter-spacing: -0.04em;
+}
+
+.dashboard-card__lede {
+  font-size: var(--text-base);
+  color: var(--color-ink);
+  line-height: var(--leading-body);
+}
+
+.dashboard-card--primary .dashboard-card__lede {
+  font-size: var(--text-lg);
 }
 
 .dashboard-card__weather-empty {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-ink-muted);
 }
 
 .dashboard-card__stops h4 {
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-ink-muted);
+  margin-bottom: var(--space-2);
 }
 
-.dashboard-card__stops ul {
+/* ── Departure board ──
+   Stop list as a transit-board row grid. See docs/design-system.md §7.
+   Row number (mono) | mode tag (real-word, brand-tinted) | stop name
+   (Atkinson 500) | distance (mono tabular). Inter-row hairline rule
+   in --color-rule-soft (decorative). */
+.stops-board {
   list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.875rem;
 }
 
-.dashboard-card__stops li {
+.stops-board__row {
   display: grid;
-  grid-template-columns: 3rem 1fr auto;
-  gap: 0.5rem;
-  align-items: baseline;
+  grid-template-columns: 2rem auto 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-rule-soft);
 }
 
-.dashboard-card__stops .stop-mode {
-  font-size: 0.75rem;
+.stops-board__row:last-child {
+  border-bottom: none;
+}
+
+.stops-board__num {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-muted);
+}
+
+.stops-board__mode {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  padding: var(--space-1) var(--space-2) var(--space-1)
+    calc(var(--space-2) + 6px);
+  border-radius: var(--radius-xs);
+  /* Default mode background — overridden per mode below. */
+  background: var(--mode-bus);
+  color: var(--color-ink);
   text-transform: uppercase;
-  color: var(--color-ink-muted);
+  white-space: nowrap;
 }
 
-.dashboard-card__stops .stop-distance {
+.stops-board__mode::before {
+  /* 4px brand-strong bar at the left edge of the tag. Preserves the
+     line's brand colour identity while keeping the tag itself a
+     light tint for contrast. */
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--mode-bus-strong);
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+}
+
+.stops-board__mode.mode-bus {
+  background: var(--mode-bus);
+}
+.stops-board__mode.mode-bus::before {
+  background: var(--mode-bus-strong);
+}
+.stops-board__mode.mode-tram {
+  background: var(--mode-tram);
+}
+.stops-board__mode.mode-tram::before {
+  background: var(--mode-tram-strong);
+}
+.stops-board__mode.mode-rail {
+  background: var(--mode-rail);
+}
+.stops-board__mode.mode-rail::before {
+  background: var(--mode-rail-strong);
+}
+.stops-board__mode.mode-subway {
+  background: var(--mode-subway);
+}
+.stops-board__mode.mode-subway::before {
+  background: var(--mode-subway-strong);
+}
+.stops-board__mode.mode-ferry {
+  background: var(--mode-ferry);
+}
+.stops-board__mode.mode-ferry::before {
+  background: var(--mode-ferry-strong);
+}
+
+.stops-board__name {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+}
+
+.stops-board__distance {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
   color: var(--color-ink-muted);
+  text-align: right;
+}
+
+@media (max-width: 40rem) {
+  .stops-board__row {
+    grid-template-columns: 2rem auto 1fr;
+    grid-template-areas:
+      "num mode name"
+      ".   .    distance";
+    row-gap: var(--space-1);
+  }
+  .stops-board__num {
+    grid-area: num;
+  }
+  .stops-board__mode {
+    grid-area: mode;
+  }
+  .stops-board__name {
+    grid-area: name;
+  }
+  .stops-board__distance {
+    grid-area: distance;
+    text-align: left;
+  }
 }
 
 .dashboard-card__actions {
