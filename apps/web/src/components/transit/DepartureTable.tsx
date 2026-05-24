@@ -8,15 +8,19 @@ import {
 } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import type { TransitSubStop } from "@reissulla/shared";
-import { useDepartures } from "../../hooks/useTransit";
+import { useDepartures, useRecordRecentStop } from "../../hooks/useTransit";
 import {
   vehicleModeLabel,
   formatRelativeTime,
   departureToEpoch,
 } from "../../lib/transit-utils";
+import { useAuthStore } from "../../stores/auth";
 import { DepartureRow } from "./DepartureRow";
+import { PinButton } from "./PinButton";
 
 interface DepartureTableProps {
+  /** GTFS id (stop or station) — drives pin and recent-stops tracking. */
+  stopId: string;
   stopName: string;
   vehicleMode: string | null;
   subStops: TransitSubStop[];
@@ -31,6 +35,7 @@ function subStopLabel(ss: TransitSubStop): string {
 }
 
 export function DepartureTable({
+  stopId,
   stopName,
   vehicleMode,
   subStops,
@@ -38,11 +43,27 @@ export function DepartureTable({
   stationId,
 }: DepartureTableProps) {
   const intl = useIntl();
+  const user = useAuthStore((s) => s.user);
+  const recordVisit = useRecordRecentStop();
   const { data, isLoading, isError, dataUpdatedAt, refetch } = useDepartures(
     subStops,
     isStation,
     stationId,
   );
+
+  // Auto-record the visit for the recent-stops list. Fires once per
+  // mount per (stopId, name) — the mutation is idempotent (visitCount
+  // increments) so a refresh inside the same session counts as a visit.
+  useEffect(() => {
+    if (!user || !stopId || !stopName) return;
+    recordVisit.mutate({
+      gtfsId: stopId,
+      name: stopName,
+      vehicleMode: vehicleMode ?? null,
+    });
+    // recordVisit is stable; mutate is the only thing that should fire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, stopId, stopName, vehicleMode]);
   const prevAnnouncementRef = useRef("");
   const [filterStopId, setFilterStopId] = useState<string | null>(null);
 
@@ -94,6 +115,7 @@ export function DepartureTable({
               {vehicleModeLabel(vehicleMode)}
             </span>
           )}
+          <PinButton stop={{ gtfsId: stopId, name: stopName, vehicleMode }} />
         </div>
       </div>
 

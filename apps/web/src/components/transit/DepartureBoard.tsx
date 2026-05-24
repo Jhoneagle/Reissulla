@@ -3,6 +3,7 @@ import { FormattedMessage } from "react-intl";
 import type { TransitStop } from "@reissulla/shared";
 import { StopSearch } from "./StopSearch";
 import { DepartureTable } from "./DepartureTable";
+import { RecentStopsList } from "./RecentStopsList";
 
 export function DepartureBoard() {
   const [selectedStop, setSelectedStop] = useState<TransitStop | null>(null);
@@ -10,6 +11,8 @@ export function DepartureBoard() {
   return (
     <div className="departure-board">
       <StopSearch onSelect={setSelectedStop} />
+
+      {!selectedStop && <RecentStopsList onSelect={setSelectedStop} />}
 
       {!selectedStop && (
         <div className="departure-board__empty">
@@ -36,6 +39,7 @@ export function DepartureBoard() {
       {selectedStop && (
         <DepartureTable
           key={`${selectedStop.gtfsId}-${selectedStop.vehicleMode}`}
+          stopId={selectedStop.gtfsId}
           stopName={selectedStop.name}
           vehicleMode={selectedStop.vehicleMode}
           subStops={selectedStop.subStops ?? []}
