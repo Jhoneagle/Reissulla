@@ -53,3 +53,22 @@ export function vehicleModeColor(mode: string): string {
   };
   return colors[mode] ?? "#64748b";
 }
+
+/**
+ * Token name for the design-system mode-tag class (light tint + 4px brand
+ * edge). Returns the lowercased mode segment used by `mode-{bus|tram|…}`;
+ * an unknown mode falls back to the bus tone so we never render an
+ * un-themed tag with no edge bar.
+ */
+export function vehicleModeToken(mode: string | null | undefined): string {
+  const known = new Set(["bus", "tram", "rail", "subway", "ferry"]);
+  const lc = (mode ?? "").toLowerCase();
+  return known.has(lc) ? lc : "bus";
+}
+
+export function formatUnixTime(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleTimeString("fi-FI", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

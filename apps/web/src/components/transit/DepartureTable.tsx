@@ -23,12 +23,15 @@ import {
 } from "../../hooks/useTransit";
 import {
   vehicleModeLabel,
+  vehicleModeToken,
   formatRelativeTime,
   departureToEpoch,
 } from "../../lib/transit-utils";
 import { useAuthStore } from "../../stores/auth";
 import { DepartureRow } from "./DepartureRow";
 import { PinButton } from "./PinButton";
+import { TimePickerDialog } from "./TimePickerDialog";
+import { DepartureFilters, type AdvancedFilterState } from "./DepartureFilters";
 
 interface DepartureTableProps {
   /** GTFS id (stop or station) — drives pin and recent-stops tracking. */
@@ -46,37 +49,27 @@ function subStopLabel(ss: TransitSubStop): string {
   return ss.gtfsId.split(":").pop() ?? ss.gtfsId;
 }
 
-function toDatetimeLocalValue(unix: number | undefined): string {
-  if (!unix) return "";
-  // datetime-local needs a local-time YYYY-MM-DDTHH:mm string. Resolve via
-  // Intl with Helsinki timezone since the rendered picker tracks the feed.
-  const fmt = new Intl.DateTimeFormat("en-CA", {
+function formatHelsinkiClock(unix: number): string {
+  return new Date(unix * 1000).toLocaleTimeString("fi-FI", {
     timeZone: "Europe/Helsinki",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
   });
-  const parts: Record<string, string> = {};
-  for (const p of fmt.formatToParts(new Date(unix * 1000))) {
-    if (p.type !== "literal") parts[p.type] = p.value;
-  }
-  if (parts.hour === "24") parts.hour = "00";
-  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
-function fromDatetimeLocalValue(value: string): number | undefined {
-  if (!value) return undefined;
-  // Browser's datetime-local parses as local time. We treat that as
-  // Europe/Helsinki by passing through Date.parse with explicit tz; for
-  // simplicity, use the browser's local interpretation — close enough
-  // for users whose system clock is on Finnish time.
-  const ms = Date.parse(value);
-  if (!Number.isFinite(ms)) return undefined;
-  return Math.floor(ms / 1000);
+function formatHelsinkiDate(unix: number): string {
+  return new Date(unix * 1000).toLocaleDateString("fi-FI", {
+    timeZone: "Europe/Helsinki",
+    day: "2-digit",
+    month: "2-digit",
+  });
 }
+
+const EMPTY_FILTERS: AdvancedFilterState = {
+  lineFilter: [],
+  directionFilter: "",
+  lowFloorOnly: false,
+};
 
 export function DepartureTable({
   stopId,
@@ -93,10 +86,19 @@ export function DepartureTable({
   const [at, setAt] = useState<number | undefined>(undefined);
   const [mode, setMode] = useState<ArrivalDepartureMode>("departures");
   const [filterStopId, setFilterStopId] = useState<string | null>(null);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [advanced, setAdvanced] = useState<AdvancedFilterState>(EMPTY_FILTERS);
 
   const departureOptions: DeparturesOptions = useMemo(
-    () => ({ at, mode }),
-    [at, mode],
+    () => ({
+      at,
+      mode,
+      lineFilter:
+        advanced.lineFilter.length > 0 ? advanced.lineFilter : undefined,
+      directionFilter: advanced.directionFilter.trim() || undefined,
+      lowFloorOnly: advanced.lowFloorOnly || undefined,
+    }),
+    [at, mode, advanced],
   );
 
   const { data, isLoading, isError, dataUpdatedAt, refetch } = useDepartures(
@@ -107,9 +109,6 @@ export function DepartureTable({
   );
   const firstLast = useFirstLast(stopId);
 
-  // Auto-record the visit for the recent-stops list. Fires once per
-  // mount per (stopId, name) — the mutation is idempotent (visitCount
-  // increments) so a refresh inside the same session counts as a visit.
   useEffect(() => {
     if (!user || !stopId || !stopName) return;
     recordVisit.mutate({
@@ -118,7 +117,6 @@ export function DepartureTable({
       vehicleMode: vehicleMode ?? null,
       isStation: isStation ?? false,
     });
-    // recordVisit is stable; mutate is the only thing that should fire.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, stopId, stopName, vehicleMode, isStation]);
   const prevAnnouncementRef = useRef("");
@@ -126,7 +124,6 @@ export function DepartureTable({
   const result = data?.data;
   const message = result?.message;
 
-  // Track elapsed time since last data update via external store (avoids impure calls in render)
   const subscribe = useCallback(
     (cb: () => void) => {
       if (dataUpdatedAt <= 0) return () => {};
@@ -144,15 +141,20 @@ export function DepartureTable({
     return filterStopId ? all.filter((d) => d.stopId === filterStopId) : all;
   }, [result?.departures, filterStopId]);
 
-  const showFilter = subStops.length > 1;
+  const showPlatformFilter = subStops.length > 1;
 
-  // Build concise announcement for ARIA live region
   const announcement =
     departures.length > 0
-      ? `Departures updated, next ${formatRelativeTime(departureToEpoch(departures[0]!.serviceDay, departures[0]!.realtimeDeparture))}`
+      ? `Departures updated, next ${formatRelativeTime(
+          departureToEpoch(
+            departures[0]!.serviceDay,
+            mode === "arrivals"
+              ? departures[0]!.realtimeArrival
+              : departures[0]!.realtimeDeparture,
+          ),
+        )}`
       : "";
 
-  // Only announce when the text actually changes
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
   useEffect(() => {
     if (announcement !== "" && announcement !== prevAnnouncementRef.current) {
@@ -161,16 +163,35 @@ export function DepartureTable({
     }
   }, [announcement]);
 
+  const modeToken = vehicleModeToken(vehicleMode);
+  const firstLastData = firstLast.data?.data;
+  const hasFirstLast = Boolean(firstLastData?.first && firstLastData?.last);
+
+  const timeButtonLabel =
+    at === undefined
+      ? intl.formatMessage({ id: "transit.depart.time.now" })
+      : `${formatHelsinkiDate(at)} ${formatHelsinkiClock(at)}`;
+
+  const columnHeadingKey =
+    mode === "arrivals"
+      ? "transit.depart.column.arrives"
+      : mode === "both"
+        ? "transit.depart.column.time"
+        : "transit.depart.column.departs";
+
   return (
-    <div className="departure-table-wrapper">
-      <div className="departure-table__header">
-        <h3 className="departure-table__stop-name">{stopName}</h3>
-        <div className="departure-table__meta">
+    <section className="departure-board-section" aria-labelledby="dep-title">
+      <header className="departure-masthead">
+        <div className="departure-masthead__title-row">
+          <h3 id="dep-title" className="departure-masthead__title">
+            {stopName}
+          </h3>
           {vehicleMode && (
-            <span className="departure-table__mode">
+            <span className={`mode-tag mode-${modeToken}`}>
               {vehicleModeLabel(vehicleMode)}
             </span>
           )}
+          <div className="departure-masthead__title-spacer" />
           <PinButton
             stop={{
               gtfsId: stopId,
@@ -180,70 +201,89 @@ export function DepartureTable({
             }}
           />
         </div>
-      </div>
 
-      <div className="departure-table__controls">
-        <div className="departure-table__time">
-          <label className="departure-table__time-label">
-            <FormattedMessage id="transit.depart.time.label" />
-            <input
-              type="datetime-local"
-              value={toDatetimeLocalValue(at)}
-              onChange={(e) => setAt(fromDatetimeLocalValue(e.target.value))}
+        {hasFirstLast && (
+          <p className="departure-masthead__kicker">
+            <FormattedMessage
+              id="transit.depart.kicker.firstLast"
+              values={{
+                first: formatDeparture(
+                  serviceDayFromUnix(
+                    firstLastData!.first!.serviceDay +
+                      firstLastData!.first!.scheduledDeparture,
+                  ),
+                  "fi",
+                ),
+                last: formatDeparture(
+                  serviceDayFromUnix(
+                    firstLastData!.last!.serviceDay +
+                      firstLastData!.last!.scheduledDeparture,
+                  ),
+                  "fi",
+                ),
+              }}
             />
-          </label>
-          {at !== undefined && (
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setAt(undefined)}
+          </p>
+        )}
+      </header>
+
+      <div className="departure-controls">
+        <div className="departure-controls__primary">
+          <button
+            type="button"
+            className={`departure-controls__time-btn${at !== undefined ? " departure-controls__time-btn--set" : ""}`}
+            onClick={() => setTimePickerOpen(true)}
+            aria-haspopup="dialog"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
             >
-              <FormattedMessage id="transit.depart.time.now" />
-            </button>
-          )}
+              <circle cx="12" cy="12" r="9" />
+              <polyline points="12 7 12 12 15 14" />
+            </svg>
+            <span>{timeButtonLabel}</span>
+          </button>
+
+          <fieldset
+            className="departure-controls__segmented"
+            aria-label={intl.formatMessage({ id: "transit.depart.mode.label" })}
+          >
+            <legend className="visually-hidden">
+              <FormattedMessage id="transit.depart.mode.label" />
+            </legend>
+            {(["departures", "arrivals", "both"] as const).map((option) => (
+              <label
+                key={option}
+                className={`departure-controls__seg-item${mode === option ? " departure-controls__seg-item--on" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="dep-mode"
+                  value={option}
+                  checked={mode === option}
+                  onChange={() => setMode(option)}
+                />
+                <span>
+                  <FormattedMessage id={`transit.depart.mode.${option}`} />
+                </span>
+              </label>
+            ))}
+          </fieldset>
         </div>
 
-        <div
-          className="departure-table__chips"
-          role="radiogroup"
-          aria-label={intl.formatMessage({
-            id: "transit.depart.mode.label",
-          })}
-        >
-          <button
-            type="button"
-            role="radio"
-            aria-checked={mode === "departures"}
-            className={`departure-table__chip${mode === "departures" ? " departure-table__chip--on" : ""}`}
-            onClick={() => setMode("departures")}
-          >
-            <FormattedMessage id="transit.depart.mode.departures" />
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={mode === "arrivals"}
-            className={`departure-table__chip${mode === "arrivals" ? " departure-table__chip--on" : ""}`}
-            onClick={() => setMode("arrivals")}
-          >
-            <FormattedMessage id="transit.depart.mode.arrivals" />
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={mode === "both"}
-            className={`departure-table__chip${mode === "both" ? " departure-table__chip--on" : ""}`}
-            onClick={() => setMode("both")}
-          >
-            <FormattedMessage id="transit.depart.mode.both" />
-          </button>
-        </div>
-
-        {showFilter && (
-          <div className="departure-table__filter">
+        {showPlatformFilter && (
+          <div className="departure-controls__platform">
             <label
               htmlFor="platform-filter"
-              className="departure-table__filter-label"
+              className="departure-controls__platform-label"
             >
               <FormattedMessage id="transit.depart.filter.platform" />
             </label>
@@ -251,7 +291,7 @@ export function DepartureTable({
               id="platform-filter"
               value={filterStopId ?? ""}
               onChange={(e) => setFilterStopId(e.target.value || null)}
-              className="departure-table__filter-select"
+              className="departure-controls__platform-select"
             >
               <option value="">
                 {intl.formatMessage({
@@ -266,34 +306,19 @@ export function DepartureTable({
             </select>
           </div>
         )}
+
+        <DepartureFilters value={advanced} onChange={setAdvanced} />
       </div>
 
-      {firstLast.data?.data.first && firstLast.data?.data.last && (
-        <p className="departure-table__first-last">
-          <FormattedMessage
-            id="transit.depart.firstLast"
-            values={{
-              first: formatDeparture(
-                serviceDayFromUnix(
-                  firstLast.data.data.first.serviceDay +
-                    firstLast.data.data.first.scheduledDeparture,
-                ),
-                "fi",
-              ),
-              last: formatDeparture(
-                serviceDayFromUnix(
-                  firstLast.data.data.last.serviceDay +
-                    firstLast.data.data.last.scheduledDeparture,
-                ),
-                "fi",
-              ),
-            }}
-          />
-        </p>
-      )}
+      <TimePickerDialog
+        value={at}
+        open={timePickerOpen}
+        onChange={setAt}
+        onClose={() => setTimePickerOpen(false)}
+      />
 
       {isLoading && (
-        <div className="departure-table__skeleton">
+        <div className="departure-table__skeleton" aria-hidden="true">
           {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="departure-skel-row">
               <div
@@ -349,13 +374,13 @@ export function DepartureTable({
                 <th scope="col">
                   <FormattedMessage id="transit.depart.column.destination" />
                 </th>
-                {showFilter && !filterStopId && (
+                {showPlatformFilter && !filterStopId && (
                   <th scope="col">
                     <FormattedMessage id="transit.depart.column.platform" />
                   </th>
                 )}
-                <th scope="col">
-                  <FormattedMessage id="transit.depart.column.departs" />
+                <th scope="col" className="departure-table__th-time">
+                  <FormattedMessage id={columnHeadingKey} />
                 </th>
                 <th scope="col">
                   <span className="visually-hidden">
@@ -369,7 +394,8 @@ export function DepartureTable({
                 <DepartureRow
                   key={`${dep.routeShortName}-${dep.serviceDay}-${dep.scheduledDeparture}-${i}`}
                   departure={dep}
-                  showPlatform={showFilter && !filterStopId}
+                  mode={mode}
+                  showPlatform={showPlatformFilter && !filterStopId}
                 />
               ))}
             </tbody>
@@ -389,6 +415,6 @@ export function DepartureTable({
       <div aria-live="polite" className="visually-hidden">
         {liveAnnouncement}
       </div>
-    </div>
+    </section>
   );
 }
