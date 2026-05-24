@@ -1,4 +1,8 @@
-import type { TransitStop } from "@reissulla/shared";
+import {
+  DEFAULT_PERSONA,
+  type Persona,
+  type TransitStop,
+} from "@reissulla/shared";
 import { config } from "../../config.js";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
@@ -21,8 +25,8 @@ function apiKeyHeaders(): Record<string, string> {
     : {};
 }
 
-function makeContext(): AdapterContext {
-  return { signal: new AbortController().signal };
+function makeContext(persona: Persona): AdapterContext {
+  return { signal: new AbortController().signal, persona };
 }
 
 async function reverseGeocodeCity(
@@ -97,6 +101,7 @@ export async function getNearbyStops(
   lat: number,
   lon: number,
   radiusMeters = 500,
+  persona: Persona = DEFAULT_PERSONA,
 ): Promise<{ data: TransitStop[]; cached: boolean }> {
   const key = cacheKey(
     "transit",
@@ -110,7 +115,12 @@ export async function getNearbyStops(
   if (cached) return { data: cached, cached: true };
 
   const adapter = defaultAdapter();
-  const edges = await adapter.nearest(lat, lon, radiusMeters, makeContext());
+  const edges = await adapter.nearest(
+    lat,
+    lon,
+    radiusMeters,
+    makeContext(persona),
+  );
 
   const data: TransitStop[] = edges.map((edge) => ({
     gtfsId: edge.place.gtfsId,
@@ -129,13 +139,14 @@ export async function getNearbyStops(
 
 export async function searchStops(
   query: string,
+  persona: Persona = DEFAULT_PERSONA,
 ): Promise<{ data: TransitStop[]; cached: boolean }> {
   const key = cacheKey("transit", "stops-search", 1, query.toLowerCase());
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
   const adapter = defaultAdapter();
-  const raw = await adapter.searchStopsAndStations(query, makeContext());
+  const raw = await adapter.searchStopsAndStations(query, makeContext(persona));
 
   const grouped = groupStopsByNameAndMode(raw.stops, raw.stations);
 

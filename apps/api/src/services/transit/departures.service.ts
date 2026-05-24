@@ -1,7 +1,9 @@
-import type {
-  TransitDeparture,
-  TransitDeparturesResult,
-  TransitSubStop,
+import {
+  DEFAULT_PERSONA,
+  type Persona,
+  type TransitDeparture,
+  type TransitDeparturesResult,
+  type TransitSubStop,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
@@ -13,8 +15,8 @@ import type { RawStoptime } from "../../adapters/digitransit-routing/types.js";
 
 const MAX_PARALLEL_STOP_QUERIES = 10;
 
-function makeContext(): AdapterContext {
-  return { signal: new AbortController().signal };
+function makeContext(persona: Persona): AdapterContext {
+  return { signal: new AbortController().signal, persona };
 }
 
 function mapStoptimes(stoptimes: RawStoptime[]): TransitDeparture[] {
@@ -37,13 +39,14 @@ export async function getStopDepartures(
   stopId: string,
   count = 20,
   isStation = false,
+  persona: Persona = DEFAULT_PERSONA,
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
   const key = cacheKey("transit", "departures", 1, stopId, count, isStation);
   const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
   if (cached) return { data: cached, cached: true };
 
   const adapter = adapterForGtfsId(stopId);
-  const ctx = makeContext();
+  const ctx = makeContext(persona);
 
   let stopName: string | null = null;
   let stoptimes: RawStoptime[] = [];
@@ -88,6 +91,7 @@ export async function getMultiStopDepartures(
   countPerStop = 10,
   totalCount = 40,
   stationId?: string,
+  persona: Persona = DEFAULT_PERSONA,
 ): Promise<{ data: TransitDeparturesResult; cached: boolean }> {
   const sortedIds = [...stopIds].sort();
   const key = cacheKey(
@@ -109,7 +113,7 @@ export async function getMultiStopDepartures(
   let allDepartures: TransitDeparture[] = [];
   let stopName: string | null = null;
 
-  const ctx = makeContext();
+  const ctx = makeContext(persona);
 
   for (let i = 0; i < sortedIds.length; i += MAX_PARALLEL_STOP_QUERIES) {
     const batch = sortedIds.slice(i, i + MAX_PARALLEL_STOP_QUERIES);

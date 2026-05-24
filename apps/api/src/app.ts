@@ -2,13 +2,18 @@ import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
 import { config } from "./config.js";
 import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
+import { accountRoutes } from "./routes/account.js";
 import { meRoutes } from "./routes/me.js";
+import { preferencesRoutes } from "./routes/preferences.js";
 import { weatherRoutes } from "./routes/weather.js";
 import { geocodingRoutes } from "./routes/geocoding.js";
 import { locationRoutes } from "./routes/locations.js";
+import { recentPlacesRoutes } from "./routes/recent-places.js";
 import { transitRoutes } from "./routes/transit.js";
 import {
   AppError,
@@ -17,6 +22,7 @@ import {
   type Source,
 } from "./utils/error-envelope.js";
 import { DigitransitError } from "./adapters/digitransit-routing/errors.js";
+import { attachPersona } from "./auth/persona.middleware.js";
 
 export async function buildServer() {
   const server = Fastify({
@@ -37,6 +43,29 @@ export async function buildServer() {
     timeWindow: "1 minute",
     allowList: (req) => req.url === "/api/v1/health",
   });
+
+  // OpenAPI spec generated from the JSON Schemas already declared on each
+  // route. Exposed at /api/v1/openapi.json (machine-readable) and an
+  // interactive viewer at /api/v1/docs. The spec is also written to a
+  // snapshot file on `pnpm api:snapshot-openapi` for review in PRs.
+  await server.register(swagger, {
+    openapi: {
+      info: {
+        title: "Reissulla API",
+        description:
+          "Weather + transit + identity API for Reissulla. See roadmap.md " +
+          "for scope and external-apis.md for upstream integrations.",
+        version: "1.0.0",
+      },
+      servers: [{ url: "/" }],
+    },
+    hideUntagged: false,
+  });
+  await server.register(swaggerUi, {
+    routePrefix: "/api/v1/docs",
+    uiConfig: { docExpansion: "list", deepLinking: true },
+  });
+  server.get("/api/v1/openapi.json", async () => server.swagger());
 
   server.setErrorHandler((err: FastifyError, request, reply) => {
     if (err instanceof AppError) {
@@ -87,12 +116,28 @@ export async function buildServer() {
     });
   });
 
+  // Decorate request.persona before any /api/v1/* handler runs. Skipped for
+  // health (frequent, doesn't need persona) and /api/auth/* (handled by
+  // better-auth's own pipeline; persona context is meaningless there).
+  server.addHook("preHandler", async (request) => {
+    if (
+      request.url === "/api/v1/health" ||
+      request.url.startsWith("/api/auth/")
+    ) {
+      return;
+    }
+    await attachPersona(request);
+  });
+
   await server.register(healthRoutes);
   await server.register(authRoutes);
+  await server.register(accountRoutes);
   await server.register(meRoutes);
+  await server.register(preferencesRoutes);
   await server.register(weatherRoutes);
   await server.register(geocodingRoutes);
   await server.register(locationRoutes);
+  await server.register(recentPlacesRoutes);
   await server.register(transitRoutes);
 
   return server;

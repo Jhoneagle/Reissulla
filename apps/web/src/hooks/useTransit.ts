@@ -11,6 +11,19 @@ export function useStopSearch(query: string) {
   });
 }
 
+export function useNearbyStops(
+  lat: number | null,
+  lon: number | null,
+  radius?: number,
+) {
+  return useQuery({
+    queryKey: ["transit-nearby", lat, lon, radius],
+    queryFn: () => transitApi.nearbyStops(lat!, lon!, radius),
+    enabled: lat !== null && lon !== null,
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
 export function useDepartures(
   subStops: TransitSubStop[],
   isStation = false,

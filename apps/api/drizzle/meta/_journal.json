@@ -8,6 +8,13 @@
       "when": 1777998625742,
       "tag": "0000_volatile_riptide",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779526500288,
+      "tag": "0001_empty_korath",
+      "breakpoints": true
     }
   ]
 }

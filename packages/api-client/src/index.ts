@@ -6,6 +6,10 @@ import type {
   SavedLocation,
   CreateLocationInput,
   UpdateLocationInput,
+  RecentPlace,
+  RecordVisitInput,
+  Preferences,
+  PreferencesPatch,
   TransitStop,
   TransitSubStop,
   TransitDeparturesResult,
@@ -167,16 +171,21 @@ async function authRequest<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const authApi = {
-  signUp(name: string, email: string, password: string) {
+  signUp(
+    name: string,
+    email: string,
+    password: string,
+    recaptchaToken: string,
+  ) {
     return authRequest<{ user: AuthUser }>("/sign-up/email", {
       method: "POST",
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, recaptchaToken }),
     });
   },
-  signIn(email: string, password: string) {
+  signIn(email: string, password: string, recaptchaToken: string) {
     return authRequest<{ user: AuthUser }>("/sign-in/email", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, recaptchaToken }),
     });
   },
   signOut() {
@@ -184,6 +193,78 @@ export const authApi = {
   },
   getSession() {
     return authRequest<{ user: AuthUser }>("/get-session");
+  },
+  /**
+   * Trigger a magic-link email. Used both as an explicit "sign in by email"
+   * affordance and as the fallback when password sign-in hits the
+   * RECAPTCHA_FAILED envelope from the auth hook.
+   */
+  requestMagicLink(email: string, recaptchaToken: string) {
+    return authRequest<{ status?: boolean }>("/sign-in/magic-link", {
+      method: "POST",
+      body: JSON.stringify({ email, recaptchaToken }),
+    });
+  },
+};
+
+export const recentPlacesApi = {
+  list(limit?: number) {
+    const path = limit
+      ? `/recent-places?limit=${encodeURIComponent(String(limit))}`
+      : "/recent-places";
+    return request<{ data: RecentPlace[] }>(path);
+  },
+  /**
+   * Record a visit. Increments the existing row's visit count when called
+   * for coordinates the user has already visited (precision rounding lives
+   * in the repo). FE checks `visitCount >= 3` to show the "save this?"
+   * prompt (LOC-8).
+   */
+  recordVisit(input: RecordVisitInput) {
+    return mutationRequest<{ data: RecentPlace }>(
+      "/recent-places",
+      "POST",
+      input,
+    );
+  },
+  remove(id: string) {
+    return mutationRequest<void>(`/recent-places/${id}`, "DELETE");
+  },
+  clear() {
+    return mutationRequest<void>("/recent-places", "DELETE");
+  },
+};
+
+export const preferencesApi = {
+  get() {
+    return request<{ data: Preferences }>("/preferences");
+  },
+  update(patch: PreferencesPatch) {
+    return mutationRequest<{ data: Preferences }>(
+      "/preferences",
+      "PATCH",
+      patch,
+    );
+  },
+};
+
+export const meApi = {
+  /** Update the authenticated user's profile name (ID-7). */
+  updateName(name: string) {
+    return mutationRequest<{
+      user: { id: string; email: string; name: string; emailVerified: boolean };
+    }>("/me", "PATCH", { name });
+  },
+};
+
+export const accountApi = {
+  /** GDPR-style export of every user-owned table. */
+  export() {
+    return request<Record<string, unknown>>("/account/export");
+  },
+  /** Hard-delete the account and everything it owns (ID-11). */
+  remove() {
+    return mutationRequest<void>("/account", "DELETE");
   },
 };
 

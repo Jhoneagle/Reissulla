@@ -2,7 +2,13 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    // apps/api is an executable, not a library — no .d.ts files are
+    // consumed anywhere. Turning off declaration emit avoids TS2742 errors
+    // from deep generics in plugin types (e.g. better-auth's magic-link
+    // plugin references zod/v4/core via its zod schemas).
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["src"]
 }

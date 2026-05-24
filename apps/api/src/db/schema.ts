@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -6,6 +7,7 @@ import {
   doublePrecision,
   integer,
   jsonb,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -83,22 +85,55 @@ export const verification = pgTable("verification", {
 
 // ── Application tables ──
 
-export const savedLocations = pgTable("saved_locations", {
+export const savedLocations = pgTable(
+  "saved_locations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    latitude: doublePrecision("latitude").notNull(),
+    longitude: doublePrecision("longitude").notNull(),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    // Reverse-geocoded locality stamped at create-time; nullable for legacy
+    // rows and for failures of the geocoding upstream.
+    region: varchar("region", { length: 100 }),
+    // home | work | school | cottage | family | hobby | other (null for legacy).
+    // Allowed-value enforcement lives in the service layer.
+    category: varchar("category", { length: 32 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // Each user can have at most one row each for home and work; other
+    // categories are unconstrained. Partial index keeps storage minimal
+    // and allows null/other categories to repeat freely.
+    uniqueIndex("saved_locations_user_category_home_work_idx")
+      .on(t.userId, t.category)
+      .where(sql`${t.category} IN ('home', 'work')`),
+  ],
+);
+
+export const recentPlaces = pgTable("recent_places", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 255 }).notNull(),
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
-  isPrimary: boolean("is_primary").notNull().default(false),
-  sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
+  displayName: text("display_name").notNull(),
+  visitCount: integer("visit_count").notNull().default(1),
+  lastVisitedAt: timestamp("last_visited_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
@@ -114,7 +149,11 @@ export const preferences = pgTable("preferences", {
   temperatureUnit: varchar("temperature_unit", { length: 20 })
     .notNull()
     .default("celsius"),
+  distanceUnit: varchar("distance_unit", { length: 20 })
+    .notNull()
+    .default("metric"),
   language: varchar("language", { length: 10 }).notNull().default("en"),
+  timeFormat: varchar("time_format", { length: 10 }).notNull().default("24h"),
   transitRegion: varchar("transit_region", { length: 20 })
     .notNull()
     .default("all"),
@@ -122,6 +161,15 @@ export const preferences = pgTable("preferences", {
   reduceMotion: varchar("reduce_motion", { length: 20 })
     .notNull()
     .default("system"),
+  highContrast: boolean("high_contrast").notNull().default(false),
+  // Percent — 100 = browser default; 200 = doubled. Decoupled from
+  // browser zoom so users can scale text independently.
+  fontScale: integer("font_scale").notNull().default(100),
+  srOptimised: boolean("sr_optimised").notNull().default(false),
+  // jsonb bag for shape-evolving extras: { persona?, layerDefaults? }.
+  // Drizzle types this as `unknown`; the preferences repo wraps reads and
+  // writes through parseExtra/serializeExtra so callers see a typed
+  // PreferencesExtra.
   extra: jsonb("extra"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

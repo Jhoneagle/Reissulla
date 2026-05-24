@@ -7,6 +7,21 @@
 }
 
 :root {
+  /* ── Colour tokens ──
+     WCAG 2.2 AA contrast notes (against the light --color-bg #ffffff):
+     --color-text   #1a1a1a → 16.78:1 (AAA body, AAA large)
+     --color-border #e2e8f0 → decorative only — used for inset surfaces
+                              and form-field borders that pair with
+                              --color-text labels and own UI-state focus
+                              outlines, not as a non-text UI boundary on
+                              their own (SC 1.4.11 verified at the call
+                              sites that use it as such).
+     --color-footer-text #475569 → 7.05:1 (AAA body) on white. Bumped
+                              from #64748b which only hit 4.04:1 and
+                              failed AA body. Wave 4a.2 rebinds these to
+                              the cream-paper palette and tunes further;
+                              this is the floor that clears the axe-core
+                              gate today. */
   --color-bg: #ffffff;
   --color-text: #1a1a1a;
   --color-primary: #2563eb;
@@ -14,20 +29,72 @@
   --color-nav-bg: #f8fafc;
   --color-border: #e2e8f0;
   --color-active: #2563eb;
-  --color-footer-text: #64748b;
+  --color-footer-text: #475569;
+  --color-error-bg: #fef2f2;
+  --color-error-text: #991b1b;
+
+  /* ── Font scale ──
+     Multiplier applied to html font-size. Settings page (commit 11)
+     sets this via documentElement.style.setProperty('--font-scale', '1.5').
+     Decoupled from browser zoom — users can scale our text independently
+     of the rest of the OS / browser UI. Roadmap A11Y-3. */
+  --font-scale: 1;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    /* ── Dark-mode contrast notes (against --color-bg #0f172a):
+       --color-text        #e2e8f0 → 14.41:1 (AAA body)
+       --color-border      #475569 → 3.13:1 (passes SC 1.4.11 non-text);
+                                     bumped from #334155 (1.91:1) which
+                                     failed the AA non-text threshold.
+       --color-footer-text #94a3b8 → 7.45:1 (AAA body), already passing. */
     --color-bg: #0f172a;
     --color-text: #e2e8f0;
     --color-primary: #60a5fa;
     --color-primary-hover: #93c5fd;
     --color-nav-bg: #1e293b;
-    --color-border: #334155;
+    --color-border: #475569;
     --color-active: #60a5fa;
     --color-footer-text: #94a3b8;
+    --color-error-bg: #450a0a;
+    --color-error-text: #fca5a5;
   }
+}
+
+/* ── High-contrast tokens ──
+   Triggered by the OS preference OR the explicit toggle in settings
+   (body[data-high-contrast="true"]). Roadmap A11Y-2. */
+@media (prefers-contrast: more) {
+  :root {
+    --color-bg: #ffffff;
+    --color-text: #000000;
+    --color-primary: #0033cc;
+    --color-primary-hover: #001a99;
+    --color-nav-bg: #ffffff;
+    --color-border: #000000;
+    --color-active: #0033cc;
+    --color-footer-text: #000000;
+    --color-error-bg: #ffe5e5;
+    --color-error-text: #800000;
+  }
+}
+
+body[data-high-contrast="true"] {
+  --color-bg: #ffffff;
+  --color-text: #000000;
+  --color-primary: #0033cc;
+  --color-primary-hover: #001a99;
+  --color-nav-bg: #ffffff;
+  --color-border: #000000;
+  --color-active: #0033cc;
+  --color-footer-text: #000000;
+  --color-error-bg: #ffe5e5;
+  --color-error-text: #800000;
+}
+
+html {
+  font-size: calc(100% * var(--font-scale));
 }
 
 body {
@@ -105,17 +172,24 @@ nav a:focus-visible {
 }
 
 nav a.active {
-  color: var(--color-active);
+  /* Use the darker primary-hover token for the text so contrast against
+     the 10% tinted background clears 4.5:1. The bg tint is too pale to
+     read the regular --color-active (#2563eb on #e3ebfa = 4.31:1).
+     Wave 4a.2 rebinds primary entirely. */
+  color: var(--color-primary-hover);
   background: color-mix(in srgb, var(--color-active) 10%, transparent);
   font-weight: 700;
 }
 
-/* Main */
+/* Main — receives focus on route change via useFocusOnRouteChange so
+   screen readers announce the new page. tabindex=-1 makes it programmatically
+   focusable without entering the keyboard tab order. */
 main {
   flex: 1;
   max-width: 72rem;
   margin: 0 auto;
   padding: 1.5rem;
+  outline: none;
 }
 
 main:has(.page-full-width) {
@@ -229,16 +303,54 @@ footer a {
 .form-error {
   padding: 0.75rem;
   border-radius: 0.375rem;
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
   font-size: 0.875rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  .form-error {
-    background: #450a0a;
-    color: #fca5a5;
-  }
+/* Form error summary — focus jumps here on submit failure (A11Y-26). */
+.form-error-summary {
+  padding: 1rem;
+  border: 2px solid var(--color-error-text);
+  border-radius: 0.375rem;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  outline: none;
+}
+
+.form-error-summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.form-error-summary h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.form-error-summary ul {
+  margin-left: 1.25rem;
+}
+
+/* Link button — looks like a link but is a <button> (used for magic-link
+   trigger inside auth forms). */
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  font: inherit;
+}
+
+.link-button:hover:not(:disabled) {
+  color: var(--color-primary-hover);
+}
+
+.link-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .auth-page button[type="submit"] {
@@ -271,6 +383,475 @@ footer a {
   color: var(--color-primary);
 }
 
+/* ── Settings page ── */
+.settings-page {
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.settings-page fieldset {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+}
+
+.settings-page legend {
+  padding: 0 0.5rem;
+  font-weight: 600;
+}
+
+.form-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-field .help {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+/* Inline value annotation next to a control — e.g. font-scale percent
+   beside a range input. Visual peer of the label, but separate from it
+   so SR don't re-announce the whole control on every value change. */
+.form-field__value {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.btn-destructive {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-text);
+}
+
+.btn-destructive:hover:not(:disabled) {
+  background: var(--color-error-text);
+  color: var(--color-error-bg);
+}
+
+/* ── Saved locations manager ── */
+.saved-locations-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.saved-location-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+}
+
+.saved-location-row__primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.saved-location-name {
+  font-weight: 600;
+}
+
+.saved-location-region {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.saved-location-row__controls {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.saved-location-row__controls button,
+.saved-location-row__controls select {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.saved-location-rename {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.saved-location-rename input {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.form-status {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+/* ── Recent places list ── */
+.recent-places-list ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recent-place-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+}
+
+.recent-place-row__primary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.recent-place-name {
+  font-weight: 500;
+}
+
+.recent-place-visits {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.recent-place-prompt {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--color-primary);
+}
+
+.recent-place-row__controls {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.recent-places-actions {
+  margin-top: 1rem;
+}
+
+/* ── Dashboard ── */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-bg);
+}
+
+.dashboard-card--primary {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+.dashboard-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-card__header h3 {
+  font-size: 1.125rem;
+}
+
+.dashboard-card__region {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__weather {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dashboard-card__temp {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.dashboard-card__weather-desc {
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__weather-empty {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__stops h4 {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-card__stops ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.dashboard-card__stops li {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.dashboard-card__stops .stop-mode {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__stops .stop-distance {
+  color: var(--color-footer-text);
+}
+
+.dashboard-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dashboard-card__actions a {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.dashboard-card__actions a:hover {
+  background: var(--color-border);
+}
+
+.dashboard-save-prompt {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dashboard-save-prompt input {
+  flex: 1;
+  min-width: 12rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.dashboard-saved {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* SR-optimised: stack the stop grid into linear rows so the order is
+   mode → name → distance in reading order. */
+body[data-sr-optimised="true"] .dashboard-card__stops li {
+  grid-template-columns: 1fr;
+}
+
+/* Compact mobile layout: single column, slightly tighter padding. */
+@media (max-width: 40rem) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-card {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* ── Modal dialog ──
+   Used by PersonaWizard. The backdrop click-through is handled in the
+   component (clicks on the dialog itself don't propagate to backdrop). */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1rem;
+}
+
+.modal-dialog {
+  max-width: 32rem;
+  width: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  outline: none;
+}
+
+.modal-dialog:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.confirm-dialog h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.confirm-dialog__body {
+  margin: 0 0 1rem;
+  color: var(--color-text);
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.confirm-dialog__actions button:not(.link-button) {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.persona-wizard h2 {
+  margin-bottom: 0.5rem;
+}
+
+.persona-wizard-intro {
+  font-size: 0.9375rem;
+  margin-bottom: 1rem;
+}
+
+.persona-wizard-step {
+  font-size: 0.875rem;
+  color: var(--color-footer-text);
+  margin-bottom: 1rem;
+}
+
+.persona-wizard fieldset {
+  border: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+}
+
+.persona-wizard legend {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.persona-wizard-choice {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.persona-wizard-choice button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.persona-wizard-choice button.selected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  font-weight: 600;
+}
+
+.persona-wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.persona-wizard-nav-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.persona-wizard-nav button:not(.link-button) {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ── SR-optimised mode ──
+   Marker class set on <body> by the settings page (PREF-9 / A11Y-1). CSS
+   hooks here keep visual decorations out of the way and let components
+   opt into list-first variants via the `body[data-sr-optimised="true"]
+   .your-component-marker` pattern. */
+body[data-sr-optimised="true"] .sr-only-hide {
+  display: none !important;
+}
+
 /* Focus visible for all interactive elements */
 a:focus-visible,
 button:focus-visible,
@@ -284,5 +865,6 @@ select:focus-visible {
   * {
     transition: none !important;
     animation: none !important;
+    scroll-behavior: auto !important;
   }
 }

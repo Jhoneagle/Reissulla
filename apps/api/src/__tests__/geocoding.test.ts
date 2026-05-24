@@ -270,6 +270,11 @@ describe("GET /api/v1/geocoding/reverse", () => {
   });
 
   it("returns 502 when Digitransit is down", async () => {
+    // Other tests share this Redis instance and may have primed the
+    // reverse-geocode cache for these coordinates; clear so we know the
+    // request will reach the (mocked-failing) upstream.
+    await cacheDel("geocoding:reverse:v1:60.1700:24.9400");
+
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
       new Error("Network error"),
     );

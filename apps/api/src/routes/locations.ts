@@ -3,18 +3,34 @@ import { requireAuth } from "../auth/middleware.js";
 import { badRequest } from "../utils/validation.js";
 import { NotFoundError } from "../utils/error-envelope.js";
 import * as savedLocationsRepo from "../db/repositories/saved-locations.repo.js";
+import * as savedLocationsService from "../services/saved-locations.service.js";
+
+const CATEGORY_VALUES = [
+  "home",
+  "work",
+  "school",
+  "cottage",
+  "family",
+  "hobby",
+  "other",
+] as const;
 
 export const locationRoutes: FastifyPluginAsync = async (server) => {
   server.addHook("preHandler", requireAuth);
 
   server.get("/api/v1/locations", async (request) => {
     const userId = request.session!.user.id;
-    const rows = await savedLocationsRepo.listByUser(userId);
+    const rows = await savedLocationsService.listLocations(userId);
     return { data: rows.map(toResponse) };
   });
 
   server.post<{
-    Body: { name: string; latitude: number; longitude: number };
+    Body: {
+      name: string;
+      latitude: number;
+      longitude: number;
+      category?: string;
+    };
   }>(
     "/api/v1/locations",
     {
@@ -26,19 +42,22 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
             name: { type: "string", minLength: 1, maxLength: 255 },
             latitude: { type: "number", minimum: -90, maximum: 90 },
             longitude: { type: "number", minimum: -180, maximum: 180 },
+            category: { type: "string", enum: [...CATEGORY_VALUES] },
           },
         },
       },
     },
     async (request, reply) => {
       const userId = request.session!.user.id;
-      const { name, latitude, longitude } = request.body;
+      const { name, latitude, longitude, category } = request.body;
 
-      const row = await savedLocationsRepo.insertWithLimitCheck({
+      const row = await savedLocationsService.createLocation({
         userId,
         name,
         latitude,
         longitude,
+        category:
+          (category as savedLocationsService.SavedLocationCategory) ?? null,
       });
 
       return reply.status(201).send({ data: toResponse(row) });
@@ -47,7 +66,12 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
 
   server.patch<{
     Params: { id: string };
-    Body: { name?: string; isPrimary?: boolean; sortOrder?: number };
+    Body: {
+      name?: string;
+      isPrimary?: boolean;
+      sortOrder?: number;
+      category?: string | null;
+    };
   }>(
     "/api/v1/locations/:id",
     {
@@ -63,6 +87,12 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
             name: { type: "string", minLength: 1, maxLength: 255 },
             isPrimary: { type: "boolean" },
             sortOrder: { type: "integer", minimum: 0 },
+            // null clears the category (e.g. demoting from "home" to "other"
+            // without picking a specific replacement category).
+            category: {
+              type: ["string", "null"],
+              enum: [...CATEGORY_VALUES, null],
+            },
           },
         },
       },
@@ -76,11 +106,17 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
         return badRequest("No fields to update");
       }
 
-      const row = await savedLocationsRepo.updateByIdForUser(
-        id,
+      const row = await savedLocationsService.updateLocation({
         userId,
-        updates,
-      );
+        id,
+        name: updates.name,
+        isPrimary: updates.isPrimary,
+        sortOrder: updates.sortOrder,
+        category:
+          updates.category === undefined
+            ? undefined
+            : (updates.category as savedLocationsService.SavedLocationCategory | null),
+      });
 
       if (!row) {
         throw new NotFoundError("Location not found");
@@ -105,7 +141,7 @@ export const locationRoutes: FastifyPluginAsync = async (server) => {
       const userId = request.session!.user.id;
       const { id } = request.params;
 
-      const row = await savedLocationsRepo.deleteByIdForUser(id, userId);
+      const row = await savedLocationsService.deleteLocation(id, userId);
 
       if (!row) {
         throw new NotFoundError("Location not found");
@@ -124,6 +160,8 @@ function toResponse(row: savedLocationsRepo.SavedLocationRow) {
     longitude: row.longitude,
     isPrimary: row.isPrimary,
     sortOrder: row.sortOrder,
+    region: row.region,
+    category: row.category,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

@@ -1,10 +1,16 @@
+import { personaToPlanArgs } from "@reissulla/shared";
 import type { AdapterContext } from "../../types.js";
 import type { GraphQLClient } from "../client.js";
 import type { PlanConnectionArgs, RawPlanConnectionData } from "../types.js";
 
 // OTP2 uses a custom `CoordinateValue` scalar — coordinates must be inlined
 // in the query rather than passed as Float variables.
-function buildPlanQuery(args: PlanConnectionArgs): string {
+function buildPlanQuery(args: PlanConnectionArgs, ctx: AdapterContext): string {
+  const personaArgs = ctx.persona ? personaToPlanArgs(ctx.persona) : {};
+  const preferences = personaArgs.wheelchair
+    ? `preferences: { accessibility: { wheelchair: { enabled: true } } }`
+    : "";
+
   return `{
     planConnection(
       origin: { location: { coordinate: { latitude: ${args.fromLat}, longitude: ${args.fromLon} } } }
@@ -14,6 +20,7 @@ function buildPlanQuery(args: PlanConnectionArgs): string {
         direct: [WALK]
         transit: { transit: [{ mode: BUS }, { mode: RAIL }, { mode: TRAM }, { mode: SUBWAY }, { mode: FERRY }] }
       }
+      ${preferences}
     ) {
       edges {
         node {
@@ -53,5 +60,9 @@ export async function planConnectionOperation(
   args: PlanConnectionArgs,
   ctx: AdapterContext,
 ): Promise<RawPlanConnectionData> {
-  return client.graphql<RawPlanConnectionData>(buildPlanQuery(args), {}, ctx);
+  return client.graphql<RawPlanConnectionData>(
+    buildPlanQuery(args, ctx),
+    {},
+    ctx,
+  );
 }

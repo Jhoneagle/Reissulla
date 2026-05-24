@@ -1,7 +1,10 @@
-import type {
-  TransitItinerary,
-  TransitItineraryLeg,
-  TransitPlanResult,
+import {
+  DEFAULT_PERSONA,
+  serializePersona,
+  type Persona,
+  type TransitItinerary,
+  type TransitItineraryLeg,
+  type TransitPlanResult,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
@@ -10,8 +13,8 @@ import { tryCache } from "../../utils/resilience.js";
 import { defaultAdapter } from "../../adapters/digitransit-routing/dispatch.js";
 import type { AdapterContext } from "../../adapters/types.js";
 
-function makeContext(): AdapterContext {
-  return { signal: new AbortController().signal };
+function makeContext(persona: Persona): AdapterContext {
+  return { signal: new AbortController().signal, persona };
 }
 
 export async function planRoute(
@@ -20,15 +23,20 @@ export async function planRoute(
   toLat: number,
   toLon: number,
   numItineraries = 5,
+  persona: Persona = DEFAULT_PERSONA,
 ): Promise<{ data: TransitPlanResult; cached: boolean }> {
+  // v2: persona is part of the cache key — wheelchair / step-free toggles
+  // produce different itineraries and must not collide with the default
+  // result. Serialised persona is deterministic and human-readable in logs.
   const key = cacheKey(
     "transit",
     "plan",
-    1,
+    2,
     fromLat.toFixed(3),
     fromLon.toFixed(3),
     toLat.toFixed(3),
     toLon.toFixed(3),
+    serializePersona(persona),
   );
   const cached = await tryCache(() => cacheGet<TransitPlanResult>(key));
   if (cached) return { data: cached, cached: true };
@@ -36,7 +44,7 @@ export async function planRoute(
   const adapter = defaultAdapter();
   const raw = await adapter.planConnection(
     { fromLat, fromLon, toLat, toLon, numItineraries },
-    makeContext(),
+    makeContext(persona),
   );
 
   const edges = raw.planConnection?.edges ?? [];

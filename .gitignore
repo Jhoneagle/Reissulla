@@ -37,3 +37,7 @@ redis-data/
 *.tmp
 .playwright*/
 .cache/
+
+# Playwright outputs
+test-results/
+playwright-report/
