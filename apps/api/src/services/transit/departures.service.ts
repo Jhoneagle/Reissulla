@@ -9,50 +9,36 @@ import {
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
-import { DEPARTURES_V2_TTL } from "../../cache/ttl.js";
+import { DEPARTURES_V2_TTL, SERVICE_RANGE_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
 import type { AdapterContext } from "../../adapters/types.js";
 import type { RawStoptime } from "../../adapters/digitransit-routing/types.js";
 import { createGraphQLClient } from "../../adapters/digitransit-routing/client.js";
 import { stoptimesForDateOperation } from "../../adapters/digitransit-routing/operations/stoptimesForDate.js";
-import { SERVICE_RANGE_TTL } from "../../cache/ttl.js";
 import { adapterRouter } from "./adapter-router.js";
 
 const MAX_PARALLEL_STOP_QUERIES = 10;
+/**
+ * Upstream fetch buffer — we always fetch the unfiltered superset and then
+ * filter post-cache (see the cache-source-filter-at-edge principle in
+ * `feedback_cache_source_filter_at_edge`). Asking for 1.5× the FE's
+ * displayed count leaves room for low-floor / line / direction filters to
+ * thin the result without falling short.
+ */
+const FETCH_BUFFER = 1.5;
 
 export type ArrivalDepartureMode = "departures" | "arrivals" | "both";
 
-/**
- * OTP2 GTFS only exposes `omitNonPickups` (default false) to narrow
- * stoptimes to "departures only" — there is no distinct ARRIVALS toggle on
- * `stoptimesWithoutPatterns`. The FE three-way choice maps onto this
- * single switch: departures → true (exclude terminus / drop-off only);
- * arrivals / both → false (include drop-offs).
- */
-function omitNonPickupsFor(mode: ArrivalDepartureMode | undefined): boolean {
-  return mode === undefined || mode === "departures";
-}
-
 export interface DeparturesOptions {
-  /** Unix seconds. When set, future-time picker — departures after `at`. */
+  /** Unix seconds — future-time picker (DEP-4). */
   at?: number;
-  /**
-   * When true, `at` is the desired arrival time, not departure time.
-   * OTP2 lacks a native arrive-by flag for stoptimes; we approximate by
-   * widening the lookahead so the FE can show arrivals near the time
-   * the user wants to be there.
-   */
-  arriveBy?: boolean;
-  /** ARRIVALS / DEPARTURES / BOTH — backs the DEP-2 arrivals toggle. */
+  /** DEP-2 — three-way toggle on `kind` derived from `pickupType`. */
   mode?: ArrivalDepartureMode;
-  /** Comma-separated routeShortName whitelist (DEP-5). */
+  /** DEP-5 — `routeShortName` allow-list. */
   lineFilter?: string[];
-  /**
-   * Headsign substring (case-insensitive) — DEP-6 direction filter.
-   * Matches when the headsign contains the substring.
-   */
+  /** DEP-6 — case-insensitive headsign substring. */
   directionFilter?: string;
-  /** A11Y-19 — drop departures whose trip is not low-floor accessible. */
+  /** A11Y-19 — keep only trips with wheelchairAccessible === POSSIBLE. */
   lowFloorOnly?: boolean;
 }
 
@@ -65,6 +51,9 @@ function mapStoptimes(stoptimes: RawStoptime[]): TransitDeparture[] {
     routeShortName: st.trip.route.shortName,
     routeLongName: st.trip.route.longName,
     headsign: st.headsign,
+    scheduledArrival: st.scheduledArrival,
+    realtimeArrival: st.realtimeArrival,
+    arrivalDelay: st.arrivalDelay,
     scheduledDeparture: st.scheduledDeparture,
     realtimeDeparture: st.realtimeDeparture,
     departureDelay: st.departureDelay,
@@ -75,6 +64,11 @@ function mapStoptimes(stoptimes: RawStoptime[]): TransitDeparture[] {
     platformCode: st.stop?.platformCode ?? st.stop?.code ?? null,
     tripId: st.trip.gtfsId,
     wheelchairAccessible: st.trip.wheelchairAccessible ?? undefined,
+    // pickupType / dropoffType === NONE flag the event as unavailable
+    // at this stop. At through-stops both are SCHEDULED — the same row
+    // represents both an arrival and a departure for the same vehicle.
+    canBoard: st.pickupType === "NONE" ? false : true,
+    canAlight: st.dropoffType === "NONE" ? false : true,
   }));
 }
 
@@ -83,6 +77,18 @@ function applyFilters(
   options: DeparturesOptions,
 ): TransitDeparture[] {
   let out = data;
+
+  // Mode filters out rows where the event isn't possible at this stop.
+  // The FE chooses which time column (arrival or departure) to render
+  // — this filter only removes rows that don't make sense for the mode.
+  const mode = options.mode ?? "departures";
+  if (mode === "departures") {
+    out = out.filter((d) => d.canBoard !== false);
+  } else if (mode === "arrivals") {
+    out = out.filter((d) => d.canAlight !== false);
+  }
+  // mode === "both" → keep rows where either is possible (effectively all)
+
   if (options.lineFilter && options.lineFilter.length > 0) {
     const wanted = new Set(options.lineFilter.map((l) => l.toLowerCase()));
     out = out.filter((d) => wanted.has(d.routeShortName.toLowerCase()));
@@ -101,38 +107,49 @@ function serviceDayForResponse(at: number | undefined): ServiceDay {
   return serviceDayFromUnix(at ?? Math.floor(Date.now() / 1000));
 }
 
-function buildOperationArgs(count: number, options: DeparturesOptions) {
+/**
+ * Pass-through operation args — we always fetch the upstream superset
+ * (both arrivals and departures, no per-trip filters) so the cache stores
+ * the source of truth. View-state filters are applied client-side on the
+ * cached payload via `applyFilters`.
+ */
+function buildOperationArgs(displayCount: number, at: number | undefined) {
   return {
-    numberOfDepartures: count,
-    startTime: options.at,
-    omitNonPickups: omitNonPickupsFor(options.mode),
-    timeRange: options.arriveBy ? 12 * 60 * 60 : undefined,
+    numberOfDepartures: Math.ceil(displayCount * FETCH_BUFFER),
+    startTime: at,
+    omitNonPickups: false,
   };
 }
 
-function cacheKeySegments(
+/**
+ * View-state-free cache key segments. The cache slot holds the unfiltered
+ * superset; FE filter combinations are resolved after the cache hit so
+ * one Redis slot serves every toggle state.
+ */
+function dataKeySegments(
   stopId: string,
   count: number,
   isStation: boolean,
-  options: DeparturesOptions,
+  at: number | undefined,
 ): (string | number | boolean)[] {
-  // v2 segment widens for at / arriveBy / filters / mode / lowFloor.
-  // Old v1 keys time out naturally per the cache-key version-segment
-  // policy — no Redis flush.
   const segments: (string | number | boolean)[] = [stopId, count, isStation];
-  if (options.at !== undefined) segments.push(`at=${options.at}`);
-  if (options.arriveBy) segments.push("arriveBy");
-  if (options.mode && options.mode !== "departures") {
-    segments.push(`m=${options.mode}`);
-  }
-  if (options.lineFilter && options.lineFilter.length > 0) {
-    segments.push(`lines=${[...options.lineFilter].sort().join(",")}`);
-  }
-  if (options.directionFilter) {
-    segments.push(`dir=${options.directionFilter.toLowerCase()}`);
-  }
-  if (options.lowFloorOnly) segments.push("lowFloor");
+  if (at !== undefined) segments.push(`at=${at}`);
   return segments;
+}
+
+/**
+ * Wraps a cached or freshly-fetched result with the active filter chain
+ * applied to its `departures` array. Other fields (stopName, subStops,
+ * serviceDay, etc.) pass through unchanged.
+ */
+function withFilteredDepartures(
+  result: TransitDeparturesResult,
+  options: DeparturesOptions,
+): TransitDeparturesResult {
+  return {
+    ...result,
+    departures: applyFilters(result.departures, options),
+  };
 }
 
 export async function getStopDepartures(
@@ -146,14 +163,16 @@ export async function getStopDepartures(
     "transit",
     "departures",
     2,
-    ...cacheKeySegments(stopId, count, isStation, options),
+    ...dataKeySegments(stopId, count, isStation, options.at),
   );
   const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
-  if (cached) return { data: cached, cached: true };
+  if (cached) {
+    return { data: withFilteredDepartures(cached, options), cached: true };
+  }
 
   const adapter = adapterRouter.forStopId(stopId);
   const ctx = makeContext(persona);
-  const opArgs = buildOperationArgs(count, options);
+  const opArgs = buildOperationArgs(count, options.at);
 
   let stopName: string | null = null;
   let stoptimes: RawStoptime[] = [];
@@ -185,16 +204,18 @@ export async function getStopDepartures(
     return { data, cached: false };
   }
 
-  const departures = applyFilters(mapStoptimes(stoptimes), options);
-
-  const data: TransitDeparturesResult = {
+  // Cache the superset; filter the response.
+  const supersetResult: TransitDeparturesResult = {
     stopName,
-    departures,
+    departures: mapStoptimes(stoptimes),
     serviceDay: serviceDayForResponse(options.at),
   };
+  await tryCache(() => cacheSet(key, supersetResult, DEPARTURES_V2_TTL));
 
-  await tryCache(() => cacheSet(key, data, DEPARTURES_V2_TTL));
-  return { data, cached: false };
+  return {
+    data: withFilteredDepartures(supersetResult, options),
+    cached: false,
+  };
 }
 
 export async function getMultiStopDepartures(
@@ -214,10 +235,13 @@ export async function getMultiStopDepartures(
     sortedIds.join(","),
     countPerStop,
     totalCount,
-    ...cacheKeySegments("", 0, Boolean(stationId), options).slice(3),
+    Boolean(stationId),
+    ...(options.at !== undefined ? [`at=${options.at}`] : []),
   );
   const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
-  if (cached) return { data: cached, cached: true };
+  if (cached) {
+    return { data: withFilteredDepartures(cached, options), cached: true };
+  }
 
   const subStopMap = new Map<string, TransitSubStop>();
   for (const ss of subStops) {
@@ -228,7 +252,7 @@ export async function getMultiStopDepartures(
   let stopName: string | null = null;
 
   const ctx = makeContext(persona);
-  const opArgs = buildOperationArgs(countPerStop, options);
+  const opArgs = buildOperationArgs(countPerStop, options.at);
 
   for (let i = 0; i < sortedIds.length; i += MAX_PARALLEL_STOP_QUERIES) {
     const batch = sortedIds.slice(i, i + MAX_PARALLEL_STOP_QUERIES);
@@ -261,12 +285,14 @@ export async function getMultiStopDepartures(
     }
   }
 
-  // Some stops (e.g. train platforms) only return data via the station-level query.
+  // Train-platform fallback: when the per-stop queries returned nothing,
+  // the station-level query sometimes does — e.g. commuter-rail platforms
+  // that aren't first-class stops in the feed.
   if (allDepartures.length === 0 && stationId) {
     try {
       const adapter = adapterRouter.forStopId(stationId);
       const raw = await adapter.stationDepartures(
-        { stationId, ...buildOperationArgs(totalCount, options) },
+        { stationId, ...buildOperationArgs(totalCount, options.at) },
         ctx,
       );
       if (raw.station) {
@@ -298,23 +324,24 @@ export async function getMultiStopDepartures(
     return { data, cached: false };
   }
 
-  allDepartures = applyFilters(allDepartures, options);
-
   allDepartures.sort(
     (a, b) =>
       a.serviceDay + a.realtimeDeparture - (b.serviceDay + b.realtimeDeparture),
   );
-  allDepartures = allDepartures.slice(0, totalCount);
+  allDepartures = allDepartures.slice(0, Math.ceil(totalCount * FETCH_BUFFER));
 
-  const data: TransitDeparturesResult = {
+  const supersetResult: TransitDeparturesResult = {
     stopName,
     departures: allDepartures,
     subStops,
     serviceDay: serviceDayForResponse(options.at),
   };
+  await tryCache(() => cacheSet(key, supersetResult, DEPARTURES_V2_TTL));
 
-  await tryCache(() => cacheSet(key, data, DEPARTURES_V2_TTL));
-  return { data, cached: false };
+  return {
+    data: withFilteredDepartures(supersetResult, options),
+    cached: false,
+  };
 }
 
 export interface FirstLastResult {
@@ -328,13 +355,10 @@ export interface FirstLastResult {
  * First and last departures of a given service date at a stop.
  *
  * Sweeps every pattern serving the stop on `date` via
- * `stoptimesForServiceDate`, flattens into a single list, and pulls the
- * earliest + latest departure by absolute unix time. Cached at
+ * `stoptimesForServiceDate`, flattens into one list, and returns the
+ * earliest + latest by absolute unix time. Cached at
  * `transit:first-last:v1:<stopId>:<date>` for the service-range TTL —
- * tomorrow's first/last shouldn't change second-by-second.
- *
- * Returns nulls when the stop is unknown or the feed has no schedule
- * for the requested day (rural feeds with short serviceTimeRange).
+ * tomorrow's first/last barely changes through the day.
  */
 export async function getFirstLastOfDay(
   stopId: string,
@@ -362,6 +386,12 @@ export async function getFirstLastOfDay(
         routeShortName: p.pattern.route.shortName,
         routeLongName: p.pattern.route.longName,
         headsign: st.headsign,
+        // tripsForDate doesn't expose arrival times — fall back to
+        // departure times. First / last is a per-stop range, not a
+        // per-row arrival vs departure question, so this is fine.
+        scheduledArrival: st.scheduledDeparture,
+        realtimeArrival: st.realtimeDeparture,
+        arrivalDelay: st.departureDelay,
         scheduledDeparture: st.scheduledDeparture,
         realtimeDeparture: st.realtimeDeparture,
         departureDelay: st.departureDelay,

@@ -49,6 +49,16 @@ export interface TransitDeparture {
   routeShortName: string;
   routeLongName: string;
   headsign: string;
+  /**
+   * Times are seconds within the service day. The same row carries
+   * both arrival and departure times because a GTFS stoptime at a
+   * through-stop is *both* events for the same vehicle: it arrives,
+   * dwells, then departs. The FE picks which column to render based
+   * on the user's arrivals/departures/both toggle.
+   */
+  scheduledArrival: number;
+  realtimeArrival: number;
+  arrivalDelay: number;
   scheduledDeparture: number;
   realtimeDeparture: number;
   departureDelay: number;
@@ -63,6 +73,16 @@ export interface TransitDeparture {
   tripId?: string;
   /** GTFS wheelchairAccessible on the trip; POSSIBLE means low-floor. */
   wheelchairAccessible?: WheelchairBoarding;
+  /**
+   * False when GTFS pickupType is NONE — no boarding here (terminus).
+   * `mode=departures` hides rows where this is false. Default true.
+   */
+  canBoard?: boolean;
+  /**
+   * False when GTFS dropoffType is NONE — no alighting here (origin).
+   * `mode=arrivals` hides rows where this is false. Default true.
+   */
+  canAlight?: boolean;
 }
 
 export interface TransitDeparturesResult {

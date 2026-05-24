@@ -71,13 +71,31 @@ export interface RawSearchStopsAndStationsData {
   stations: RawStation[];
 }
 
+/**
+ * GTFS pickup/dropoff type. `NONE` on `pickupType` = no boarding here;
+ * `NONE` on `dropoffType` = no alighting here. SCHEDULED is the normal
+ * case at a through-stop where both apply.
+ */
+export type RawPickupDropoffType =
+  | "SCHEDULED"
+  | "NONE"
+  | "CALL_AGENCY"
+  | "COORDINATE_WITH_DRIVER";
+
 export interface RawStoptime {
+  scheduledArrival: number;
+  realtimeArrival: number;
+  arrivalDelay: number;
   scheduledDeparture: number;
   realtimeDeparture: number;
   departureDelay: number;
   realtime: boolean;
   serviceDay: number;
   headsign: string;
+  /** `NONE` = no boarding allowed at this stop on this trip. */
+  pickupType?: RawPickupDropoffType;
+  /** `NONE` = no alighting allowed at this stop on this trip. */
+  dropoffType?: RawPickupDropoffType;
   stop?: {
     gtfsId: string;
     platformCode: string | null;

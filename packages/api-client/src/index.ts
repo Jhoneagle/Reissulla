@@ -286,7 +286,6 @@ export type ArrivalDepartureMode = "departures" | "arrivals" | "both";
 export interface DeparturesOptions {
   /** Unix seconds — future-time picker. */
   at?: number;
-  arriveBy?: boolean;
   mode?: ArrivalDepartureMode;
   lineFilter?: string[];
   directionFilter?: string;
@@ -299,7 +298,6 @@ function appendDeparturesOptions(
 ): void {
   if (!options) return;
   if (options.at !== undefined) params.set("at", String(options.at));
-  if (options.arriveBy) params.set("arriveBy", "true");
   if (options.mode) params.set("mode", options.mode);
   if (options.lineFilter && options.lineFilter.length > 0) {
     params.set("lineFilter", options.lineFilter.join(","));

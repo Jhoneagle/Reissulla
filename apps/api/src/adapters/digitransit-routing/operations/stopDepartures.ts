@@ -35,12 +35,17 @@ function buildQuery(args: StopDeparturesArgs): string {
       stop(id: $id) {
         name
         stoptimesWithoutPatterns(${parts.join(", ")}) {
+          scheduledArrival
+          realtimeArrival
+          arrivalDelay
           scheduledDeparture
           realtimeDeparture
           departureDelay
           realtime
           serviceDay
           headsign
+          pickupType
+          dropoffType
           stop {
             gtfsId
             platformCode

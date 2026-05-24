@@ -158,7 +158,6 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       count?: string;
       isStation?: string;
       at?: string;
-      arriveBy?: string;
       mode?: string;
       lineFilter?: string;
       directionFilter?: string;
@@ -176,7 +175,6 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             count: { type: "string" },
             isStation: { type: "string" },
             at: { type: "string" },
-            arriveBy: { type: "string" },
             mode: { type: "string" },
             lineFilter: { type: "string" },
             directionFilter: { type: "string" },
@@ -223,7 +221,6 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       countPerStop?: string;
       totalCount?: string;
       at?: string;
-      arriveBy?: string;
       mode?: string;
       lineFilter?: string;
       directionFilter?: string;
@@ -243,7 +240,6 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             countPerStop: { type: "string" },
             totalCount: { type: "string" },
             at: { type: "string" },
-            arriveBy: { type: "string" },
             mode: { type: "string" },
             lineFilter: { type: "string" },
             directionFilter: { type: "string" },
@@ -261,8 +257,11 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       if (ids.length === 0) {
         return badRequest("stopIds must not be empty");
       }
-      if (ids.length > 20) {
-        return badRequest("stopIds must contain at most 20 IDs");
+      // 50 covers the largest Finnish station clusters (Helsinki long-
+      // distance terminal, Kamppi bus terminal). MAX_PARALLEL_STOP_QUERIES
+      // in the service already throttles upstream load.
+      if (ids.length > 50) {
+        return badRequest("stopIds must contain at most 50 IDs");
       }
 
       let subStops: TransitSubStop[] = [];
@@ -561,14 +560,13 @@ const ALLOWED_ARRIVAL_DEPARTURE = new Set<ArrivalDepartureMode>([
 ]);
 
 /**
- * Parse the at / arriveBy / mode / filter query params for departures.
- * Returns a `DeparturesOptions` on success, or an error string on the first
+ * Parse the at / mode / filter query params for departures. Returns a
+ * `DeparturesOptions` on success, or an error string on the first
  * validation failure (route caller wraps it in a 400). Empty/unset params
  * leave the option undefined.
  */
 function parseDeparturesOptions(query: {
   at?: string;
-  arriveBy?: string;
   mode?: string;
   lineFilter?: string;
   directionFilter?: string;
@@ -582,7 +580,6 @@ function parseDeparturesOptions(query: {
     }
     options.at = Math.floor(at);
   }
-  if (query.arriveBy === "true") options.arriveBy = true;
   if (query.mode) {
     const m = query.mode as ArrivalDepartureMode;
     if (!ALLOWED_ARRIVAL_DEPARTURE.has(m)) {
