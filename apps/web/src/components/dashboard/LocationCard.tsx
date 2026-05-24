@@ -50,7 +50,7 @@ export function LocationCard({
   isPrimary,
 }: LocationCardProps) {
   const weather = useCurrentWeather(lat, lon);
-  const stops = useNearbyStops(lat, lon, NEARBY_RADIUS_M);
+  const stops = useNearbyStops(lat, lon, { radius: NEARBY_RADIUS_M });
   const intl = useIntl();
 
   // Only the primary card drives the page-level ambient theme — having

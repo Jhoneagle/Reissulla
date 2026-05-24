@@ -10,6 +10,7 @@ import type {
   RecordVisitInput,
   Preferences,
   PreferencesPatch,
+  PinnedStop,
   TransitStop,
   TransitSubStop,
   TransitDeparturesResult,
@@ -268,18 +269,62 @@ export const accountApi = {
   },
 };
 
+export interface NearbyStopsOptions {
+  radius?: number;
+  mode?: string;
+}
+
+export interface SearchStopsOptions {
+  mode?: string;
+  region?: string;
+  byLine?: string;
+}
+
+export interface AdaptiveNearbyResponse extends ApiResponse<TransitStop[]> {
+  radiusUsed: number;
+}
+
+export interface PinnedStopResponse extends PinnedStop {
+  id: string;
+}
+
+export interface RecentStopResponse {
+  id: string;
+  gtfsId: string;
+  name: string;
+  vehicleMode: string | null;
+  visitCount: number;
+  lastVisitedAt: string;
+}
+
 export const transitApi = {
-  nearbyStops(lat: number, lon: number, radius?: number) {
+  nearbyStops(lat: number, lon: number, options?: NearbyStopsOptions) {
     const params = new URLSearchParams({
       lat: String(lat),
       lon: String(lon),
     });
-    if (radius) params.set("radius", String(radius));
+    if (options?.radius) params.set("radius", String(options.radius));
+    if (options?.mode) params.set("mode", options.mode);
     return request<ApiResponse<TransitStop[]>>(`/transit/stops?${params}`);
   },
-  searchStops(query: string) {
+  adaptiveNearbyStops(lat: number, lon: number, mode?: string) {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lon),
+    });
+    if (mode) params.set("mode", mode);
+    return request<AdaptiveNearbyResponse>(
+      `/transit/stops/nearby-adaptive?${params}`,
+    );
+  },
+  searchStops(query: string, options?: SearchStopsOptions) {
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (options?.mode) params.set("mode", options.mode);
+    if (options?.region) params.set("region", options.region);
+    if (options?.byLine) params.set("byLine", options.byLine);
     return request<ApiResponse<TransitStop[]>>(
-      `/transit/stops/search?q=${encodeURIComponent(query)}`,
+      `/transit/stops/search?${params}`,
     );
   },
   departures(stopId: string, count?: number, isStation?: boolean) {
@@ -309,6 +354,40 @@ export const transitApi = {
   plan(fromLat: number, fromLon: number, toLat: number, toLon: number) {
     return request<ApiResponse<TransitPlanResult>>(
       `/transit/plan?fromLat=${fromLat}&fromLon=${fromLon}&toLat=${toLat}&toLon=${toLon}`,
+    );
+  },
+  listPinnedStops() {
+    return request<{ data: PinnedStopResponse[] }>("/transit/pinned-stops");
+  },
+  pinStop(input: {
+    gtfsId: string;
+    name: string;
+    vehicleMode?: string | null;
+  }) {
+    return mutationRequest<{ data: PinnedStopResponse }>(
+      "/transit/pinned-stops",
+      "POST",
+      input,
+    );
+  },
+  unpinStop(id: string) {
+    return mutationRequest<void>(`/transit/pinned-stops/${id}`, "DELETE");
+  },
+  listRecentStops(limit?: number) {
+    const path = limit
+      ? `/transit/recent-stops?limit=${encodeURIComponent(String(limit))}`
+      : "/transit/recent-stops";
+    return request<{ data: RecentStopResponse[] }>(path);
+  },
+  recordRecentStop(input: {
+    gtfsId: string;
+    name: string;
+    vehicleMode?: string | null;
+  }) {
+    return mutationRequest<{ data: RecentStopResponse }>(
+      "/transit/recent-stops",
+      "POST",
+      input,
     );
   },
 };
