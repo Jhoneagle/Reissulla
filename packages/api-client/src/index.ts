@@ -278,6 +278,7 @@ export interface SearchStopsOptions {
   mode?: string;
   region?: string;
   byLine?: string;
+  operator?: string;
 }
 
 export interface AdaptiveNearbyResponse extends ApiResponse<TransitStop[]> {
@@ -324,6 +325,7 @@ export const transitApi = {
     if (options?.mode) params.set("mode", options.mode);
     if (options?.region) params.set("region", options.region);
     if (options?.byLine) params.set("byLine", options.byLine);
+    if (options?.operator) params.set("operator", options.operator);
     return request<ApiResponse<TransitStop[]>>(
       `/transit/stops/search?${params}`,
     );

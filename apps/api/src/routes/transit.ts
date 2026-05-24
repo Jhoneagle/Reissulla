@@ -113,6 +113,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       mode?: string;
       region?: string;
       byLine?: string;
+      operator?: string;
     };
   }>(
     "/api/v1/transit/stops/search",
@@ -125,6 +126,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             mode: { type: "string" },
             region: { type: "string" },
             byLine: { type: "string" },
+            operator: { type: "string" },
           },
         },
       },
@@ -141,6 +143,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         mode: request.query.mode?.trim() || undefined,
         region: request.query.region?.trim() || undefined,
         byLine,
+        operator: request.query.operator?.trim() || undefined,
       });
       return { data, cached };
     },

@@ -4,6 +4,7 @@ import type {
   WheelchairBoarding,
 } from "@reissulla/shared";
 import type {
+  RawRouteAgency,
   RawStationChildStop,
   RawSearchStopsAndStationsData,
   RawWheelchairBoarding,
@@ -44,9 +45,21 @@ function toWheelchair(
   return raw ?? undefined;
 }
 
+function mergeAgencies(
+  acc: Map<string, { gtfsId: string; name: string }>,
+  routes: RawRouteAgency[] | null | undefined,
+): Map<string, { gtfsId: string; name: string }> {
+  if (!routes) return acc;
+  for (const r of routes) {
+    if (r.agency) acc.set(r.agency.gtfsId, r.agency);
+  }
+  return acc;
+}
+
 interface GroupedEntry {
   stop: TransitStop;
   subStops: Map<string, TransitSubStop>;
+  agencies: Map<string, { gtfsId: string; name: string }>;
 }
 
 /**
@@ -88,7 +101,11 @@ export function groupStopsByNameAndMode(
             wheelchairBoarding: toWheelchair(st.wheelchairBoarding),
           },
           subStops: new Map(),
+          agencies: mergeAgencies(new Map(), st.routes),
         });
+      } else {
+        const entry = grouped.get(key)!;
+        entry.agencies = mergeAgencies(entry.agencies, st.routes);
       }
     }
 
@@ -110,9 +127,11 @@ export function groupStopsByNameAndMode(
             wheelchairBoarding: toWheelchair(st.wheelchairBoarding),
           },
           subStops: new Map(),
+          agencies: new Map(),
         };
         grouped.set(key, entry);
       }
+      entry.agencies = mergeAgencies(entry.agencies, st.routes);
       for (const child of children) {
         entry.subStops.set(child.gtfsId, {
           gtfsId: child.gtfsId,
@@ -148,6 +167,7 @@ export function groupStopsByNameAndMode(
           wheelchairBoarding: toWheelchair(s.wheelchairBoarding),
         },
         subStops: new Map(),
+        agencies: new Map(),
       };
       grouped.set(key, entry);
     } else {
@@ -156,6 +176,7 @@ export function groupStopsByNameAndMode(
         s.wheelchairBoarding,
       );
     }
+    entry.agencies = mergeAgencies(entry.agencies, s.routes);
     entry.subStops.set(s.gtfsId, {
       gtfsId: s.gtfsId,
       code: s.code,
@@ -165,8 +186,9 @@ export function groupStopsByNameAndMode(
     });
   }
 
-  return Array.from(grouped.values()).map(({ stop, subStops }) => ({
+  return Array.from(grouped.values()).map(({ stop, subStops, agencies }) => ({
     ...stop,
     subStops: Array.from(subStops.values()),
+    agencies: agencies.size > 0 ? Array.from(agencies.values()) : undefined,
   }));
 }

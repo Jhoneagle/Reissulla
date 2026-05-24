@@ -34,6 +34,13 @@ export interface TransitStop {
    * sort and the A11Y-20 stop accessibility disclosure.
    */
   wheelchairBoarding?: WheelchairBoarding;
+  /**
+   * Operators serving this stop, deduplicated by gtfsId. Populated only
+   * by the search endpoint (which fetches routes per stop); nearby and
+   * single-stop queries skip the route fan-out and leave this undefined.
+   * Backs the operator dropdown on the search filter row.
+   */
+  agencies?: { gtfsId: string; name: string }[];
 }
 
 export interface TransitDeparture {

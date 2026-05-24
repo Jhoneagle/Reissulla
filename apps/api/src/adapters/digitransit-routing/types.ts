@@ -39,6 +39,10 @@ export interface RawStationChildStop {
   wheelchairBoarding: RawWheelchairBoarding;
 }
 
+export interface RawRouteAgency {
+  agency: { gtfsId: string; name: string } | null;
+}
+
 export interface RawStop {
   gtfsId: string;
   name: string;
@@ -48,6 +52,7 @@ export interface RawStop {
   vehicleMode: string | null;
   platformCode: string | null;
   wheelchairBoarding: RawWheelchairBoarding;
+  routes?: RawRouteAgency[] | null;
 }
 
 export interface RawStation {
@@ -57,6 +62,7 @@ export interface RawStation {
   lon: number;
   vehicleMode: string | null;
   wheelchairBoarding: RawWheelchairBoarding;
+  routes?: RawRouteAgency[] | null;
   stops: RawStationChildStop[];
 }
 
