@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { TransitSubStop } from "@reissulla/shared";
 import {
   getNearbyStops,
+  getAdaptiveNearbyStops,
   searchStops,
   getStopDepartures,
   getMultiStopDepartures,
@@ -9,6 +10,10 @@ import {
 } from "../services/transit/index.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
 import { parseJson } from "../utils/json.js";
+import { requireAuth } from "../auth/middleware.js";
+import { NotFoundError } from "../utils/error-envelope.js";
+import * as pinnedStopsRepo from "../db/repositories/pinned-stops.repo.js";
+import * as recentStopsRepo from "../db/repositories/recent-stops.repo.js";
 
 function isSubStopArray(value: unknown): value is Record<string, unknown>[] {
   if (!Array.isArray(value)) return false;
@@ -25,7 +30,14 @@ function coerceSubStop(raw: Record<string, unknown>): TransitSubStop {
 }
 
 export const transitRoutes: FastifyPluginAsync = async (server) => {
-  server.get<{ Querystring: { lat: string; lon: string; radius?: string } }>(
+  server.get<{
+    Querystring: {
+      lat: string;
+      lon: string;
+      radius?: string;
+      mode?: string;
+    };
+  }>(
     "/api/v1/transit/stops",
     {
       schema: {
@@ -36,6 +48,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             lat: { type: "string" },
             lon: { type: "string" },
             radius: { type: "string" },
+            mode: { type: "string" },
           },
         },
       },
@@ -52,34 +65,83 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         radius = parsed;
       }
 
+      const mode = request.query.mode?.trim() || undefined;
+
       const { data, cached } = await getNearbyStops(
         lat,
         lon,
         radius,
         request.persona,
+        { mode },
       );
       return { data, cached };
     },
   );
 
-  server.get<{ Querystring: { q: string } }>(
+  // Adaptive nearby — doubles radius up to 2 km until we surface five stops.
+  server.get<{ Querystring: { lat: string; lon: string; mode?: string } }>(
+    "/api/v1/transit/stops/nearby-adaptive",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          required: ["lat", "lon"],
+          properties: {
+            lat: { type: "string" },
+            lon: { type: "string" },
+            mode: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const { lat, lon } = parseCoordinates(request.query);
+      const mode = request.query.mode?.trim() || undefined;
+      const { data, cached, radiusUsed } = await getAdaptiveNearbyStops(
+        lat,
+        lon,
+        request.persona,
+        { mode },
+      );
+      return { data, cached, radiusUsed };
+    },
+  );
+
+  server.get<{
+    Querystring: {
+      q?: string;
+      mode?: string;
+      region?: string;
+      byLine?: string;
+    };
+  }>(
     "/api/v1/transit/stops/search",
     {
       schema: {
         querystring: {
           type: "object",
-          required: ["q"],
-          properties: { q: { type: "string" } },
+          properties: {
+            q: { type: "string" },
+            mode: { type: "string" },
+            region: { type: "string" },
+            byLine: { type: "string" },
+          },
         },
       },
     },
     async (request) => {
-      const q = request.query.q.trim();
-      if (q === "") {
-        return badRequest("q must not be empty");
+      const q = (request.query.q ?? "").trim();
+      const byLine = request.query.byLine?.trim() || undefined;
+      // byLine is a standalone query path — q is optional when present.
+      if (!byLine && q === "") {
+        return badRequest("q must not be empty when byLine is not set");
       }
 
-      const { data, cached } = await searchStops(q, request.persona);
+      const { data, cached } = await searchStops(q, request.persona, {
+        mode: request.query.mode?.trim() || undefined,
+        region: request.query.region?.trim() || undefined,
+        byLine,
+      });
       return { data, cached };
     },
   );
@@ -251,4 +313,144 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       return { data, cached };
     },
   );
+
+  // Authenticated transit endpoints — pinned + recent stops. Registered as a
+  // sub-plugin so the requireAuth hook applies only to these routes without
+  // splitting transit.ts into two files.
+  await server.register(async (s) => {
+    s.addHook("preHandler", requireAuth);
+
+    s.get("/api/v1/transit/pinned-stops", async (request) => {
+      const userId = request.session!.user.id;
+      const rows = await pinnedStopsRepo.listByUser(userId);
+      return { data: rows.map(pinnedStopToResponse) };
+    });
+
+    s.post<{
+      Body: { gtfsId: string; name: string; vehicleMode?: string | null };
+    }>(
+      "/api/v1/transit/pinned-stops",
+      {
+        schema: {
+          body: {
+            type: "object",
+            required: ["gtfsId", "name"],
+            properties: {
+              gtfsId: { type: "string", minLength: 1, maxLength: 255 },
+              name: { type: "string", minLength: 1, maxLength: 255 },
+              vehicleMode: { type: ["string", "null"], maxLength: 32 },
+            },
+          },
+        },
+      },
+      async (request, reply) => {
+        const userId = request.session!.user.id;
+        const row = await pinnedStopsRepo.pin({
+          userId,
+          gtfsId: request.body.gtfsId,
+          name: request.body.name,
+          vehicleMode: request.body.vehicleMode ?? null,
+        });
+        return reply.status(201).send({ data: pinnedStopToResponse(row) });
+      },
+    );
+
+    s.delete<{ Params: { id: string } }>(
+      "/api/v1/transit/pinned-stops/:id",
+      {
+        schema: {
+          params: {
+            type: "object",
+            required: ["id"],
+            properties: { id: { type: "string" } },
+          },
+        },
+      },
+      async (request, reply) => {
+        const userId = request.session!.user.id;
+        const row = await pinnedStopsRepo.unpinById(request.params.id, userId);
+        if (!row) {
+          throw new NotFoundError("Pinned stop not found");
+        }
+        return reply.status(204).send();
+      },
+    );
+
+    s.get<{ Querystring: { limit?: string } }>(
+      "/api/v1/transit/recent-stops",
+      {
+        schema: {
+          querystring: {
+            type: "object",
+            properties: { limit: { type: "string" } },
+          },
+        },
+      },
+      async (request) => {
+        const userId = request.session!.user.id;
+        const limit = parseRecentLimit(request.query.limit);
+        const rows = await recentStopsRepo.listByUser(userId, limit);
+        return { data: rows.map(recentStopToResponse) };
+      },
+    );
+
+    s.post<{
+      Body: { gtfsId: string; name: string; vehicleMode?: string | null };
+    }>(
+      "/api/v1/transit/recent-stops",
+      {
+        schema: {
+          body: {
+            type: "object",
+            required: ["gtfsId", "name"],
+            properties: {
+              gtfsId: { type: "string", minLength: 1, maxLength: 255 },
+              name: { type: "string", minLength: 1, maxLength: 255 },
+              vehicleMode: { type: ["string", "null"], maxLength: 32 },
+            },
+          },
+        },
+      },
+      async (request, reply) => {
+        const userId = request.session!.user.id;
+        const row = await recentStopsRepo.recordVisit({
+          userId,
+          gtfsId: request.body.gtfsId,
+          name: request.body.name,
+          vehicleMode: request.body.vehicleMode ?? null,
+        });
+        return reply.status(201).send({ data: recentStopToResponse(row) });
+      },
+    );
+  });
 };
+
+function pinnedStopToResponse(row: pinnedStopsRepo.PinnedStopRow) {
+  return {
+    id: row.id,
+    gtfsId: row.gtfsId,
+    name: row.name,
+    vehicleMode: row.vehicleMode,
+    pinnedAt: row.pinnedAt.toISOString(),
+  };
+}
+
+function recentStopToResponse(row: recentStopsRepo.RecentStopRow) {
+  return {
+    id: row.id,
+    gtfsId: row.gtfsId,
+    name: row.name,
+    vehicleMode: row.vehicleMode,
+    visitCount: row.visitCount,
+    lastVisitedAt: row.lastVisitedAt.toISOString(),
+  };
+}
+
+const RECENT_STOPS_MAX_LIMIT = 50;
+
+function parseRecentLimit(raw: string | undefined): number {
+  if (!raw) return 20;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) return 20;
+  return Math.min(n, RECENT_STOPS_MAX_LIMIT);
+}

@@ -3,6 +3,13 @@ export interface GraphQLResponse<T> {
   errors?: { message: string }[];
 }
 
+/** GTFS wheelchair-boarding values mapped onto the FE-facing string set. */
+export type RawWheelchairBoarding =
+  | "POSSIBLE"
+  | "NOT_POSSIBLE"
+  | "NO_INFORMATION"
+  | null;
+
 export interface RawNearestEdge {
   distance: number;
   place: {
@@ -13,6 +20,7 @@ export interface RawNearestEdge {
     lon: number;
     vehicleMode: string | null;
     platformCode: string | null;
+    wheelchairBoarding: RawWheelchairBoarding;
   };
 }
 
@@ -28,6 +36,7 @@ export interface RawStationChildStop {
   code: string | null;
   platformCode: string | null;
   vehicleMode: string | null;
+  wheelchairBoarding: RawWheelchairBoarding;
 }
 
 export interface RawStop {
@@ -38,6 +47,7 @@ export interface RawStop {
   lon: number;
   vehicleMode: string | null;
   platformCode: string | null;
+  wheelchairBoarding: RawWheelchairBoarding;
 }
 
 export interface RawStation {
@@ -46,6 +56,7 @@ export interface RawStation {
   lat: number;
   lon: number;
   vehicleMode: string | null;
+  wheelchairBoarding: RawWheelchairBoarding;
   stops: RawStationChildStop[];
 }
 

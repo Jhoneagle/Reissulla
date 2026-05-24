@@ -32,6 +32,7 @@ describe("groupStopsByNameAndMode", () => {
           lat: 60.171,
           lon: 24.9435,
           vehicleMode: "SUBWAY",
+          wheelchairBoarding: null,
           stops: [
             {
               gtfsId: "HSL:1000003_1",
@@ -39,6 +40,7 @@ describe("groupStopsByNameAndMode", () => {
               code: "M112",
               platformCode: "1",
               vehicleMode: "SUBWAY",
+              wheelchairBoarding: null,
             },
             {
               gtfsId: "HSL:1000003_2",
@@ -46,6 +48,7 @@ describe("groupStopsByNameAndMode", () => {
               code: "T100",
               platformCode: "T",
               vehicleMode: "TRAM",
+              wheelchairBoarding: null,
             },
           ],
         },
@@ -72,6 +75,7 @@ describe("groupStopsByNameAndMode", () => {
           lon: 24.9432,
           vehicleMode: "BUS",
           platformCode: null,
+          wheelchairBoarding: null,
         },
       ],
       [
@@ -81,6 +85,7 @@ describe("groupStopsByNameAndMode", () => {
           lat: 60.171,
           lon: 24.9435,
           vehicleMode: "SUBWAY",
+          wheelchairBoarding: null,
           stops: [
             {
               gtfsId: "HSL:1000003_1",
@@ -88,6 +93,7 @@ describe("groupStopsByNameAndMode", () => {
               code: "M112",
               platformCode: "1",
               vehicleMode: "SUBWAY",
+              wheelchairBoarding: null,
             },
           ],
         },
@@ -111,6 +117,7 @@ describe("groupStopsByNameAndMode", () => {
           lat: 60.0,
           lon: 24.0,
           vehicleMode: "RAIL",
+          wheelchairBoarding: null,
           stops: [],
         },
       ],
@@ -132,6 +139,7 @@ describe("groupStopsByNameAndMode", () => {
           lat: 60.0,
           lon: 24.0,
           vehicleMode: null,
+          wheelchairBoarding: null,
           stops: [
             {
               gtfsId: "HSL:8888888_1",
@@ -139,6 +147,7 @@ describe("groupStopsByNameAndMode", () => {
               code: null,
               platformCode: null,
               vehicleMode: null,
+              wheelchairBoarding: null,
             },
           ],
         },
@@ -159,6 +168,7 @@ describe("groupStopsByNameAndMode", () => {
           lat: 60.2,
           lon: 24.93,
           vehicleMode: "RAIL",
+          wheelchairBoarding: null,
           stops: [
             {
               gtfsId: "HSL:p1",
@@ -166,6 +176,7 @@ describe("groupStopsByNameAndMode", () => {
               code: "1",
               platformCode: "1",
               vehicleMode: "RAIL",
+              wheelchairBoarding: null,
             },
             {
               gtfsId: "HSL:p1",
@@ -173,6 +184,7 @@ describe("groupStopsByNameAndMode", () => {
               code: "1",
               platformCode: "1",
               vehicleMode: "RAIL",
+              wheelchairBoarding: null,
             },
           ],
         },

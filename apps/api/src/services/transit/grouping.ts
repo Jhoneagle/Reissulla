@@ -1,7 +1,12 @@
-import type { TransitStop, TransitSubStop } from "@reissulla/shared";
+import type {
+  TransitStop,
+  TransitSubStop,
+  WheelchairBoarding,
+} from "@reissulla/shared";
 import type {
   RawStationChildStop,
   RawSearchStopsAndStationsData,
+  RawWheelchairBoarding,
 } from "../../adapters/digitransit-routing/types.js";
 
 /**
@@ -13,6 +18,30 @@ export function normalizeStopName(name: string): string {
     .replace(/\s*\([^)]{1,3}\)\s*$/, "")
     .toLowerCase()
     .trim();
+}
+
+/**
+ * Reduce wheelchair-boarding values across the children of a station.
+ * POSSIBLE wins over NO_INFORMATION which wins over NOT_POSSIBLE so a
+ * station with one accessible platform is surfaced as accessible — the
+ * conservative read favours user discovery over silent exclusion.
+ */
+function mergeWheelchair(
+  acc: WheelchairBoarding | undefined,
+  next: RawWheelchairBoarding,
+): WheelchairBoarding | undefined {
+  if (next === null) return acc;
+  if (next === "POSSIBLE" || acc === "POSSIBLE") return "POSSIBLE";
+  if (next === "NO_INFORMATION" || acc === "NO_INFORMATION") {
+    return "NO_INFORMATION";
+  }
+  return "NOT_POSSIBLE";
+}
+
+function toWheelchair(
+  raw: RawWheelchairBoarding,
+): WheelchairBoarding | undefined {
+  return raw ?? undefined;
 }
 
 interface GroupedEntry {
@@ -56,6 +85,7 @@ export function groupStopsByNameAndMode(
             platformCode: null,
             isStation: true,
             vehicleModes: [st.vehicleMode],
+            wheelchairBoarding: toWheelchair(st.wheelchairBoarding),
           },
           subStops: new Map(),
         });
@@ -77,6 +107,7 @@ export function groupStopsByNameAndMode(
             platformCode: null,
             isStation: true,
             vehicleModes: [mode],
+            wheelchairBoarding: toWheelchair(st.wheelchairBoarding),
           },
           subStops: new Map(),
         };
@@ -88,7 +119,12 @@ export function groupStopsByNameAndMode(
           code: child.code,
           platformCode: child.platformCode,
           vehicleMode: child.vehicleMode,
+          wheelchairBoarding: toWheelchair(child.wheelchairBoarding),
         });
+        entry.stop.wheelchairBoarding = mergeWheelchair(
+          entry.stop.wheelchairBoarding,
+          child.wheelchairBoarding,
+        );
       }
     }
   }
@@ -109,16 +145,23 @@ export function groupStopsByNameAndMode(
           platformCode: s.platformCode,
           isStation: false,
           vehicleModes: [mode],
+          wheelchairBoarding: toWheelchair(s.wheelchairBoarding),
         },
         subStops: new Map(),
       };
       grouped.set(key, entry);
+    } else {
+      entry.stop.wheelchairBoarding = mergeWheelchair(
+        entry.stop.wheelchairBoarding,
+        s.wheelchairBoarding,
+      );
     }
     entry.subStops.set(s.gtfsId, {
       gtfsId: s.gtfsId,
       code: s.code,
       platformCode: s.platformCode,
       vehicleMode: s.vehicleMode,
+      wheelchairBoarding: toWheelchair(s.wheelchairBoarding),
     });
   }
 

@@ -1,12 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { TransitSubStop } from "@reissulla/shared";
-import { transitApi } from "@reissulla/api-client";
+import {
+  transitApi,
+  type NearbyStopsOptions,
+  type SearchStopsOptions,
+} from "@reissulla/api-client";
 
-export function useStopSearch(query: string) {
+export function useStopSearch(query: string, options?: SearchStopsOptions) {
+  const mode = options?.mode;
+  const region = options?.region;
+  const byLine = options?.byLine;
   return useQuery({
-    queryKey: ["transit-stop-search", query],
-    queryFn: () => transitApi.searchStops(query),
-    enabled: query.length >= 2,
+    queryKey: ["transit-stop-search", query, mode, region, byLine],
+    queryFn: () => transitApi.searchStops(query, { mode, region, byLine }),
+    // byLine works without a text query — keep it enabled in that case.
+    enabled: Boolean(byLine) || query.length >= 2,
     staleTime: 60 * 60 * 1000, // 1 hour (stops rarely change)
   });
 }
@@ -14,13 +22,74 @@ export function useStopSearch(query: string) {
 export function useNearbyStops(
   lat: number | null,
   lon: number | null,
-  radius?: number,
+  options?: NearbyStopsOptions,
 ) {
+  const radius = options?.radius;
+  const mode = options?.mode;
   return useQuery({
-    queryKey: ["transit-nearby", lat, lon, radius],
-    queryFn: () => transitApi.nearbyStops(lat!, lon!, radius),
+    queryKey: ["transit-nearby", lat, lon, radius, mode],
+    queryFn: () => transitApi.nearbyStops(lat!, lon!, { radius, mode }),
     enabled: lat !== null && lon !== null,
     staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useAdaptiveNearbyStops(
+  lat: number | null,
+  lon: number | null,
+  mode?: string,
+) {
+  return useQuery({
+    queryKey: ["transit-nearby-adaptive", lat, lon, mode],
+    queryFn: () => transitApi.adaptiveNearbyStops(lat!, lon!, mode),
+    enabled: lat !== null && lon !== null,
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+const PINNED_STOPS_KEY = ["transit-pinned-stops"] as const;
+
+export function usePinnedStops(enabled = true) {
+  return useQuery({
+    queryKey: PINNED_STOPS_KEY,
+    queryFn: () => transitApi.listPinnedStops(),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePinStop() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: transitApi.pinStop,
+    onSuccess: () => qc.invalidateQueries({ queryKey: PINNED_STOPS_KEY }),
+  });
+}
+
+export function useUnpinStop() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => transitApi.unpinStop(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PINNED_STOPS_KEY }),
+  });
+}
+
+const RECENT_STOPS_KEY = ["transit-recent-stops"] as const;
+
+export function useRecentStops(enabled = true, limit?: number) {
+  return useQuery({
+    queryKey: [...RECENT_STOPS_KEY, limit],
+    queryFn: () => transitApi.listRecentStops(limit),
+    enabled,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useRecordRecentStop() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: transitApi.recordRecentStop,
+    onSuccess: () => qc.invalidateQueries({ queryKey: RECENT_STOPS_KEY }),
   });
 }
 

@@ -138,6 +138,52 @@ export const recentPlaces = pgTable("recent_places", {
     .defaultNow(),
 });
 
+// Pinned stops — user-owned shortcuts surfaced on the dashboard and on the
+// transit page. Separate table from saved_locations because pins are stop ids
+// (not coordinates) and they carry a vehicleMode column for icon rendering.
+export const pinnedStops = pgTable(
+  "pinned_stops",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    gtfsId: varchar("gtfs_id", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    // BUS / TRAM / RAIL / SUBWAY / FERRY — null for stations spanning modes.
+    vehicleMode: varchar("vehicle_mode", { length: 32 }),
+    pinnedAt: timestamp("pinned_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("pinned_stops_user_gtfs_idx").on(t.userId, t.gtfsId)],
+);
+
+// Recent stops — like recent_places but for transit stops. Kept distinct
+// from recent_places because the shape (gtfsId + vehicleMode) differs and
+// architecture §7.1 fixes recent_places to its current schema.
+export const recentStops = pgTable(
+  "recent_stops",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    gtfsId: varchar("gtfs_id", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    vehicleMode: varchar("vehicle_mode", { length: 32 }),
+    visitCount: integer("visit_count").notNull().default(1),
+    lastVisitedAt: timestamp("last_visited_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("recent_stops_user_gtfs_idx").on(t.userId, t.gtfsId)],
+);
+
 export const preferences = pgTable("preferences", {
   id: text("id")
     .primaryKey()

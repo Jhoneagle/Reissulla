@@ -5,6 +5,7 @@ import { useAuthStore } from "../stores/auth";
 import { useGeolocationStore } from "../stores/geolocation";
 import { useSavedLocations } from "../hooks/useSavedLocations";
 import { LocationCard } from "../components/dashboard/LocationCard";
+import { PinnedStopsCard } from "../components/dashboard/PinnedStopsCard";
 import { SaveCurrentLocationPrompt } from "../components/dashboard/SaveCurrentLocationPrompt";
 import { DashboardKicker } from "../components/dashboard/DashboardKicker";
 import { SatelliteArt } from "../components/art/EmptyArt";
@@ -57,6 +58,8 @@ export function Dashboard() {
       ) : (
         <EmptyState authed={!!user} />
       )}
+
+      <PinnedStopsCard />
 
       {secondary.length > 0 && (
         <div className="dashboard-grid">
