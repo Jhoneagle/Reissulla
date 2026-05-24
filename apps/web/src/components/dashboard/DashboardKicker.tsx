@@ -1,15 +1,15 @@
 import { useIntl } from "react-intl";
 
 /**
- * "REISSULLA WEEKLY · MAANANTAI 23. TOUKOKUUTA · KEVÄT" — the
- * masthead-style kicker that sits above the primary card. Three
- * columns: publication wordmark | locale-aware date | auto-detected
- * season. IBM Plex Mono, tracked, uppercase, in the muted ink token.
+ * "SUNNUNTAI 24. TOUKOKUUTA · KEVÄT" — masthead-style date line
+ * that sits above the primary card. Two columns: locale-aware date
+ * | auto-detected season. IBM Plex Mono, tracked, uppercase, in
+ * the muted ink token.
  *
- * Decorative. The page-level h1 (visually hidden, owned by
- * PageHeading) carries the route's semantic heading; this is
- * editorial decoration that helps the dashboard feel like the front
- * page of a paper.
+ * Decorative (aria-hidden). The wordmark in the header already
+ * names the publication; the kicker is the dateline. The page-level
+ * h1 (visually hidden, owned by PageHeading) carries the route's
+ * semantic heading.
  */
 export function DashboardKicker() {
   const intl = useIntl();
@@ -26,8 +26,6 @@ export function DashboardKicker() {
 
   return (
     <p className="dashboard-kicker" aria-hidden="true">
-      <span className="dashboard-kicker__publication">Reissulla Weekly</span>
-      <span className="dashboard-kicker__sep">·</span>
       <span className="dashboard-kicker__date">
         {weekday} {dateLine}
       </span>

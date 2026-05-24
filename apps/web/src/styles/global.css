@@ -247,7 +247,8 @@ body[data-high-contrast="true"] {
    without help. Scoped to body-text contexts; never applied to the
    hero numeral, the kicker, or the wordmark (tracked layout, not
    flowing text). */
-html[lang="fi"] :is(
+html[lang="fi"]
+  :is(
     .dashboard-card__lede,
     .stops-board__name,
     .recent-place-name,
@@ -1274,11 +1275,6 @@ footer a {
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--color-ink-muted);
-}
-
-.dashboard-kicker__publication {
-  font-weight: 600;
-  color: var(--color-ink);
 }
 
 .dashboard-kicker__sep {

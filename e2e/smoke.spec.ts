@@ -10,9 +10,12 @@ test("anonymous dashboard renders with no critical/serious a11y issues", async (
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 2 })).toContainText(
-    /Dashboard|Etusivu/,
-  );
+  // The Dashboard's only visible heading is the kicker (decorative,
+  // aria-hidden). The semantic page heading is the visually-hidden h1
+  // owned by PageHeading — match against that.
+  await expect(
+    page.getByRole("heading", { level: 1, name: /Dashboard|Etusivu/ }),
+  ).toBeAttached();
   await expectNoSeriousA11yViolations(page);
 });
 

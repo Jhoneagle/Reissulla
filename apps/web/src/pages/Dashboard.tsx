@@ -40,11 +40,8 @@ export function Dashboard() {
   const gps = geolocation.position;
 
   return (
-    <section aria-labelledby="dashboard-heading" className="dashboard">
+    <div className="dashboard">
       <DashboardKicker />
-      <h2 id="dashboard-heading">
-        <FormattedMessage id="dashboard.heading" />
-      </h2>
 
       {!user && (
         <p className="help">
@@ -78,7 +75,7 @@ export function Dashboard() {
       {user && savedLocations.length === 0 && gps && (
         <SaveCurrentLocationPrompt lat={gps.lat} lon={gps.lon} />
       )}
-    </section>
+    </div>
   );
 }
 
