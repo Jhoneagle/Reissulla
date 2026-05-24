@@ -815,19 +815,94 @@ main:has(.page-full-width) {
   line-height: var(--leading-tight);
 }
 
-/* ── Form controls: WCAG 2.2 target-size ──
-   Native checkboxes/radios used to render at the browser default
-   ~13px square, well under the SC 2.5.8 24px threshold. Forcing
-   them to 1.5rem (24px at root) gives the right hit area; accent
-   colour follows the primary brand. Persona-wizard buttons are
-   styled as .btn elsewhere and unaffected by this selector. */
+/* ── Form controls: WCAG 2.2 target-size + editorial styling ──
+   Replace the browser-default checkbox/radio with a custom design
+   that fits the cream paper + transit blue palette. appearance:none
+   strips the OS chrome; we redraw the box and check/dot via the
+   ::before. 24×24 wrapper hits SC 2.5.8 target-size; the visible
+   glyph stays smaller (18px square / 16px circle) so the box
+   doesn't dominate adjacent body text.
+
+   Persona-wizard radios styled as .btn buttons are matched by a
+   different selector and unaffected here. */
 input[type="checkbox"],
 input[type="radio"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   width: 1.5rem;
   height: 1.5rem;
-  accent-color: var(--color-primary);
   margin: 0;
   cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  display: inline-grid;
+  place-items: center;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+input[type="checkbox"]::before,
+input[type="radio"]::before {
+  content: "";
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1.5px solid var(--color-rule);
+  background: var(--color-surface);
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+input[type="checkbox"]::before {
+  border-radius: var(--radius-xs);
+}
+
+input[type="radio"]::before {
+  border-radius: 50%;
+}
+
+input[type="checkbox"]:hover::before,
+input[type="radio"]:hover::before {
+  border-color: var(--color-primary);
+}
+
+input[type="checkbox"]:checked::before {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  /* Inline SVG checkmark drawn in --color-on-primary. Embedded as
+     a background-image so we don't need an extra element. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='10' viewBox='0 0 12 10' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 5l3.5 3.5L11 1.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 0.75rem 0.625rem;
+}
+
+input[type="radio"]:checked::before {
+  background: radial-gradient(
+    circle,
+    var(--color-on-primary) 0,
+    var(--color-on-primary) 0.25rem,
+    var(--color-primary) 0.26rem,
+    var(--color-primary) 100%
+  );
+  border-color: var(--color-primary);
+}
+
+input[type="checkbox"]:focus-visible::before,
+input[type="radio"]:focus-visible::before {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* ── Toast queue ──
@@ -1073,21 +1148,60 @@ footer a {
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2);
 }
 
 .form-field label {
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
+  color: var(--color-ink);
 }
 
-.form-field input {
-  padding: 0.5rem 0.75rem;
+/* Text-ish inputs + the styled native <select> share most chrome.
+   The select picks up an extra dropdown chevron in its specific
+   rule below. */
+.form-field
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.form-field select {
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-rule);
-  border-radius: 0.375rem;
-  background: var(--color-paper);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
   color: var(--color-ink);
   font: inherit;
+  font-size: var(--text-sm);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.form-field
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+.form-field select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+/* Native <select> with custom chevron — appearance:none strips the
+   browser dropdown arrow; we redraw it via inline SVG so it picks up
+   the ink token in both themes. The right padding leaves room for it. */
+.form-field select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: var(--space-7);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%235a5b62' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 1l5 5 5-5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] .form-field select {
+  /* Lighten the chevron in dark mode so it stays visible on the
+     darker surface — colour matches --color-ink-muted (dark). */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23a8a39a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 1l5 5 5-5'/></svg>");
 }
 
 .form-error {
@@ -1171,15 +1285,34 @@ footer a {
 
 .settings-page fieldset {
   margin: var(--space-5) 0;
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-4) var(--space-5) var(--space-5);
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-md);
+  background: var(--color-paper);
   scroll-margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .settings-page legend {
   padding: 0 var(--space-2);
   font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+}
+
+/* Inline checkbox/radio rows inside fieldsets — same gap rhythm
+   as the rest, but the form-field doesn't need its full column
+   layout since label sits next to control. */
+.settings-page fieldset .form-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.settings-page fieldset .form-field-inline label {
+  font-weight: 400;
 }
 
 /* ── Settings sub-nav ──
