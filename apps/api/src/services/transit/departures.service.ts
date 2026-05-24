@@ -9,9 +9,9 @@ import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
 import { DEPARTURES_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
-import { adapterForGtfsId } from "../../adapters/digitransit-routing/dispatch.js";
 import type { AdapterContext } from "../../adapters/types.js";
 import type { RawStoptime } from "../../adapters/digitransit-routing/types.js";
+import { adapterRouter } from "./adapter-router.js";
 
 const MAX_PARALLEL_STOP_QUERIES = 10;
 
@@ -45,7 +45,7 @@ export async function getStopDepartures(
   const cached = await tryCache(() => cacheGet<TransitDeparturesResult>(key));
   if (cached) return { data: cached, cached: true };
 
-  const adapter = adapterForGtfsId(stopId);
+  const adapter = adapterRouter.forStopId(stopId);
   const ctx = makeContext(persona);
 
   let stopName: string | null = null;
@@ -120,7 +120,7 @@ export async function getMultiStopDepartures(
     const results = await Promise.all(
       batch.map(async (id) => {
         try {
-          const adapter = adapterForGtfsId(id);
+          const adapter = adapterRouter.forStopId(id);
           const raw = await adapter.stopDepartures(id, countPerStop, ctx);
           return { id, data: raw.stop };
         } catch {
@@ -146,7 +146,7 @@ export async function getMultiStopDepartures(
   // Some stops (e.g. train platforms) only return data via the station-level query.
   if (allDepartures.length === 0 && stationId) {
     try {
-      const adapter = adapterForGtfsId(stationId);
+      const adapter = adapterRouter.forStopId(stationId);
       const raw = await adapter.stationDepartures(stationId, totalCount, ctx);
       if (raw.station) {
         stopName = raw.station.name;

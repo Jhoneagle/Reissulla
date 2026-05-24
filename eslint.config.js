@@ -14,6 +14,22 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
 
+  // `_`-prefixed args are the conventional opt-out for intentionally
+  // unused parameters (interface-required, future-use, etc.). Match the
+  // TypeScript compiler's own `noUnusedParameters` behaviour.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+
   // Node.js environment for backend
   {
     files: ["apps/api/**/*.ts"],

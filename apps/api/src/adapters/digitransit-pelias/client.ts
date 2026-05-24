@@ -67,10 +67,12 @@ export function createPeliasClient(baseUrl: string): PeliasClient {
         if (timeoutSignal.aborted) {
           throw new Error(
             `Digitransit Pelias ${endpoint} timed out after ${FETCH_TIMEOUT_MS}ms`,
+            { cause: err },
           );
         }
         throw new Error(
           `Digitransit Pelias ${endpoint} network error: ${(err as Error).message}`,
+          { cause: err },
         );
       }
 

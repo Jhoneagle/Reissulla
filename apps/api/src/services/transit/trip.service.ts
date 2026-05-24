@@ -10,8 +10,8 @@ import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
 import { PLAN_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
-import { defaultAdapter } from "../../adapters/digitransit-routing/dispatch.js";
 import type { AdapterContext } from "../../adapters/types.js";
+import { adapterRouter } from "./adapter-router.js";
 
 function makeContext(persona: Persona): AdapterContext {
   return { signal: new AbortController().signal, persona };
@@ -41,7 +41,7 @@ export async function planRoute(
   const cached = await tryCache(() => cacheGet<TransitPlanResult>(key));
   if (cached) return { data: cached, cached: true };
 
-  const adapter = defaultAdapter();
+  const adapter = adapterRouter.forCoordinate(fromLat, fromLon);
   const raw = await adapter.planConnection(
     { fromLat, fromLon, toLat, toLon, numItineraries },
     makeContext(persona),

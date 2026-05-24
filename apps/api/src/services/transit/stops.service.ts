@@ -7,9 +7,9 @@ import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
 import { STOPS_TTL, GEOCODE_REVERSE_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
-import { defaultAdapter } from "../../adapters/digitransit-routing/dispatch.js";
 import { digitransitPelias } from "../../adapters/digitransit-pelias/index.js";
 import type { AdapterContext } from "../../adapters/types.js";
+import { adapterRouter } from "./adapter-router.js";
 import { groupStopsByNameAndMode } from "./grouping.js";
 
 const ENRICH_MAX_PARALLEL = 10;
@@ -96,7 +96,7 @@ export async function getNearbyStops(
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
-  const adapter = defaultAdapter();
+  const adapter = adapterRouter.forCoordinate(lat, lon);
   const edges = await adapter.nearest(
     lat,
     lon,
@@ -127,7 +127,7 @@ export async function searchStops(
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
-  const adapter = defaultAdapter();
+  const adapter = adapterRouter.forSearch();
   const raw = await adapter.searchStopsAndStations(query, makeContext(persona));
 
   const grouped = groupStopsByNameAndMode(raw.stops, raw.stations);
