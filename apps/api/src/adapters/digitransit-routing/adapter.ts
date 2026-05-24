@@ -8,7 +8,11 @@ import type {
   RawStopDeparturesData,
 } from "./types.js";
 
-export type DigitransitAdapterName = "digitransit-finland" | "digitransit-hsl";
+export type DigitransitAdapterName =
+  | "digitransit-finland"
+  | "digitransit-hsl"
+  | "digitransit-waltti"
+  | "digitransit-varely";
 
 export interface DigitransitAdapter {
   readonly name: DigitransitAdapterName;

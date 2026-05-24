@@ -6,3 +6,7 @@ pnpm-lock.yaml
 .claude
 tmp-docs
 docs
+
+# Generated upstream baselines — owned by snapshot-graphql.ts
+apps/api/src/adapters/**/schema.snapshot.graphql
+apps/api/src/adapters/**/feeds.snapshot.json

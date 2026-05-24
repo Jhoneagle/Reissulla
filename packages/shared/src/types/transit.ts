@@ -69,6 +69,11 @@ export interface TransitItineraryLeg {
   };
   route?: { shortName: string; longName: string };
   intermediateStops?: { name: string; gtfsId: string }[];
+  /**
+   * Operator behind this leg (HSL / VR / Nysse / …). Populated when the
+   * service resolves `route.agency` for cross-region disambiguation.
+   */
+  operator?: { gtfsId: string; name: string };
 }
 
 export interface TransitItinerary {
@@ -78,6 +83,12 @@ export interface TransitItinerary {
   walkDistance: number;
   transfers: number;
   legs: TransitItineraryLeg[];
+  /**
+   * True when the API has injected placeholder fare strings because the
+   * fares service is not wired yet. UI renders "Fare to be calculated"
+   * instead of a numeric total.
+   */
+  farePlaceholders?: boolean;
 }
 
 export interface TransitPlanResult {

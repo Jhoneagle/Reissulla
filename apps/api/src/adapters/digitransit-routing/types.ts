@@ -126,3 +126,212 @@ export interface PlanConnectionArgs {
   toLon: number;
   numItineraries: number;
 }
+
+// ---- Line catalogue (routes / route / pattern / patterns) ------------------
+
+export interface RawAgency {
+  gtfsId: string;
+  name: string;
+}
+
+export interface RawRouteMeta {
+  gtfsId: string;
+  shortName: string;
+  longName: string;
+  mode: string;
+  color: string | null;
+  textColor: string | null;
+  agency: RawAgency | null;
+}
+
+export interface RawPatternMeta {
+  code: string;
+  headsign: string;
+  directionId: number;
+}
+
+export interface RawPatternStop {
+  gtfsId: string;
+  name: string;
+  lat: number;
+  lon: number;
+  code: string | null;
+  platformCode: string | null;
+}
+
+export interface RawPattern extends RawPatternMeta {
+  stops: RawPatternStop[];
+}
+
+export interface RawRouteWithPatterns extends RawRouteMeta {
+  patterns: RawPatternMeta[];
+}
+
+export interface RawRoutesData {
+  routes: RawRouteMeta[];
+}
+
+export interface RawRouteData {
+  route: RawRouteWithPatterns | null;
+}
+
+export interface RawPatternData {
+  pattern: RawPattern | null;
+}
+
+export interface RawPatternsData {
+  route: { patterns: RawPattern[] } | null;
+}
+
+// ---- Agency / service time range -------------------------------------------
+
+export interface RawAgencyData {
+  agency: RawAgency | null;
+}
+
+export interface RawServiceTimeRange {
+  /** Unix seconds. */
+  start: number;
+  /** Unix seconds. */
+  end: number;
+}
+
+export interface RawServiceTimeRangeData {
+  serviceTimeRange: RawServiceTimeRange;
+}
+
+// ---- Trip drill-down -------------------------------------------------------
+
+export interface RawTripStoptime {
+  stop: {
+    gtfsId: string;
+    name: string;
+    lat: number;
+    lon: number;
+    code: string | null;
+    platformCode: string | null;
+  };
+  scheduledArrival: number;
+  scheduledDeparture: number;
+  realtimeArrival: number;
+  realtimeDeparture: number;
+  arrivalDelay: number;
+  departureDelay: number;
+  realtime: boolean;
+  timepoint: boolean;
+  stopPosition: number;
+}
+
+export interface RawTrip {
+  gtfsId: string;
+  tripHeadsign: string;
+  route: RawRouteMeta;
+  stoptimes: RawTripStoptime[];
+}
+
+export interface RawTripData {
+  trip: RawTrip | null;
+}
+
+// ---- Trips for date / stoptimes for date -----------------------------------
+
+export interface RawTripForDate {
+  gtfsId: string;
+  tripHeadsign: string;
+  /** YYYYMMDD strings — service dates the trip is active on. */
+  activeDates: string[];
+}
+
+export interface RawTripsForDateData {
+  pattern: { code: string; tripsForDate: RawTripForDate[] } | null;
+}
+
+export interface RawStoptimeForDate {
+  scheduledDeparture: number;
+  realtimeDeparture: number;
+  departureDelay: number;
+  realtime: boolean;
+  serviceDay: number;
+  headsign: string;
+  trip: { gtfsId: string };
+}
+
+export interface RawStoptimesForDateInPattern {
+  pattern: {
+    code: string;
+    headsign: string;
+    directionId: number;
+    route: RawRouteMeta;
+  };
+  stoptimes: RawStoptimeForDate[];
+}
+
+export interface RawStoptimesForDateData {
+  stop: {
+    name: string;
+    stoptimesForServiceDate: RawStoptimesForDateInPattern[];
+  } | null;
+}
+
+// ---- Paged radius search ---------------------------------------------------
+
+export interface RawStopAtDistance {
+  distance: number;
+  stop: {
+    gtfsId: string;
+    name: string;
+    code: string | null;
+    lat: number;
+    lon: number;
+    vehicleMode: string | null;
+    platformCode: string | null;
+  };
+}
+
+export interface RawStopsByRadiusEdge {
+  cursor: string;
+  node: RawStopAtDistance;
+}
+
+export interface RawStopsByRadiusPage {
+  edges: RawStopsByRadiusEdge[];
+  pageInfo: { hasNextPage: boolean; endCursor: string | null };
+}
+
+export interface RawStopsByRadiusData {
+  stopsByRadius: RawStopsByRadiusPage | null;
+}
+
+// ---- Feed listing (used by scripts/list-feeds.ts) --------------------------
+
+export interface RawFeedsData {
+  feeds: { feedId: string }[];
+}
+
+// ---- Canceled trips / alerts (Phase 4 prep, no consumer yet) ---------------
+
+export interface RawCanceledTripNode {
+  trip: { gtfsId: string };
+  scheduledDeparture: number;
+  serviceDay: number;
+}
+
+export interface RawCanceledTripEdge {
+  node: RawCanceledTripNode;
+}
+
+export interface RawCanceledTripsData {
+  canceledTripTimes: { edges: RawCanceledTripEdge[] } | null;
+}
+
+export interface RawAlert {
+  alertHeaderText: string | null;
+  alertDescriptionText: string | null;
+  alertSeverityLevel: string | null;
+  effectiveStartDate: number | null;
+  effectiveEndDate: number | null;
+}
+
+export interface RawAlertsData {
+  alerts: RawAlert[];
+}

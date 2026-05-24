@@ -14,7 +14,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "openapi:snapshot": "tsx src/openapi-snapshot.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:graphql-snapshot": "tsx scripts/snapshot-graphql.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.9",

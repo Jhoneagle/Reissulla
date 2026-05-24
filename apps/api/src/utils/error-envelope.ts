@@ -5,6 +5,8 @@ export type Source =
   | "fastify"
   | "digitransit-finland"
   | "digitransit-hsl"
+  | "digitransit-waltti"
+  | "digitransit-varely"
   | "digitransit-pelias"
   | "open-meteo"
   | "google-oauth"

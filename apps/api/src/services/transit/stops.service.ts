@@ -3,27 +3,18 @@ import {
   type Persona,
   type TransitStop,
 } from "@reissulla/shared";
-import { config } from "../../config.js";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
 import { STOPS_TTL, GEOCODE_REVERSE_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
-import { defaultAdapter } from "../../adapters/digitransit-routing/dispatch.js";
+import { digitransitPelias } from "../../adapters/digitransit-pelias/index.js";
 import type { AdapterContext } from "../../adapters/types.js";
+import { adapterRouter } from "./adapter-router.js";
 import { groupStopsByNameAndMode } from "./grouping.js";
 
-const GEOCODE_TIMEOUT_MS = 5_000;
 const ENRICH_MAX_PARALLEL = 10;
 
-const GEOCODING_URL = "https://api.digitransit.fi/geocoding/v1/reverse";
-
 const KNOWN_MODES = new Set(["BUS", "TRAM", "RAIL", "SUBWAY", "FERRY"]);
-
-function apiKeyHeaders(): Record<string, string> {
-  return config.digitransitApiKey
-    ? { "digitransit-subscription-key": config.digitransitApiKey }
-    : {};
-}
 
 function makeContext(persona: Persona): AdapterContext {
   return { signal: new AbortController().signal, persona };
@@ -45,21 +36,12 @@ async function reverseGeocodeCity(
   if (cached) return cached;
 
   try {
-    const url = new URL(GEOCODING_URL);
-    url.searchParams.set("point.lat", rLat);
-    url.searchParams.set("point.lon", rLon);
-    url.searchParams.set("size", "1");
-
-    const res = await fetch(url, {
-      headers: apiKeyHeaders(),
-      signal: AbortSignal.timeout(GEOCODE_TIMEOUT_MS),
-    });
-    if (!res.ok) return undefined;
-
-    const json = await res.json();
-    const city: string | undefined =
-      json?.features?.[0]?.properties?.locality ??
-      json?.features?.[0]?.properties?.name;
+    const features = await digitransitPelias.reverse(
+      { lat: Number(rLat), lon: Number(rLon), size: 1 },
+      { signal: new AbortController().signal },
+    );
+    const props = features[0]?.properties;
+    const city: string | undefined = props?.locality ?? props?.name;
 
     if (city) {
       await tryCache(() => cacheSet(key, city, GEOCODE_REVERSE_TTL));
@@ -114,7 +96,7 @@ export async function getNearbyStops(
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
-  const adapter = defaultAdapter();
+  const adapter = adapterRouter.forCoordinate(lat, lon);
   const edges = await adapter.nearest(
     lat,
     lon,
@@ -145,7 +127,7 @@ export async function searchStops(
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
-  const adapter = defaultAdapter();
+  const adapter = adapterRouter.forSearch();
   const raw = await adapter.searchStopsAndStations(query, makeContext(persona));
 
   const grouped = groupStopsByNameAndMode(raw.stops, raw.stations);
