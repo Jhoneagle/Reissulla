@@ -6,7 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import type { TripDetail, TripDetailStop } from "@reissulla/shared";
 import { ApiError } from "@reissulla/api-client";
 import { useTripDetail } from "../hooks/useTransit";
@@ -234,39 +234,17 @@ function timesEqualToMinute(a: number, b: number): boolean {
 /**
  * "Takaisin pysäkille" / "Back to the stop" link.
  *
- * Hijacks left-click to use `history.back()` so the user lands on the
- * filtered departure board they came from (with stopId + filter slice
- * intact in the URL). `location.key === "default"` is React Router's
- * sentinel for "this is the initial entry" — when the user landed on
- * the page via a direct URL there's nothing to go back to, so we
- * forward to `/transit` instead. Modifier-clicks (cmd/ctrl/middle)
- * fall through to the anchor's default navigation so open-in-new-tab
- * still works.
+ * Plain anchor — no JS interception. The departure-board's per-stop
+ * filter state lives in the URL (mode, lineFilter, direction, lowFloor,
+ * platform, at), so the Link's natural navigation to /transit restores
+ * the filtered board. Using navigate(-1) instead breaks once any
+ * in-page state push (a filter tweak, a stop change) sits between the
+ * user's arrival on this page and their press of the back link.
  */
 function BackLink() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.button !== 0
-    ) {
-      return;
-    }
-    event.preventDefault();
-    if (location.key === "default") {
-      navigate("/transit");
-    } else {
-      navigate(-1);
-    }
-  };
-
   return (
     <nav className="trip-detail__back">
-      <Link to="/transit" onClick={onClick}>
+      <Link to="/transit">
         <FormattedMessage id="transit.trip.back" />
       </Link>
     </nav>
