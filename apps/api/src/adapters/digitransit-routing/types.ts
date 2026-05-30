@@ -258,12 +258,19 @@ export interface RawTripStoptime {
   departureDelay: number;
   realtime: boolean;
   timepoint: boolean;
-  stopPosition: number;
+  /** Guaranteed 0..n-1 along the pattern (OTP2 `Int!`). */
+  stopPositionInPattern: number;
+  /** `NONE` = no boarding allowed at this stop on this trip. */
+  pickupType: RawPickupDropoffType;
+  /** `NONE` = no alighting allowed at this stop on this trip. */
+  dropoffType: RawPickupDropoffType;
 }
 
 export interface RawTrip {
   gtfsId: string;
   tripHeadsign: string;
+  /** "0" | "1" | null per OTP2 schema. Mapped to numeric downstream. */
+  directionId: string | null;
   /** YYYYMMDD strings — service dates the trip is active on. */
   activeDates: string[];
   route: RawRouteMeta;
