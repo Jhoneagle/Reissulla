@@ -12,7 +12,7 @@ import {
   useLine,
   useLineDepartures,
 } from "../../hooks/useTransit";
-import { vehicleModeToken } from "../../lib/transit-utils";
+import { dayTypeForToday, vehicleModeToken } from "../../lib/transit-utils";
 import { StopList, type StopRowProps } from "./StopList";
 import { DirectionToggle } from "./DirectionToggle";
 import { FrequencyStrip } from "./FrequencyStrip";
@@ -44,7 +44,9 @@ export function LineCard({
 }: LineCardProps) {
   const intl = useIntl();
   const [localDir, setLocalDir] = useState<DirectionId>(0);
-  const [localDayType, setLocalDayType] = useState<DayType>("weekday");
+  const [localDayType, setLocalDayType] = useState<DayType>(() =>
+    dayTypeForToday(),
+  );
   const direction = controlledDir ?? localDir;
   const dayType = controlledDayType ?? localDayType;
   const handleDirChange = (next: DirectionId) => {

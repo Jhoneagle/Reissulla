@@ -74,6 +74,42 @@ export function formatUnixTime(unixSeconds: number): string {
 }
 
 /**
+ * Day-type bucket matching today's wall clock in Europe/Helsinki. Used as
+ * the default for the LineView frequency-strip day-type tabs so a user
+ * landing on a line on a Saturday sees Saturday's headways pre-selected.
+ * Picks the GTFS service-day-aware date so pre-04:00 hours still resolve
+ * to the previous day's bucket (the convention used by frequency bands).
+ */
+export function dayTypeForToday(
+  nowUnix: number = Math.floor(Date.now() / 1000),
+): "weekday" | "saturday" | "sunday" {
+  // Wall-clock day-of-week in Helsinki, accounting for the 04:00 service
+  // rollover: anything before 04:00 reports as the previous day so a 02:00
+  // tram ride still classifies under the Saturday timetable.
+  const ROLLOVER_HOUR = 4;
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    weekday: "short",
+    hour: "2-digit",
+    hour12: false,
+  });
+  let weekday = "";
+  let hour = 0;
+  for (const part of fmt.formatToParts(new Date(nowUnix * 1000))) {
+    if (part.type === "weekday") weekday = part.value;
+    else if (part.type === "hour") hour = Number(part.value);
+  }
+  if (hour === 24) hour = 0;
+  const order = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  let idx = order.indexOf(weekday);
+  if (idx === -1) return "weekday";
+  if (hour < ROLLOVER_HOUR) idx = (idx + 6) % 7;
+  if (idx === 6) return "saturday";
+  if (idx === 0) return "sunday";
+  return "weekday";
+}
+
+/**
  * Format the "next departure" clock-time used by the sparse-frequency
  * kicker. Same-day departures show just the clock; departures on the
  * next calendar day get a "huomenna"/"tomorrow" qualifier; anything
