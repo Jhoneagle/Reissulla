@@ -23,6 +23,8 @@ export function Transit() {
   const intl = useIntl();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = parseTab(searchParams.get("tab"));
+  const linesQuery = searchParams.get("q") ?? "";
+  const linesRegion = searchParams.get("region") ?? "";
 
   const setTab = useCallback(
     (next: TransitTab) => {
@@ -33,6 +35,29 @@ export function Transit() {
         params.set("tab", next);
       }
       setSearchParams(params, { replace: false });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  // Lines-tab search state lives in the URL so the back-link from a
+  // line page can restore q + region, and so the search is bookmarkable
+  // and shareable. Writes are replace-mode to avoid flooding history on
+  // every committed debounce.
+  const onLinesQueryCommit = useCallback(
+    (next: string) => {
+      const params = new URLSearchParams(searchParams);
+      if (next.length > 0) params.set("q", next);
+      else params.delete("q");
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+  const onLinesRegionChange = useCallback(
+    (next: string) => {
+      const params = new URLSearchParams(searchParams);
+      if (next && next !== "all") params.set("region", next);
+      else params.delete("region");
+      setSearchParams(params, { replace: true });
     },
     [searchParams, setSearchParams],
   );
@@ -78,7 +103,12 @@ export function Transit() {
         aria-labelledby="tab-lines"
         hidden={tab !== "lines"}
       >
-        <LineSearch />
+        <LineSearch
+          query={linesQuery}
+          region={linesRegion}
+          onQueryCommit={onLinesQueryCommit}
+          onRegionChange={onLinesRegionChange}
+        />
       </div>
 
       <div

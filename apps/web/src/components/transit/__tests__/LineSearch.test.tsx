@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -50,6 +51,20 @@ function pinned(overrides: Partial<PinnedLine & { id: string }> = {}) {
 
 const idleQuery = { data: undefined, isLoading: false, isError: false };
 
+function renderLineSearch(
+  props: Partial<ComponentProps<typeof LineSearch>> = {},
+) {
+  return renderWithProviders(
+    <LineSearch
+      query=""
+      region=""
+      onQueryCommit={() => {}}
+      onRegionChange={() => {}}
+      {...props}
+    />,
+  );
+}
+
 beforeEach(() => {
   useAuthStoreMock.mockReset().mockReturnValue(null);
   useLineSearchMock.mockReset().mockReturnValue(idleQuery);
@@ -71,7 +86,7 @@ describe("LineSearch", () => {
     });
 
     const user = userEvent.setup();
-    renderWithProviders(<LineSearch />);
+    renderLineSearch();
     await user.type(screen.getByRole("searchbox"), "25");
 
     await waitFor(() => {
@@ -92,7 +107,7 @@ describe("LineSearch", () => {
     });
 
     const user = userEvent.setup();
-    renderWithProviders(<LineSearch />);
+    renderLineSearch();
     await user.type(screen.getByRole("searchbox"), "25");
 
     const row = await screen.findByText("Kamppi – Itäkeskus");
@@ -114,7 +129,7 @@ describe("LineSearch", () => {
       },
     });
 
-    renderWithProviders(<LineSearch />);
+    renderLineSearch();
 
     const pinnedNav = screen.getByRole("navigation", {
       name: /pinned lines/i,
@@ -124,13 +139,13 @@ describe("LineSearch", () => {
   });
 
   it("shows the sign-in hint when anonymous with empty query", () => {
-    renderWithProviders(<LineSearch />);
+    renderLineSearch();
     expect(screen.getByText(/Sign in to pin lines/i)).toBeInTheDocument();
   });
 
   it("defaults the region facet to preferences.transitRegion", () => {
     usePreferencesMock.mockReturnValue({ data: { transitRegion: "hsl" } });
-    renderWithProviders(<LineSearch />);
+    renderLineSearch();
     const select = screen.getByRole("combobox", {
       name: /^region$/i,
     }) as HTMLSelectElement;

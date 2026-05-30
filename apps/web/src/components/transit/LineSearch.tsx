@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, useLocation } from "react-router";
 import type { Line } from "@reissulla/shared";
@@ -10,6 +10,14 @@ import { vehicleModeLabel, vehicleModeToken } from "../../lib/transit-utils";
 
 interface LineSearchProps {
   id?: string;
+  /** URL-driven committed query (?q=). Empty string when not set. */
+  query: string;
+  /** URL-driven region (?region=). Empty string when not set. */
+  region: string;
+  /** Called with the debounced typing buffer. Parent writes ?q= to URL. */
+  onQueryCommit: (next: string) => void;
+  /** Called when the region facet changes. Parent writes ?region= to URL. */
+  onRegionChange: (next: string) => void;
 }
 
 const REGION_OPTIONS = [
@@ -33,7 +41,13 @@ function lineHref(gtfsId: string): string {
  * Above the input: pinned-line chips for signed-in users, a sign-in
  * hint for anonymous ones.
  */
-export function LineSearch({ id = "line-search" }: LineSearchProps) {
+export function LineSearch({
+  id = "line-search",
+  query,
+  region: regionProp,
+  onQueryCommit,
+  onRegionChange,
+}: LineSearchProps) {
   const intl = useIntl();
   const location = useLocation();
   // Round-trip the originating URL through router state so the line/trip
@@ -44,17 +58,28 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
   const preferences = usePreferences();
   // Region default reads from `preferences.transitRegion` (separate from
   // persona's home city — a Tampere resident may default "all" for
-  // weekend trips). Once the user picks a value from the facet, the
-  // override sticks for the session even if preferences refetch.
-  const [regionOverride, setRegionOverride] = useState<string | null>(null);
-  const region = regionOverride ?? preferences.data?.transitRegion ?? "all";
+  // weekend trips). The URL wins; preferences fill in for new sessions.
+  const region = regionProp || preferences.data?.transitRegion || "all";
 
-  const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query.trim(), 300);
+  // Local typing buffer — the input responds to every keystroke. The
+  // debounced value is what we commit to the URL via onQueryCommit, so
+  // each keystroke does not flood history.
+  const [buffer, setBuffer] = useState(query);
+  // Sync the buffer down when the URL changes underneath us (back/forward
+  // navigation, programmatic update). Only when the strings actually
+  // differ, so we don't fight the user mid-typing.
+  useEffect(() => {
+    setBuffer((current) => (current === query ? current : query));
+  }, [query]);
+  const debouncedBuffer = useDebounce(buffer.trim(), 300);
+  useEffect(() => {
+    if (debouncedBuffer !== query) onQueryCommit(debouncedBuffer);
+  }, [debouncedBuffer, query, onQueryCommit]);
+
   const regionParam = region === "all" ? undefined : region;
 
   const { data, isLoading, isError } = useLineSearch(
-    debouncedQuery,
+    debouncedBuffer,
     regionParam,
   );
   const results = useMemo<Line[]>(() => {
@@ -69,10 +94,10 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
   const pinnedQuery = usePinnedLines(Boolean(user));
   const pinned = pinnedQuery.data?.data ?? [];
 
-  const showPinnedChips = !query && Boolean(user) && pinned.length > 0;
-  const showAnonHint = !query && !user;
-  const showEmptyHint = !query && Boolean(user) && pinned.length === 0;
-  const showResults = debouncedQuery.length >= 1;
+  const showPinnedChips = !buffer && Boolean(user) && pinned.length > 0;
+  const showAnonHint = !buffer && !user;
+  const showEmptyHint = !buffer && Boolean(user) && pinned.length === 0;
+  const showResults = debouncedBuffer.length >= 1;
 
   return (
     <div className="line-search">
@@ -103,8 +128,12 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
             placeholder={intl.formatMessage({
               id: "transit.line.search.placeholder",
             })}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={buffer}
+            onChange={(e) => setBuffer(e.target.value)}
+            // Auto-focus only when we returned to a populated search
+            // (back-link round-trip) so first-time visits don't grab
+            // focus and force a mobile keyboard.
+            autoFocus={query.length > 0}
           />
         </div>
         <label htmlFor={`${id}-region`} className="visually-hidden">
@@ -114,7 +143,7 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
           id={`${id}-region`}
           className="line-search__region"
           value={region}
-          onChange={(e) => setRegionOverride(e.target.value)}
+          onChange={(e) => onRegionChange(e.target.value)}
         >
           {REGION_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -178,12 +207,12 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
         >
           {isLoading && (
             <p className="line-search__status">
-              <FormattedMessage id="locationSearch.loading" />
+              <FormattedMessage id="transit.line.search.loading" />
             </p>
           )}
           {isError && (
             <p className="line-search__status">
-              <FormattedMessage id="locationSearch.error" />
+              <FormattedMessage id="transit.line.search.error" />
             </p>
           )}
           {!isLoading && !isError && results.length === 0 && (
