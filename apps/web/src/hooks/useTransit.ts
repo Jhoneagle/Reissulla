@@ -151,3 +151,16 @@ export function useRoutePlan(
     staleTime: 5 * 60 * 1000, // 5 min
   });
 }
+
+export function useTripDetail(tripId: string | null) {
+  return useQuery({
+    queryKey: ["transit-trip", tripId],
+    queryFn: () => transitApi.getTripDetail(tripId!),
+    enabled: Boolean(tripId),
+    // Matches the server-side TRIP_DETAIL_TTL and the 30s refetch cadence
+    // used by the departure board, so the live-status sentence on the trip
+    // detail page stays in sync with what the user just clicked from.
+    staleTime: 30 * 1000,
+    refetchInterval: 30_000,
+  });
+}

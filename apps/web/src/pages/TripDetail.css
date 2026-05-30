@@ -1,0 +1,233 @@
+/* ── Trip-detail page ─────────────────────────────────────── */
+
+.trip-detail {
+  border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--mode-bus-strong);
+  border-radius: var(--radius-xs);
+  padding: var(--space-4) var(--space-5);
+  background: transparent;
+  margin-top: var(--space-3);
+}
+
+.trip-detail--mode-bus {
+  border-left-color: var(--mode-bus-strong);
+}
+.trip-detail--mode-tram {
+  border-left-color: var(--mode-tram-strong);
+}
+.trip-detail--mode-rail {
+  border-left-color: var(--mode-rail-strong);
+}
+.trip-detail--mode-subway {
+  border-left-color: var(--mode-subway-strong);
+}
+.trip-detail--mode-ferry {
+  border-left-color: var(--mode-ferry-strong);
+}
+
+/* ── Back nav ────────────────────────────────────────────── */
+
+.trip-detail__back {
+  margin-bottom: var(--space-3);
+}
+
+.trip-detail__back a {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trip-detail__back a::before {
+  content: "←";
+}
+
+.trip-detail__back a:hover {
+  color: var(--color-ink);
+}
+
+.trip-detail__back a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Masthead ────────────────────────────────────────────── */
+
+.trip-detail__masthead {
+  margin-bottom: var(--space-4);
+}
+
+.trip-detail__kicker {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+}
+
+.trip-detail__top-rule {
+  border: 0;
+  height: 1px;
+  background: var(--color-rule-soft);
+  position: relative;
+  margin: 0 0 var(--space-3);
+}
+
+.trip-detail__top-rule::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 1px;
+  background: var(--color-primary);
+}
+
+.trip-detail__display {
+  display: block;
+}
+
+.trip-detail__number {
+  display: block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--text-hero);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--color-ink);
+}
+
+.trip-detail__headsign {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--text-xl);
+  color: var(--color-ink);
+}
+
+.trip-detail__destination {
+  color: var(--color-ink);
+}
+
+.trip-detail__status {
+  margin: var(--space-3) 0 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  color: var(--color-ink);
+}
+
+/* ── Past-stops disclosure ────────────────────────────────── */
+
+.trip-detail__past {
+  margin: var(--space-3) 0 0;
+}
+
+.trip-detail__past > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--space-2) 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+}
+
+.trip-detail__past > summary::-webkit-details-marker {
+  display: none;
+}
+
+.trip-detail__past > summary::before {
+  content: "▸";
+  font-size: 0.75rem;
+}
+
+.trip-detail__past[open] > summary::before {
+  content: "▾";
+}
+
+.trip-detail__past > summary:hover {
+  color: var(--color-ink);
+}
+
+.trip-detail__past > summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Fineprint ───────────────────────────────────────────── */
+
+.trip-detail__fineprint {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-rule-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  letter-spacing: 0.05em;
+}
+
+.trip-detail__fineprint p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Loading / error / empty ─────────────────────────────── */
+
+.trip-detail__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.trip-detail__skel-row {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  column-gap: var(--space-3);
+  align-items: center;
+}
+
+.skel--dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+}
+
+.trip-detail__error-block {
+  text-align: center;
+  padding: var(--space-5) var(--space-3);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+/* ── Forced-colors fallback ──────────────────────────────── */
+
+@media (forced-colors: active) {
+  .trip-detail {
+    border-left-color: CanvasText;
+  }
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .trip-detail {
+    padding: var(--space-3);
+  }
+  .trip-detail__number {
+    font-size: 3.5rem;
+  }
+}

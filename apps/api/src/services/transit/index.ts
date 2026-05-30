@@ -16,3 +16,4 @@ export type {
   FirstLastResult,
 } from "./departures.service.js";
 export { planRoute } from "./trip.service.js";
+export { getTripDetail } from "./trip-detail.service.js";

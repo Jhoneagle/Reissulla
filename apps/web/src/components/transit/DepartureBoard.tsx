@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import { useSearchParams } from "react-router";
 import type { TransitStop } from "@reissulla/shared";
@@ -36,22 +36,63 @@ function stopFromQuery(params: URLSearchParams): TransitStop | null {
   };
 }
 
+/**
+ * Filter slice owned by DepartureTable — listed here so a stop change
+ * can clear them (they're scoped to the previous stop).
+ */
+const FILTER_PARAM_KEYS = [
+  "mode",
+  "at",
+  "lineFilter",
+  "direction",
+  "lowFloor",
+  "platform",
+] as const;
+
 export function DepartureBoard() {
-  // Read the deep-link params once at mount via the useState lazy
-  // initializer — keeps the URL → state hop out of a useEffect (which
-  // would trigger cascading renders and trip the react-hooks rule).
-  // After mount, normal user navigation drives selectedStop and the
-  // params are not re-consulted.
-  const [params] = useSearchParams();
+  // The URL is the source of truth for the selected stop (so back from
+  // the trip-detail page restores both stop and filters). `useState`
+  // tracks a richer TransitStop object — name / vehicleMode / subStops
+  // come from the search picker, not the URL.
+  const [params, setParams] = useSearchParams();
   const [selectedStop, setSelectedStop] = useState<TransitStop | null>(() =>
     stopFromQuery(params),
   );
 
+  const updateStopParams = useCallback(
+    (stop: TransitStop | null) => {
+      setParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (stop) {
+          next.set("stopId", stop.gtfsId);
+          if (stop.isStation) next.set("isStation", "1");
+          else next.delete("isStation");
+        } else {
+          next.delete("stopId");
+          next.delete("isStation");
+        }
+        // Stop change resets the filter slice: the filter values are
+        // scoped to the previous stop's lines / platforms.
+        for (const key of FILTER_PARAM_KEYS) next.delete(key);
+        return next;
+      });
+    },
+    [setParams],
+  );
+
+  const onSelectStop = useCallback(
+    (stop: TransitStop | null) => {
+      setSelectedStop(stop);
+      updateStopParams(stop);
+    },
+    [updateStopParams],
+  );
+
   return (
     <div className="departure-board">
-      <StopSearch onSelect={setSelectedStop} />
+      <StopSearch onSelect={onSelectStop} />
 
-      {!selectedStop && <RecentStopsList onSelect={setSelectedStop} />}
+      {!selectedStop && <RecentStopsList onSelect={onSelectStop} />}
 
       {!selectedStop && (
         <div className="departure-board__empty">

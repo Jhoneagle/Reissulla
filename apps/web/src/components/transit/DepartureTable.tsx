@@ -7,6 +7,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { useSearchParams } from "react-router";
 import {
   formatDeparture,
   serviceDayFromUnix,
@@ -66,11 +67,41 @@ function formatHelsinkiDate(unix: number): string {
   });
 }
 
-const EMPTY_FILTERS: AdvancedFilterState = {
-  lineFilter: [],
-  directionFilter: "",
-  lowFloorOnly: false,
-};
+/**
+ * URL keys for the persisted filter slice. Kept short for readability in
+ * the address bar; the back-navigation acceptance gate ("filtered
+ * departure-board state restored") relies on these surviving a
+ * round-trip through history.
+ */
+const URL_KEYS = {
+  mode: "mode",
+  at: "at",
+  lineFilter: "lineFilter",
+  direction: "direction",
+  lowFloor: "lowFloor",
+  platform: "platform",
+} as const;
+
+function readMode(params: URLSearchParams): ArrivalDepartureMode {
+  const raw = params.get(URL_KEYS.mode);
+  return raw === "arrivals" || raw === "both" ? raw : "departures";
+}
+
+function readAt(params: URLSearchParams): number | undefined {
+  const raw = params.get(URL_KEYS.at);
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function readAdvanced(params: URLSearchParams): AdvancedFilterState {
+  const lineRaw = params.get(URL_KEYS.lineFilter);
+  return {
+    lineFilter: lineRaw ? lineRaw.split(",").filter(Boolean) : [],
+    directionFilter: params.get(URL_KEYS.direction) ?? "",
+    lowFloorOnly: params.get(URL_KEYS.lowFloor) === "1",
+  };
+}
 
 export function DepartureTable({
   stopId,
@@ -84,11 +115,72 @@ export function DepartureTable({
   const user = useAuthStore((s) => s.user);
   const recordVisit = useRecordRecentStop();
 
-  const [at, setAt] = useState<number | undefined>(undefined);
-  const [mode, setMode] = useState<ArrivalDepartureMode>("departures");
-  const [filterStopId, setFilterStopId] = useState<string | null>(null);
+  // Filter state lives in the URL so back-navigation from the trip
+  // detail page restores the user's filter context. Each update uses
+  // `replace: true` so churning through filters doesn't pollute browser
+  // history — only stop selection and trip drill-down add new entries.
+  const [params, setParams] = useSearchParams();
+  const at = readAt(params);
+  const mode = readMode(params);
+  const filterStopId = params.get(URL_KEYS.platform) || null;
+  const advanced = readAdvanced(params);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
-  const [advanced, setAdvanced] = useState<AdvancedFilterState>(EMPTY_FILTERS);
+
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const [key, value] of Object.entries(updates)) {
+            if (value === null || value === "") next.delete(key);
+            else next.set(key, value);
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setParams],
+  );
+
+  const setAt = useCallback(
+    (next: number | undefined) =>
+      updateParams({
+        [URL_KEYS.at]: next !== undefined ? String(next) : null,
+      }),
+    [updateParams],
+  );
+  const setMode = useCallback(
+    (next: ArrivalDepartureMode) =>
+      updateParams({
+        [URL_KEYS.mode]: next === "departures" ? null : next,
+      }),
+    [updateParams],
+  );
+  const setFilterStopId = useCallback(
+    (next: string | null) => updateParams({ [URL_KEYS.platform]: next }),
+    [updateParams],
+  );
+  const setAdvanced = useCallback(
+    (next: AdvancedFilterState) =>
+      updateParams({
+        [URL_KEYS.lineFilter]:
+          next.lineFilter.length > 0 ? next.lineFilter.join(",") : null,
+        [URL_KEYS.direction]: next.directionFilter.trim() || null,
+        [URL_KEYS.lowFloor]: next.lowFloorOnly ? "1" : null,
+      }),
+    [updateParams],
+  );
+
+  const clearAllFilters = useCallback(() => {
+    updateParams({
+      [URL_KEYS.platform]: null,
+      [URL_KEYS.lineFilter]: null,
+      [URL_KEYS.direction]: null,
+      [URL_KEYS.lowFloor]: null,
+      [URL_KEYS.at]: null,
+    });
+  }, [updateParams]);
 
   const departureOptions: DeparturesOptions = useMemo(
     () => ({
@@ -367,7 +459,7 @@ export function DepartureTable({
       />
 
       {isLoading && (
-        <div className="departure-table__skeleton" aria-hidden="true">
+        <div className="departure-list__skeleton" aria-hidden="true">
           {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="departure-skel-row">
               <div
@@ -382,7 +474,7 @@ export function DepartureTable({
       )}
 
       {isError && (
-        <div className="departure-table__error">
+        <div className="departure-list__error">
           <p>
             <FormattedMessage id="transit.depart.unavailable" />
           </p>
@@ -393,7 +485,7 @@ export function DepartureTable({
       )}
 
       {!isLoading && !isError && message && departures.length === 0 && (
-        <div className="departure-table__empty">
+        <div className="departure-list__empty">
           <p>{message}</p>
         </div>
       )}
@@ -403,18 +495,14 @@ export function DepartureTable({
         departures.length === 0 &&
         !message &&
         hasActiveFilters && (
-          <div className="departure-table__empty">
+          <div className="departure-list__empty">
             <p>
               <FormattedMessage id="transit.depart.empty.filtered" />
             </p>
             <button
               type="button"
               className="btn btn--link"
-              onClick={() => {
-                setFilterStopId(null);
-                setAdvanced(EMPTY_FILTERS);
-                setAt(undefined);
-              }}
+              onClick={clearAllFilters}
             >
               <FormattedMessage id="transit.depart.empty.clearFilters" />
             </button>
@@ -426,67 +514,69 @@ export function DepartureTable({
         departures.length === 0 &&
         !message &&
         !hasActiveFilters && (
-          <div className="departure-table__empty">
+          <div className="departure-list__empty">
             <p>
               <FormattedMessage id="transit.depart.empty.noUpcoming" />
             </p>
           </div>
         )}
 
-      {departures.length > 0 && (
-        <>
-          <table className="departure-table">
-            <caption className="visually-hidden">
-              <FormattedMessage
-                id="transit.depart.caption"
-                values={{ stopName, count: departures.length }}
-              />
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">
+      {departures.length > 0 &&
+        (() => {
+          const showPlatformCol = showPlatformFilter && !filterStopId;
+          const platformMod = showPlatformCol
+            ? " departure-list--has-platform"
+            : "";
+          return (
+            <>
+              <div
+                className={`departure-list__header${platformMod}`}
+                aria-hidden="true"
+              >
+                <span>
                   <FormattedMessage id="transit.depart.column.line" />
-                </th>
-                <th scope="col">
+                </span>
+                <span>
                   <FormattedMessage id="transit.depart.column.destination" />
-                </th>
-                {showPlatformFilter && !filterStopId && (
-                  <th scope="col">
+                </span>
+                {showPlatformCol && (
+                  <span>
                     <FormattedMessage id="transit.depart.column.platform" />
-                  </th>
-                )}
-                <th scope="col" className="departure-table__th-time">
-                  <FormattedMessage id={columnHeadingKey} />
-                </th>
-                <th scope="col">
-                  <span className="visually-hidden">
-                    <FormattedMessage id="transit.depart.column.status" />
                   </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {departures.map((dep, i) => (
-                <DepartureRow
-                  key={`${dep.routeShortName}-${dep.serviceDay}-${dep.scheduledDeparture}-${i}`}
-                  departure={dep}
-                  mode={mode}
-                  showPlatform={showPlatformFilter && !filterStopId}
-                />
-              ))}
-            </tbody>
-          </table>
+                )}
+                <span className="departure-list__header-time">
+                  <FormattedMessage id={columnHeadingKey} />
+                </span>
+                <span />
+              </div>
+              <ol
+                className={`departure-list${platformMod}`}
+                aria-label={intl.formatMessage(
+                  { id: "transit.depart.caption" },
+                  { stopName, count: departures.length },
+                )}
+              >
+                {departures.map((dep, i) => (
+                  <DepartureRow
+                    key={`${dep.routeShortName}-${dep.serviceDay}-${dep.scheduledDeparture}-${i}`}
+                    departure={dep}
+                    mode={mode}
+                    showPlatform={showPlatformCol}
+                  />
+                ))}
+              </ol>
 
-          {dataUpdatedAt > 0 && (
-            <p className="departure-table__timestamp">
-              <FormattedMessage
-                id="transit.depart.updatedAgo"
-                values={{ seconds: updatedAgo }}
-              />
-            </p>
-          )}
-        </>
-      )}
+              {dataUpdatedAt > 0 && (
+                <p className="departure-list__timestamp">
+                  <FormattedMessage
+                    id="transit.depart.updatedAgo"
+                    values={{ seconds: updatedAgo }}
+                  />
+                </p>
+              )}
+            </>
+          );
+        })()}
 
       <div aria-live="polite" className="visually-hidden">
         {liveAnnouncement}

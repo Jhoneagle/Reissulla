@@ -8,6 +8,7 @@ import {
   getMultiStopDepartures,
   getFirstLastOfDay,
   planRoute,
+  getTripDetail,
   type DeparturesOptions,
   type ArrivalDepartureMode,
 } from "../services/transit/index.js";
@@ -334,6 +335,25 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         date,
         request.persona,
       );
+      return { data, cached };
+    },
+  );
+
+  server.get<{ Params: { tripId: string } }>(
+    "/api/v1/transit/trip/:tripId",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["tripId"],
+          properties: { tripId: { type: "string", minLength: 1 } },
+        },
+      },
+    },
+    async (request) => {
+      const tripId = request.params.tripId.trim();
+      if (tripId === "") return badRequest("tripId must not be empty");
+      const { data, cached } = await getTripDetail(tripId, request.persona);
       return { data, cached };
     },
   );

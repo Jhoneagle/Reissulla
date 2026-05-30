@@ -9,6 +9,7 @@ const TRIP_QUERY = `
     trip(id: $id) {
       gtfsId
       tripHeadsign
+      directionId
       activeDates
       route {
         gtfsId
@@ -36,7 +37,9 @@ const TRIP_QUERY = `
         departureDelay
         realtime
         timepoint
-        stopPosition
+        stopPositionInPattern
+        pickupType
+        dropoffType
       }
     }
   }
