@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Line, PinnedLine } from "@reissulla/shared";
 import { renderWithProviders } from "../../../test/test-utils";
@@ -18,13 +18,6 @@ vi.mock("../../../stores/auth", () => ({
 vi.mock("../../../hooks/useTransit", () => ({
   useLineSearch: (...args: unknown[]) => useLineSearchMock(...args),
   usePinnedLines: (...args: unknown[]) => usePinnedLinesMock(...args),
-  // LineSearch embeds LineCard which calls these — stub them so the
-  // expanded state renders without firing real React Query.
-  useLine: () => ({ isLoading: true, isError: false, data: undefined }),
-  useLineDepartures: () => ({ data: undefined }),
-  useFrequency: () => ({ data: undefined }),
-  usePinLine: () => ({ mutate: vi.fn(), isPending: false }),
-  useUnpinLine: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 vi.mock("../../../hooks/usePreferences", () => ({
@@ -65,7 +58,7 @@ beforeEach(() => {
 });
 
 describe("LineSearch", () => {
-  it("renders one expandable row per result, sorted by shortName length", async () => {
+  it("renders one row per result, sorted by shortName length", async () => {
     useLineSearchMock.mockReturnValue({
       data: {
         data: [
@@ -91,29 +84,7 @@ describe("LineSearch", () => {
     expect(shortNames).toEqual(["25", "25A"]);
   });
 
-  it("mounts LineCard inside the row when details fires its toggle event", async () => {
-    useLineSearchMock.mockReturnValue({
-      data: { data: [lineHit()] },
-      isLoading: false,
-      isError: false,
-    });
-
-    const user = userEvent.setup();
-    renderWithProviders(<LineSearch />);
-    await user.type(screen.getByRole("searchbox"), "25");
-
-    const summary = await screen.findByText("Kamppi – Itäkeskus");
-    const details = summary.closest("details") as HTMLDetailsElement;
-    expect(details.open).toBe(false);
-    // jsdom doesn't auto-fire the `toggle` event when a summary click
-    // flips <details>.open. Drive the wired effect directly: flip the
-    // attribute, dispatch the bubbling toggle event LineSearch listens for.
-    details.open = true;
-    fireEvent(details, new Event("toggle", { bubbles: false }));
-    expect(details.querySelector(".line-card--loading")).not.toBeNull();
-  });
-
-  it("offers a 'open as full page' link inside each expanded row", async () => {
+  it("renders each result row as a link to the standalone line page", async () => {
     useLineSearchMock.mockReturnValue({
       data: { data: [lineHit({ gtfsId: "HSL:1025" })] },
       isLoading: false,
@@ -123,14 +94,13 @@ describe("LineSearch", () => {
     const user = userEvent.setup();
     renderWithProviders(<LineSearch />);
     await user.type(screen.getByRole("searchbox"), "25");
-    const summary = await screen.findByText("Kamppi – Itäkeskus");
-    fireEvent.click(summary);
 
-    const details = summary.closest("details")! as HTMLDetailsElement;
-    const link = within(details).getByRole("link", {
-      name: /open as full page/i,
-    });
+    const row = await screen.findByText("Kamppi – Itäkeskus");
+    const link = row.closest("a");
+    expect(link).not.toBeNull();
     expect(link).toHaveAttribute("href", "/transit/line/HSL%3A1025");
+    // No native disclosures left — the row IS the link.
+    expect(document.querySelector("details")).toBeNull();
   });
 
   it("renders pinned chips when signed in and the query is empty", () => {

@@ -24,10 +24,6 @@
   border-left-color: var(--mode-ferry-strong);
 }
 
-.line-card--compact {
-  padding: var(--space-3) var(--space-4);
-}
-
 /* ── Full masthead (page) ────────────────────────────────── */
 
 .line-card__masthead {
@@ -107,31 +103,6 @@
 
 .line-card__arrow::before {
   content: "⇄";
-}
-
-/* ── Compact header (inline-expand) ──────────────────────── */
-
-.line-card__compact-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-
-.line-card__compact-headsign {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--color-ink);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.line-card__compact-origin,
-.line-card__compact-destination {
-  color: var(--color-ink);
 }
 
 /* ── Per-stop live indicator ────────────────────────────── */

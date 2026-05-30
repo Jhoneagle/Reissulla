@@ -7,7 +7,6 @@ import { usePreferences } from "../../hooks/usePreferences";
 import { useLineSearch, usePinnedLines } from "../../hooks/useTransit";
 import { useAuthStore } from "../../stores/auth";
 import { vehicleModeLabel, vehicleModeToken } from "../../lib/transit-utils";
-import { LineCard } from "./LineCard";
 
 interface LineSearchProps {
   id?: string;
@@ -26,12 +25,10 @@ function lineHref(gtfsId: string): string {
 
 /**
  * Line search. Type a number, see lines that match across all (or one)
- * region. Each result row is a native <details> disclosure that — when
- * opened — fetches and renders the line's mini-view (direction toggle,
- * frequency strip, stop list with live status dots) inline. Picking a
- * result therefore does NOT navigate by default; the deep-link to the
- * standalone /transit/line/:gtfsId page is offered alongside for users
- * who want a full-page view or a shareable URL.
+ * region. Each result row is a Link to /transit/line/:gtfsId — picking
+ * a result navigates straight to the standalone line page. The
+ * originating URL is round-tripped via router state so the page's
+ * back-link returns here with the search query and region intact.
  *
  * Above the input: pinned-line chips for signed-in users, a sign-in
  * hint for anonymous ones.
@@ -55,9 +52,6 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query.trim(), 300);
   const regionParam = region === "all" ? undefined : region;
-  // Track which lines are expanded so LineCard can skip fetching until
-  // the user actually opens a row. Many results, one fetch at a time.
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const { data, isLoading, isError } = useLineSearch(
     debouncedQuery,
@@ -208,61 +202,40 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
               <ul className="line-search__list">
                 {results.map((line) => {
                   const modeToken = vehicleModeToken(line.mode);
-                  const isOpen = expanded.has(line.gtfsId);
                   return (
                     <li
                       key={line.gtfsId}
                       className={`line-search__row line-search__row--mode-${modeToken}`}
                     >
-                      <details
-                        onToggle={(e) => {
-                          // Uncontrolled — native details owns the open
-                          // attribute; we mirror it into state so LineCard
-                          // can gate fetches until the row is opened.
-                          const open = (e.currentTarget as HTMLDetailsElement)
-                            .open;
-                          setExpanded((prev) => {
-                            const next = new Set(prev);
-                            if (open) next.add(line.gtfsId);
-                            else next.delete(line.gtfsId);
-                            return next;
-                          });
-                        }}
+                      <Link
+                        to={lineHref(line.gtfsId)}
+                        state={{ from: fromHere }}
+                        className="line-search__row-link"
                       >
-                        <summary className="line-search__summary">
-                          <span
-                            className={`line-search__mode-tag line-search__mode-tag--${modeToken}`}
-                          >
-                            {vehicleModeLabel(line.mode)}
+                        <span
+                          className={`line-search__mode-tag line-search__mode-tag--${modeToken}`}
+                          aria-hidden="true"
+                        >
+                          {vehicleModeLabel(line.mode)}
+                        </span>
+                        <span className="line-search__short">
+                          {line.shortName}
+                        </span>
+                        <span className="line-search__long">
+                          {line.longName}
+                        </span>
+                        {line.agency?.name && (
+                          <span className="line-search__agency">
+                            {line.agency.name}
                           </span>
-                          <span className="line-search__short">
-                            {line.shortName}
-                          </span>
-                          <span className="line-search__long">
-                            {line.longName}
-                          </span>
-                          {line.agency?.name && (
-                            <span className="line-search__agency">
-                              {line.agency.name}
-                            </span>
-                          )}
-                        </summary>
-                        <div className="line-search__expanded">
-                          <LineCard
-                            gtfsId={line.gtfsId}
-                            enabled={isOpen}
-                            compact
-                          />
-                          <p className="line-search__open-link">
-                            <Link
-                              to={lineHref(line.gtfsId)}
-                              state={{ from: fromHere }}
-                            >
-                              <FormattedMessage id="transit.line.search.openPage" />
-                            </Link>
-                          </p>
-                        </div>
-                      </details>
+                        )}
+                        <span
+                          className="line-search__chevron"
+                          aria-hidden="true"
+                        >
+                          ›
+                        </span>
+                      </Link>
                     </li>
                   );
                 })}

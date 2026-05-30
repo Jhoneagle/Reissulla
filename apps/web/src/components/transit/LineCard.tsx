@@ -22,36 +22,24 @@ import "./line-card.css";
 
 interface LineCardProps {
   gtfsId: string;
-  /** Skip fetching until truthy. Used by inline-expand contexts. */
-  enabled?: boolean;
   /**
-   * Controlled direction. When omitted, the card owns dir state locally —
-   * which is the right default for inline-expand rows that shouldn't fight
-   * each other over a shared URL param.
+   * Controlled direction. When omitted, the card owns dir state locally.
    */
   direction?: DirectionId;
   onDirectionChange?: (next: DirectionId) => void;
   /** Controlled day-type, same uncontrolled-fallback shape. */
   dayType?: DayType;
   onDayTypeChange?: (next: DayType) => void;
-  /**
-   * When true, render a slimmer header (no display-size number, no kicker)
-   * for embedding inside a search row. The page-level LineView leaves this
-   * off so the masthead stays full-bleed editorial.
-   */
-  compact?: boolean;
-  /** Optional fineprint footer — the page surface renders one, the inline row doesn't. */
+  /** Optional fineprint footer — the page surface renders one. */
   showFineprint?: boolean;
 }
 
 export function LineCard({
   gtfsId,
-  enabled = true,
   direction: controlledDir,
   onDirectionChange,
   dayType: controlledDayType,
   onDayTypeChange,
-  compact = false,
   showFineprint = false,
 }: LineCardProps) {
   const intl = useIntl();
@@ -68,15 +56,9 @@ export function LineCard({
     else setLocalDayType(next);
   };
 
-  const lineQuery = useLine(enabled ? gtfsId : null);
-  const departuresQuery = useLineDepartures(enabled ? gtfsId : null, direction);
-  const frequencyQuery = useFrequency(
-    enabled ? gtfsId : null,
-    dayType,
-    direction,
-  );
-
-  if (!enabled) return null;
+  const lineQuery = useLine(gtfsId);
+  const departuresQuery = useLineDepartures(gtfsId, direction);
+  const frequencyQuery = useFrequency(gtfsId, dayType, direction);
 
   if (lineQuery.isLoading) {
     return (
@@ -138,53 +120,30 @@ export function LineCard({
   const departures = departuresQuery.data?.data ?? [];
 
   return (
-    <article
-      className={`line-card line-card--mode-${modeToken}${compact ? " line-card--compact" : ""}`}
-    >
-      {!compact && (
-        <header className="line-card__masthead">
-          <div className="line-card__masthead-top">
-            <p className="line-card__kicker">
-              <FormattedMessage id="transit.line.kicker" />
-            </p>
-            <LinePinButton
-              gtfsId={line.gtfsId}
-              name={line.shortName}
-              vehicleMode={line.mode}
-            />
-          </div>
-          <hr className="line-card__top-rule" />
-          <div className="line-card__display">
-            <span className="line-card__number">{line.shortName}</span>
-            <p className="line-card__headsign">
-              <span className="line-card__origin">
-                {pattern.stops[0]?.name ?? ""}
-              </span>
-              <span className="line-card__arrow" aria-hidden="true" />
-              <span className="line-card__destination">{pattern.headsign}</span>
-            </p>
-          </div>
-        </header>
-      )}
-
-      {compact && (
-        <header className="line-card__compact-header">
-          <span className="line-card__compact-headsign">
-            <span className="line-card__compact-origin">
-              {pattern.stops[0]?.name ?? ""}
-            </span>
-            <span className="line-card__arrow" aria-hidden="true" />
-            <span className="line-card__compact-destination">
-              {pattern.headsign}
-            </span>
-          </span>
+    <article className={`line-card line-card--mode-${modeToken}`}>
+      <header className="line-card__masthead">
+        <div className="line-card__masthead-top">
+          <p className="line-card__kicker">
+            <FormattedMessage id="transit.line.kicker" />
+          </p>
           <LinePinButton
             gtfsId={line.gtfsId}
             name={line.shortName}
             vehicleMode={line.mode}
           />
-        </header>
-      )}
+        </div>
+        <hr className="line-card__top-rule" />
+        <div className="line-card__display">
+          <span className="line-card__number">{line.shortName}</span>
+          <p className="line-card__headsign">
+            <span className="line-card__origin">
+              {pattern.stops[0]?.name ?? ""}
+            </span>
+            <span className="line-card__arrow" aria-hidden="true" />
+            <span className="line-card__destination">{pattern.headsign}</span>
+          </p>
+        </div>
+      </header>
 
       <DirectionToggle
         patterns={line.patterns}

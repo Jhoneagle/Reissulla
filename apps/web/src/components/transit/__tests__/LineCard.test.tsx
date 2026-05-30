@@ -155,17 +155,6 @@ beforeEach(() => {
 });
 
 describe("LineCard", () => {
-  it("skips fetching and renders nothing when enabled=false", () => {
-    useLineMock.mockReturnValue({ isLoading: false, isError: false });
-    useLineDeparturesMock.mockReturnValue({ data: undefined });
-    useFrequencyMock.mockReturnValue({ data: undefined });
-    const { container } = renderWithProviders(
-      <LineCard gtfsId="HSL:1025" enabled={false} />,
-    );
-    expect(container).toBeEmptyDOMElement();
-    expect(useLineMock).toHaveBeenCalledWith(null);
-  });
-
   it("renders the loading plate while the line query is in flight", () => {
     useLineMock.mockReturnValue({ isLoading: true, isError: false });
     useLineDeparturesMock.mockReturnValue({ data: undefined });
