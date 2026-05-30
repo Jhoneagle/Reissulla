@@ -1,0 +1,241 @@
+/* ── Stop list spine + rows ─────────────────────────────────────
+ * Reused by TripDetail (this chunk) and LineView (Chunk 5).
+ * Per-mode accent comes from .stop-list--mode-<token>.
+ */
+
+.stop-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  row-gap: 0;
+}
+
+.stop-row {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  column-gap: var(--space-3);
+  padding: var(--space-2) 0;
+  position: relative;
+}
+
+.stop-row__spine {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.stop-row__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--mode-bus-strong);
+  background: var(--color-paper);
+  position: relative;
+  z-index: 1;
+}
+
+/* The connecting line lives on every row except the last. */
+.stop-row:not(:last-child) .stop-row__spine::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: -100%;
+  left: 50%;
+  width: 2px;
+  background: var(--mode-bus-strong);
+  opacity: 0.55;
+}
+
+/* ── State variants ─────────────────────────────────────────── */
+
+.stop-row__dot--current {
+  width: 12px;
+  height: 12px;
+  background: var(--mode-bus-strong);
+}
+
+.stop-row__dot--past {
+  border-color: var(--color-rule);
+}
+
+.stop-row--past .stop-row__name,
+.stop-row--past .stop-row__time {
+  color: var(--color-ink-muted);
+}
+
+.stop-row:not(:last-child).stop-row--past .stop-row__spine::after {
+  background: var(--color-rule);
+  opacity: 1;
+}
+
+.stop-row__dot--terminus {
+  background: var(--color-ink-muted);
+  border-color: var(--color-ink-muted);
+}
+
+/* "Next stop" hairline cuts past from future above the current row. */
+.stop-row--current::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--mode-bus-strong);
+}
+
+/* ── Name + secondary ───────────────────────────────────────── */
+
+.stop-row__name {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+}
+
+html[lang="fi"] .stop-row__name {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.stop-row__secondary {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.stop-row__time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--color-ink);
+}
+
+/* ── Per-mode overrides on the <ol> wrapper ─────────────────── */
+
+.stop-list--mode-tram .stop-row__dot {
+  border-color: var(--mode-tram-strong);
+}
+.stop-list--mode-tram .stop-row__dot--current {
+  background: var(--mode-tram-strong);
+}
+.stop-list--mode-tram .stop-row__spine::after {
+  background: var(--mode-tram-strong);
+}
+.stop-list--mode-tram .stop-row--current::before {
+  background: var(--mode-tram-strong);
+}
+
+.stop-list--mode-rail .stop-row__dot {
+  border-color: var(--mode-rail-strong);
+}
+.stop-list--mode-rail .stop-row__dot--current {
+  background: var(--mode-rail-strong);
+}
+.stop-list--mode-rail .stop-row__spine::after {
+  background: var(--mode-rail-strong);
+}
+.stop-list--mode-rail .stop-row--current::before {
+  background: var(--mode-rail-strong);
+}
+
+.stop-list--mode-subway .stop-row__dot {
+  border-color: var(--mode-subway-strong);
+}
+.stop-list--mode-subway .stop-row__dot--current {
+  background: var(--mode-subway-strong);
+}
+.stop-list--mode-subway .stop-row__spine::after {
+  background: var(--mode-subway-strong);
+}
+.stop-list--mode-subway .stop-row--current::before {
+  background: var(--mode-subway-strong);
+}
+
+.stop-list--mode-ferry .stop-row__dot {
+  border-color: var(--mode-ferry-strong);
+}
+.stop-list--mode-ferry .stop-row__dot--current {
+  background: var(--mode-ferry-strong);
+}
+.stop-list--mode-ferry .stop-row__spine::after {
+  background: var(--mode-ferry-strong);
+}
+.stop-list--mode-ferry .stop-row--current::before {
+  background: var(--mode-ferry-strong);
+}
+
+/* ── StopTime ───────────────────────────────────────────────── */
+
+.stop-time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.stop-time__primary {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.stop-time__scheduled {
+  text-decoration: line-through;
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
+
+.stop-time__sep {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+}
+
+.stop-time__sep::before {
+  content: "→";
+}
+
+.stop-time--late {
+  color: var(--color-warning);
+}
+
+.stop-time--early {
+  color: var(--color-success);
+}
+
+.stop-time__relative {
+  display: block;
+  width: 100%;
+  text-align: right;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin-top: 0.1rem;
+}
+
+/* ── Forced-colors fallback ─────────────────────────────────── */
+
+@media (forced-colors: active) {
+  .stop-row__dot {
+    background: Canvas;
+    border-color: CanvasText;
+  }
+  .stop-row__dot--current {
+    background: CanvasText;
+  }
+  .stop-row__spine::after,
+  .stop-row--current::before {
+    background: CanvasText !important;
+    opacity: 1;
+  }
+}
