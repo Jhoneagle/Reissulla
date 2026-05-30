@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Line, PinnedLine } from "@reissulla/shared";
 import { renderWithProviders } from "../../../test/test-utils";
@@ -18,6 +18,13 @@ vi.mock("../../../stores/auth", () => ({
 vi.mock("../../../hooks/useTransit", () => ({
   useLineSearch: (...args: unknown[]) => useLineSearchMock(...args),
   usePinnedLines: (...args: unknown[]) => usePinnedLinesMock(...args),
+  // LineSearch embeds LineCard which calls these — stub them so the
+  // expanded state renders without firing real React Query.
+  useLine: () => ({ isLoading: true, isError: false, data: undefined }),
+  useLineDepartures: () => ({ data: undefined }),
+  useFrequency: () => ({ data: undefined }),
+  usePinLine: () => ({ mutate: vi.fn(), isPending: false }),
+  useUnpinLine: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 vi.mock("../../../hooks/usePreferences", () => ({
@@ -58,64 +65,72 @@ beforeEach(() => {
 });
 
 describe("LineSearch", () => {
-  it("surfaces hits across regions when the query matches", async () => {
-    const tampere = lineHit({
-      gtfsId: "tampere:25",
-      shortName: "25",
-      longName: "Hervanta",
-      agency: { gtfsId: "tampere", name: "Tampereen seudun joukkoliikenne" },
-    });
-    const hsl = lineHit({
-      gtfsId: "HSL:1025",
-      shortName: "25",
-      longName: "Kamppi – Itäkeskus",
-      agency: { gtfsId: "HSL", name: "HSL" },
-    });
+  it("renders one expandable row per result, sorted by shortName length", async () => {
     useLineSearchMock.mockReturnValue({
-      data: { data: [hsl, tampere] },
+      data: {
+        data: [
+          lineHit({ gtfsId: "a:25A", shortName: "25A", longName: "Variant" }),
+          lineHit({ gtfsId: "a:25", shortName: "25", longName: "Trunk" }),
+        ],
+      },
       isLoading: false,
       isError: false,
     });
 
     const user = userEvent.setup();
     renderWithProviders(<LineSearch />);
-    await user.type(
-      screen.getByRole("combobox", { name: /search a line/i }),
-      "25",
-    );
+    await user.type(screen.getByRole("searchbox"), "25");
 
-    const listbox = await screen.findByRole("listbox");
     await waitFor(() => {
-      expect(listbox.querySelectorAll('[role="option"]')).toHaveLength(2);
+      expect(document.querySelectorAll(".line-search__row")).toHaveLength(2);
     });
-    expect(screen.getByText("HSL")).toBeInTheDocument();
-    expect(
-      screen.getByText("Tampereen seudun joukkoliikenne"),
-    ).toBeInTheDocument();
+    // The 2-char "25" sorts before "25A".
+    const shortNames = Array.from(
+      document.querySelectorAll(".line-search__short"),
+    ).map((el) => el.textContent);
+    expect(shortNames).toEqual(["25", "25A"]);
   });
 
-  it("selects the highlighted row on Enter", async () => {
-    const hsl = lineHit();
+  it("mounts LineCard inside the row when details fires its toggle event", async () => {
     useLineSearchMock.mockReturnValue({
-      data: { data: [hsl] },
+      data: { data: [lineHit()] },
       isLoading: false,
       isError: false,
     });
-    const onSelect = vi.fn();
 
     const user = userEvent.setup();
-    renderWithProviders(<LineSearch onSelect={onSelect} />);
-    const input = screen.getByRole("combobox", { name: /search a line/i });
-    await user.type(input, "25");
-    const listbox = await screen.findByRole("listbox");
-    await waitFor(() => {
-      expect(listbox.querySelectorAll('[role="option"]')).toHaveLength(1);
-    });
-    // Arrow Down to highlight first row, then Enter.
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-    fireEvent.keyDown(input, { key: "Enter" });
+    renderWithProviders(<LineSearch />);
+    await user.type(screen.getByRole("searchbox"), "25");
 
-    expect(onSelect).toHaveBeenCalledWith(hsl);
+    const summary = await screen.findByText("Kamppi – Itäkeskus");
+    const details = summary.closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    // jsdom doesn't auto-fire the `toggle` event when a summary click
+    // flips <details>.open. Drive the wired effect directly: flip the
+    // attribute, dispatch the bubbling toggle event LineSearch listens for.
+    details.open = true;
+    fireEvent(details, new Event("toggle", { bubbles: false }));
+    expect(details.querySelector(".line-card--loading")).not.toBeNull();
+  });
+
+  it("offers a 'open as full page' link inside each expanded row", async () => {
+    useLineSearchMock.mockReturnValue({
+      data: { data: [lineHit({ gtfsId: "HSL:1025" })] },
+      isLoading: false,
+      isError: false,
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<LineSearch />);
+    await user.type(screen.getByRole("searchbox"), "25");
+    const summary = await screen.findByText("Kamppi – Itäkeskus");
+    fireEvent.click(summary);
+
+    const details = summary.closest("details")! as HTMLDetailsElement;
+    const link = within(details).getByRole("link", {
+      name: /open as full page/i,
+    });
+    expect(link).toHaveAttribute("href", "/transit/line/HSL%3A1025");
   });
 
   it("renders pinned chips when signed in and the query is empty", () => {

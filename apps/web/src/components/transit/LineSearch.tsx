@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link } from "react-router";
 import type { Line } from "@reissulla/shared";
@@ -7,10 +7,10 @@ import { usePreferences } from "../../hooks/usePreferences";
 import { useLineSearch, usePinnedLines } from "../../hooks/useTransit";
 import { useAuthStore } from "../../stores/auth";
 import { vehicleModeLabel, vehicleModeToken } from "../../lib/transit-utils";
+import { LineCard } from "./LineCard";
 
 interface LineSearchProps {
   id?: string;
-  onSelect?: (line: Line) => void;
 }
 
 const REGION_OPTIONS = [
@@ -25,31 +25,34 @@ function lineHref(gtfsId: string): string {
 }
 
 /**
- * Line search with a region facet. Anonymous and signed-in flows differ in
- * what surfaces *below* the input when the query is empty: pinned chips for
- * signed-in users, an empty-hint for anonymous. Listbox a11y mirrors
- * `StopSearch` — combobox + listbox + aria-activedescendant.
+ * Line search. Type a number, see lines that match across all (or one)
+ * region. Each result row is a native <details> disclosure that — when
+ * opened — fetches and renders the line's mini-view (direction toggle,
+ * frequency strip, stop list with live status dots) inline. Picking a
+ * result therefore does NOT navigate by default; the deep-link to the
+ * standalone /transit/line/:gtfsId page is offered alongside for users
+ * who want a full-page view or a shareable URL.
+ *
+ * Above the input: pinned-line chips for signed-in users, a sign-in
+ * hint for anonymous ones.
  */
-export function LineSearch({ id = "line-search", onSelect }: LineSearchProps) {
+export function LineSearch({ id = "line-search" }: LineSearchProps) {
   const intl = useIntl();
   const user = useAuthStore((s) => s.user);
   const preferences = usePreferences();
-  // Region default reads from `preferences.transitRegion` — separate from
-  // persona's home city (a Tampere resident may default "all" for weekend
-  // trips). Once the user picks a value from the facet, the override sticks
-  // for the session even if preferences refetch.
+  // Region default reads from `preferences.transitRegion` (separate from
+  // persona's home city — a Tampere resident may default "all" for
+  // weekend trips). Once the user picks a value from the facet, the
+  // override sticks for the session even if preferences refetch.
   const [regionOverride, setRegionOverride] = useState<string | null>(null);
   const region = regionOverride ?? preferences.data?.transitRegion ?? "all";
 
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedQuery = useDebounce(query.trim(), 300);
-
-  const listboxId = `${id}-listbox`;
   const regionParam = region === "all" ? undefined : region;
+  // Track which lines are expanded so LineCard can skip fetching until
+  // the user actually opens a row. Many results, one fetch at a time.
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const { data, isLoading, isError } = useLineSearch(
     debouncedQuery,
@@ -57,70 +60,20 @@ export function LineSearch({ id = "line-search", onSelect }: LineSearchProps) {
   );
   const results = useMemo<Line[]>(() => {
     const rows = data?.data ?? [];
-    // Short numeric searches like "25" return long lists where exact-length
-    // matches (the actual line "25") are buried by substring noise ("25A",
-    // "125", "251"). Sort by shortName length ascending so the canonical
-    // hits surface first; preserve upstream order within length buckets.
+    // Short numeric searches ("25") return long lists where exact-length
+    // matches are buried under substring noise ("25A", "125", "251"). Sort
+    // by shortName length ascending so canonical hits surface first;
+    // preserve upstream order within length buckets.
     return [...rows].sort((a, b) => a.shortName.length - b.shortName.length);
   }, [data]);
 
   const pinnedQuery = usePinnedLines(Boolean(user));
   const pinned = pinnedQuery.data?.data ?? [];
 
-  useEffect(() => {
-    return () => {
-      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
-    };
-  }, []);
-
-  const selectResult = useCallback(
-    (line: Line) => {
-      setQuery(line.shortName);
-      setOpen(false);
-      setActiveIndex(-1);
-      onSelect?.(line);
-    },
-    [onSelect],
-  );
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!open || results.length === 0) return;
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setActiveIndex((i) => (i < results.length - 1 ? i + 1 : 0));
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setActiveIndex((i) => (i > 0 ? i - 1 : results.length - 1));
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (activeIndex >= 0 && activeIndex < results.length) {
-          const line = results[activeIndex];
-          if (line) selectResult(line);
-        }
-        break;
-      case "Escape":
-        e.preventDefault();
-        setOpen(false);
-        setActiveIndex(-1);
-        break;
-    }
-  };
-
-  const handleBlur = () => {
-    if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
-    blurTimerRef.current = setTimeout(() => setOpen(false), 200);
-  };
-
-  const showDropdown = open && debouncedQuery.length >= 1;
-  const activeDescendant =
-    activeIndex >= 0 ? `${id}-result-${activeIndex}` : undefined;
-
   const showPinnedChips = !query && Boolean(user) && pinned.length > 0;
   const showAnonHint = !query && !user;
   const showEmptyHint = !query && Boolean(user) && pinned.length === 0;
+  const showResults = debouncedQuery.length >= 1;
 
   return (
     <div className="line-search">
@@ -145,30 +98,14 @@ export function LineSearch({ id = "line-search", onSelect }: LineSearchProps) {
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
-            ref={inputRef}
             id={id}
-            type="text"
-            role="combobox"
-            aria-expanded={showDropdown}
-            aria-haspopup="listbox"
-            aria-autocomplete="list"
-            aria-controls={listboxId}
-            aria-activedescendant={activeDescendant}
+            type="search"
             autoComplete="off"
             placeholder={intl.formatMessage({
               id: "transit.line.search.placeholder",
             })}
             value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setActiveIndex(-1);
-              setOpen(e.target.value.trim().length >= 1);
-            }}
-            onFocus={() => {
-              if (query.trim().length >= 1) setOpen(true);
-            }}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
+            onChange={(e) => setQuery(e.target.value)}
           />
         </div>
         <label htmlFor={`${id}-region`} className="visually-hidden">
@@ -187,79 +124,6 @@ export function LineSearch({ id = "line-search", onSelect }: LineSearchProps) {
           ))}
         </select>
       </div>
-
-      {showDropdown && (
-        <ul
-          id={listboxId}
-          role="listbox"
-          aria-label={intl.formatMessage({
-            id: "transit.line.search.label",
-          })}
-          className="line-search__results"
-        >
-          {isLoading && (
-            <li
-              role="option"
-              aria-selected={false}
-              aria-disabled="true"
-              className="line-search__status"
-            >
-              <FormattedMessage id="locationSearch.loading" />
-            </li>
-          )}
-          {isError && (
-            <li
-              role="option"
-              aria-selected={false}
-              aria-disabled="true"
-              className="line-search__status"
-            >
-              <FormattedMessage id="locationSearch.error" />
-            </li>
-          )}
-          {!isLoading && !isError && results.length === 0 && (
-            <li
-              role="option"
-              aria-selected={false}
-              aria-disabled="true"
-              className="line-search__status"
-            >
-              <FormattedMessage id="transit.line.search.empty" />
-            </li>
-          )}
-          {results.map((line, index) => {
-            const modeToken = vehicleModeToken(line.mode);
-            return (
-              <li
-                key={line.gtfsId}
-                id={`${id}-result-${index}`}
-                role="option"
-                aria-selected={index === activeIndex}
-                className={`line-search__row line-search__row--mode-${modeToken}`}
-              >
-                <Link
-                  to={lineHref(line.gtfsId)}
-                  className="line-search__link"
-                  onClick={() => selectResult(line)}
-                >
-                  <span
-                    className={`line-search__mode-tag line-search__mode-tag--${modeToken}`}
-                  >
-                    {vehicleModeLabel(line.mode)}
-                  </span>
-                  <span className="line-search__short">{line.shortName}</span>
-                  <span className="line-search__long">{line.longName}</span>
-                  {line.agency?.name && (
-                    <span className="line-search__agency">
-                      {line.agency.name}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
 
       {showPinnedChips && (
         <nav
@@ -305,14 +169,99 @@ export function LineSearch({ id = "line-search", onSelect }: LineSearchProps) {
         </p>
       )}
 
-      <div aria-live="polite" className="visually-hidden">
-        {showDropdown && !isLoading && results.length > 0
-          ? intl.formatMessage(
-              { id: "transit.line.search.resultsAnnouncement" },
-              { count: results.length },
-            )
-          : ""}
-      </div>
+      {showResults && (
+        <section
+          className="line-search__results"
+          aria-label={intl.formatMessage({
+            id: "transit.line.search.label",
+          })}
+        >
+          {isLoading && (
+            <p className="line-search__status">
+              <FormattedMessage id="locationSearch.loading" />
+            </p>
+          )}
+          {isError && (
+            <p className="line-search__status">
+              <FormattedMessage id="locationSearch.error" />
+            </p>
+          )}
+          {!isLoading && !isError && results.length === 0 && (
+            <p className="line-search__status">
+              <FormattedMessage id="transit.line.search.empty" />
+            </p>
+          )}
+          {results.length > 0 && (
+            <>
+              <p className="visually-hidden" aria-live="polite">
+                <FormattedMessage
+                  id="transit.line.search.resultsAnnouncement"
+                  values={{ count: results.length }}
+                />
+              </p>
+              <ul className="line-search__list">
+                {results.map((line) => {
+                  const modeToken = vehicleModeToken(line.mode);
+                  const isOpen = expanded.has(line.gtfsId);
+                  return (
+                    <li
+                      key={line.gtfsId}
+                      className={`line-search__row line-search__row--mode-${modeToken}`}
+                    >
+                      <details
+                        onToggle={(e) => {
+                          // Uncontrolled — native details owns the open
+                          // attribute; we mirror it into state so LineCard
+                          // can gate fetches until the row is opened.
+                          const open = (e.currentTarget as HTMLDetailsElement)
+                            .open;
+                          setExpanded((prev) => {
+                            const next = new Set(prev);
+                            if (open) next.add(line.gtfsId);
+                            else next.delete(line.gtfsId);
+                            return next;
+                          });
+                        }}
+                      >
+                        <summary className="line-search__summary">
+                          <span
+                            className={`line-search__mode-tag line-search__mode-tag--${modeToken}`}
+                          >
+                            {vehicleModeLabel(line.mode)}
+                          </span>
+                          <span className="line-search__short">
+                            {line.shortName}
+                          </span>
+                          <span className="line-search__long">
+                            {line.longName}
+                          </span>
+                          {line.agency?.name && (
+                            <span className="line-search__agency">
+                              {line.agency.name}
+                            </span>
+                          )}
+                        </summary>
+                        <div className="line-search__expanded">
+                          <LineCard
+                            gtfsId={line.gtfsId}
+                            enabled={isOpen}
+                            compact
+                          />
+                          <p className="line-search__open-link">
+                            <Link to={lineHref(line.gtfsId)}>
+                              <FormattedMessage id="transit.line.search.openPage" />
+                            </Link>
+                          </p>
+                        </div>
+                      </details>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
     </div>
   );
 }
