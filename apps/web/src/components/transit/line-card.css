@@ -1,0 +1,258 @@
+/* ── LineCard — shared by LineView page and LineSearch inline-expand ── */
+
+.line-card {
+  border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--mode-bus-strong);
+  border-radius: var(--radius-xs);
+  padding: var(--space-4) var(--space-5);
+  background: transparent;
+}
+
+.line-card--mode-bus {
+  border-left-color: var(--mode-bus-strong);
+}
+.line-card--mode-tram {
+  border-left-color: var(--mode-tram-strong);
+}
+.line-card--mode-rail {
+  border-left-color: var(--mode-rail-strong);
+}
+.line-card--mode-subway {
+  border-left-color: var(--mode-subway-strong);
+}
+.line-card--mode-ferry {
+  border-left-color: var(--mode-ferry-strong);
+}
+
+.line-card--compact {
+  padding: var(--space-3) var(--space-4);
+}
+
+/* ── Full masthead (page) ────────────────────────────────── */
+
+.line-card__masthead {
+  margin-bottom: var(--space-4);
+}
+
+.line-card__masthead-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.line-card__kicker {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+}
+
+.line-card__top-rule {
+  border: 0;
+  height: 1px;
+  background: var(--color-rule-soft);
+  position: relative;
+  margin: 0 0 var(--space-3);
+}
+
+.line-card__top-rule::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 1px;
+  background: var(--color-primary);
+}
+
+.line-card__display {
+  display: block;
+}
+
+.line-card__number {
+  display: block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--text-hero);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--color-ink);
+}
+
+.line-card__headsign {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--text-xl);
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.line-card__origin,
+.line-card__destination {
+  color: var(--color-ink);
+}
+
+.line-card__arrow {
+  font-family: var(--font-mono);
+  color: var(--color-ink-muted);
+}
+
+.line-card__arrow::before {
+  content: "⇄";
+}
+
+/* ── Compact header (inline-expand) ──────────────────────── */
+
+.line-card__compact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.line-card__compact-headsign {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.line-card__compact-origin,
+.line-card__compact-destination {
+  color: var(--color-ink);
+}
+
+/* ── Per-stop live indicator ────────────────────────────── */
+
+.line-card__time {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+}
+
+.line-card__live {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink-muted);
+  flex-shrink: 0;
+}
+
+.line-card__live[data-status="imminent"] {
+  background: var(--color-success, var(--mode-tram-strong));
+  box-shadow: 0 0 0 3px
+    color-mix(
+      in srgb,
+      var(--color-success, var(--mode-tram-strong)) 20%,
+      transparent
+    );
+}
+
+.line-card__live[data-status="soon"] {
+  background: var(--color-warning, var(--mode-subway-strong));
+}
+
+.line-card__live[data-status="later"] {
+  background: var(--color-rule);
+}
+
+.line-card__live[data-status="none"] {
+  display: none;
+}
+
+.line-card__clock {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.line-card__rel {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+}
+
+.line-card__terminus {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.line-card__none {
+  color: var(--color-ink-muted);
+  opacity: 0.6;
+}
+
+.line-card__none::before {
+  content: "—";
+}
+
+@media (forced-colors: active) {
+  .line-card__live {
+    background: CanvasText !important;
+    box-shadow: none !important;
+  }
+  .line-card {
+    border-left-color: CanvasText;
+  }
+}
+
+/* ── Fineprint (page only) ───────────────────────────────── */
+
+.line-card__fineprint {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-rule-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  letter-spacing: 0.05em;
+}
+
+.line-card__fineprint p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Loading / error / empty ─────────────────────────────── */
+
+.line-card--loading,
+.line-card--error,
+.line-card--empty {
+  padding: var(--space-4) var(--space-5);
+}
+
+.line-card__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .line-card {
+    padding: var(--space-3);
+  }
+  .line-card__number {
+    font-size: 3.5rem;
+  }
+  .line-card__headsign {
+    font-size: var(--text-lg);
+  }
+}
