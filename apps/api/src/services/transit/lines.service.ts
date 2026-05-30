@@ -169,14 +169,7 @@ async function fetchStopNextForLine(
       false,
       persona,
     );
-    // Filter the per-stop superset down to this line. routeGtfsId is the
-    // stable identifier; fall back to routeShortName when an older cached
-    // payload lacks the field (60s TTL bounds the legacy window).
-    const onLine = data.departures.filter(
-      (d) =>
-        d.routeGtfsId === lineGtfsId ||
-        (d.routeGtfsId === undefined && d.routeShortName === lineGtfsId),
-    );
+    const onLine = data.departures.filter((d) => d.routeGtfsId === lineGtfsId);
     if (onLine.length === 0) return empty;
 
     const earliest = onLine[0]!;
