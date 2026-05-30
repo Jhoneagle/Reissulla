@@ -1,12 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import type {
   DayType,
   DirectionId,
@@ -62,7 +56,14 @@ export function LineView() {
 
   const modeToken = vehicleModeToken(line.mode);
   const departures = departuresQuery.data?.data ?? [];
-  const stopRows = buildStopRows(pattern.stops, departures, intl);
+  const stopRows = (
+    <LineStopRows
+      stops={pattern.stops}
+      departures={departures}
+      modeToken={modeToken}
+      intl={intl}
+    />
+  );
 
   return (
     <article className={`line-view line-view--mode-${modeToken}`}>
@@ -109,11 +110,7 @@ export function LineView() {
         }
       />
 
-      <StopList
-        stops={stopRows}
-        modeToken={modeToken}
-        ariaLabel={intl.formatMessage({ id: "transit.line.stops.label" })}
-      />
+      {stopRows}
 
       <footer className="line-view__fineprint">
         <p>
@@ -170,38 +167,6 @@ function pickPattern(
   return patterns[0];
 }
 
-function buildStopRows(
-  stops: Pattern["stops"],
-  departures: LineStopDeparture[],
-  intl: ReturnType<typeof useIntl>,
-): Array<StopRowProps & { id: string }> {
-  const lastIndex = stops.length - 1;
-  const byGtfsId = new Map<string, LineStopDeparture>();
-  for (const d of departures) {
-    byGtfsId.set(d.stop.gtfsId, d);
-  }
-  return stops.map((stop, i) => {
-    const enrich = byGtfsId.get(stop.gtfsId);
-    const isTerminus = i === lastIndex;
-    const nextDeparture = enrich?.nextDepartureUnix;
-    const time = nextDeparture
-      ? intl.formatMessage(
-          { id: "transit.line.stops.nextDeparture" },
-          { time: formatClock(nextDeparture) },
-        )
-      : isTerminus
-        ? intl.formatMessage({ id: "transit.line.stops.terminus" })
-        : "";
-    return {
-      id: `${stop.gtfsId}-${i}`,
-      name: stop.name,
-      secondary: stop.platformCode ?? undefined,
-      state: isTerminus ? "terminus" : "upcoming",
-      time: <span className="line-view__next">{time}</span>,
-    };
-  });
-}
-
 function formatClock(unixSec: number): string {
   return new Date(unixSec * 1000).toLocaleTimeString("fi-FI", {
     timeZone: "Europe/Helsinki",
@@ -210,28 +175,124 @@ function formatClock(unixSec: number): string {
   });
 }
 
+/**
+ * Bucket the time-until-next-departure into a status tier. The dot colour
+ * keys off this — green when a vehicle is at/just-leaving the stop, amber
+ * for the next 10-minute window, gray when farther out, and `none` when
+ * the upstream lookahead window returned no scheduled departure for the
+ * stop. `null` means "no data, render no dot".
+ */
+type StopStatus = "imminent" | "soon" | "later" | "none";
+
+function statusFor(
+  nextUnix: number | null | undefined,
+  nowSec: number,
+): StopStatus {
+  if (nextUnix == null) return "none";
+  const diff = nextUnix - nowSec;
+  if (diff <= 120) return "imminent";
+  if (diff <= 600) return "soon";
+  return "later";
+}
+
+function relativeMinutes(nextUnix: number, nowSec: number): number {
+  return Math.max(0, Math.round((nextUnix - nowSec) / 60));
+}
+
+// Same external-store ticker pattern as TripDetail — keeps the relative
+// times rolling without re-rendering the world.
+function nowSubscribe(callback: () => void): () => void {
+  const id = setInterval(callback, 30_000);
+  return () => clearInterval(id);
+}
+function nowSnapshot(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+interface LineStopRowsProps {
+  stops: Pattern["stops"];
+  departures: LineStopDeparture[];
+  modeToken: string;
+  intl: ReturnType<typeof useIntl>;
+}
+
+function LineStopRows({
+  stops,
+  departures,
+  modeToken,
+  intl,
+}: LineStopRowsProps) {
+  const now = useSyncExternalStore(nowSubscribe, nowSnapshot);
+  const lastIndex = stops.length - 1;
+  const byGtfsId = new Map<string, LineStopDeparture>();
+  for (const d of departures) byGtfsId.set(d.stop.gtfsId, d);
+
+  const rows: Array<StopRowProps & { id: string }> = stops.map((stop, i) => {
+    const enrich = byGtfsId.get(stop.gtfsId);
+    const isTerminus = i === lastIndex;
+    const next = enrich?.nextDepartureUnix ?? null;
+    const status = statusFor(next, now);
+    return {
+      id: `${stop.gtfsId}-${i}`,
+      name: stop.name,
+      secondary: stop.platformCode ?? undefined,
+      state: isTerminus ? "terminus" : "upcoming",
+      time: (
+        <span
+          className={`line-view__time line-view__time--${status}`}
+          data-status={status}
+        >
+          {next != null ? (
+            <>
+              <span
+                className="line-view__live"
+                aria-hidden="true"
+                data-status={status}
+              />
+              <span className="line-view__clock">{formatClock(next)}</span>
+              <span className="line-view__rel">
+                {intl.formatMessage(
+                  { id: "transit.line.stops.relative" },
+                  { minutes: relativeMinutes(next, now) },
+                )}
+              </span>
+            </>
+          ) : isTerminus ? (
+            <span className="line-view__terminus">
+              {intl.formatMessage({ id: "transit.line.stops.terminus" })}
+            </span>
+          ) : (
+            <span
+              className="line-view__none"
+              aria-label={intl.formatMessage({
+                id: "transit.line.stops.noDeparture",
+              })}
+            >
+              —
+            </span>
+          )}
+        </span>
+      ),
+    };
+  });
+
+  return (
+    <StopList
+      stops={rows}
+      modeToken={modeToken}
+      ariaLabel={intl.formatMessage({ id: "transit.line.stops.label" })}
+    />
+  );
+}
+
 function BackLink() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const onClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.button !== 0
-    ) {
-      return;
-    }
-    event.preventDefault();
-    if (location.key === "default") {
-      navigate("/transit?tab=lines");
-    } else {
-      navigate(-1);
-    }
-  };
+  // Plain anchor — no JS interception. The Link's natural navigation
+  // pushes a single history entry to /transit?tab=lines, so internal
+  // URL-param changes (dir, dayType) on the LineView don't get in the
+  // way of returning to the search.
   return (
     <nav className="line-view__back">
-      <Link to="/transit?tab=lines" onClick={onClick}>
+      <Link to="/transit?tab=lines">
         <FormattedMessage id="transit.line.back" />
       </Link>
     </nav>

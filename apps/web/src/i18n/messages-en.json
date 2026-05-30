@@ -347,6 +347,8 @@
   "transit.line.stops.label": "Stops",
   "transit.line.stops.terminus": "terminus",
   "transit.line.stops.nextDeparture": "next at {time}",
+  "transit.line.stops.relative": "{minutes, plural, =0 {now} one {in # min} other {in # min}}",
+  "transit.line.stops.noDeparture": "No upcoming departure",
   "transit.line.pin.add": "Pin line {line}",
   "transit.line.pin.remove": "Unpin line {line}",
   "transit.line.pin.signin": "Sign in to pin lines",
