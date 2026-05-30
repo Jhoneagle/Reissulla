@@ -9,6 +9,7 @@ import {
   getFirstLastOfDay,
   planRoute,
   getTripDetail,
+  searchLines,
   type DeparturesOptions,
   type ArrivalDepartureMode,
 } from "../services/transit/index.js";
@@ -335,6 +336,32 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         date,
         request.persona,
       );
+      return { data, cached };
+    },
+  );
+
+  // Line catalogue search by short or long name (LINE-1 discovery gate).
+  // `region` keys off `preferences.transitRegion` and picks the upstream
+  // graph — `"all"` (or unset) fans the query across the Finland-wide adapter
+  // so cross-region disambiguation ("25" → Tampere 25 + HSL 25) surfaces.
+  server.get<{ Querystring: { q?: string; region?: string } }>(
+    "/api/v1/transit/lines/search",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: {
+            q: { type: "string" },
+            region: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const q = (request.query.q ?? "").trim();
+      if (q === "") return badRequest("q must not be empty");
+      const region = request.query.region?.trim() || undefined;
+      const { data, cached } = await searchLines(q, region, request.persona);
       return { data, cached };
     },
   );

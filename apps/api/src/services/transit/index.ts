@@ -17,3 +17,4 @@ export type {
 } from "./departures.service.js";
 export { planRoute } from "./trip.service.js";
 export { getTripDetail } from "./trip-detail.service.js";
+export { searchLines } from "./lines.service.js";
