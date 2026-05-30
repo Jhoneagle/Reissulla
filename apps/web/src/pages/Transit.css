@@ -1405,6 +1405,52 @@
   border-color: var(--color-rule);
 }
 
+/* ── Direction toggle ──────────────────────────────────────────────── */
+
+.direction-toggle {
+  display: inline-flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.direction-toggle__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper);
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.direction-toggle__chip:hover {
+  color: var(--color-ink);
+  border-color: var(--color-ink-muted);
+}
+
+.direction-toggle__chip--active {
+  color: var(--color-ink);
+  background: var(--color-surface-sunk);
+  border-color: var(--color-ink);
+}
+
+.direction-toggle__arrow {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.direction-toggle__arrow--right::before {
+  content: "›";
+}
+
+.direction-toggle__arrow--left::before {
+  content: "‹";
+}
+
 /* ── Recent stops on the departure board ────────────────────────────── */
 
 .recent-stops {
