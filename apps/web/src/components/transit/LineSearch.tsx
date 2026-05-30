@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import type { Line } from "@reissulla/shared";
 import { useDebounce } from "../../hooks/useDebounce";
 import { usePreferences } from "../../hooks/usePreferences";
@@ -38,6 +38,11 @@ function lineHref(gtfsId: string): string {
  */
 export function LineSearch({ id = "line-search" }: LineSearchProps) {
   const intl = useIntl();
+  const location = useLocation();
+  // Round-trip the originating URL through router state so the line/trip
+  // detail back-links can return to the same search context. Read once
+  // per render; navigation captures the snapshot.
+  const fromHere = `${location.pathname}${location.search}`;
   const user = useAuthStore((s) => s.user);
   const preferences = usePreferences();
   // Region default reads from `preferences.transitRegion` (separate from
@@ -142,6 +147,7 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
                 <li key={pin.id}>
                   <Link
                     to={lineHref(pin.gtfsId)}
+                    state={{ from: fromHere }}
                     className={`line-search__chip line-search__chip--mode-${modeToken}`}
                   >
                     <span
@@ -248,7 +254,10 @@ export function LineSearch({ id = "line-search" }: LineSearchProps) {
                             compact
                           />
                           <p className="line-search__open-link">
-                            <Link to={lineHref(line.gtfsId)}>
+                            <Link
+                              to={lineHref(line.gtfsId)}
+                              state={{ from: fromHere }}
+                            >
                               <FormattedMessage id="transit.line.search.openPage" />
                             </Link>
                           </p>

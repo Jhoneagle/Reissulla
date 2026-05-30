@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { FormattedMessage } from "react-intl";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import type { DayType, DirectionId } from "@reissulla/shared";
 import { LineCard } from "../components/transit/LineCard";
 import "./LineView.css";
@@ -71,9 +71,20 @@ function setParam(
 }
 
 function BackLink() {
+  const location = useLocation();
+  // Snapshot the originating URL once. In-page setSearchParams() calls
+  // (direction toggle, day-type tab) overwrite location.state with null,
+  // so reading it on every render would lose the search context the
+  // moment the user adjusts the view.
+  const fromRef = useRef<string | null>(null);
+  if (fromRef.current === null) {
+    const raw = (location.state as { from?: unknown } | null)?.from;
+    fromRef.current = typeof raw === "string" && raw.length > 0 ? raw : "";
+  }
+  const to = fromRef.current || "/transit?tab=lines";
   return (
     <nav className="line-view__back">
-      <Link to="/transit?tab=lines">
+      <Link to={to}>
         <FormattedMessage id="transit.line.back" />
       </Link>
     </nav>

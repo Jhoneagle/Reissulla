@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useIntl } from "react-intl";
 import type { TransitDeparture } from "@reissulla/shared";
 import type { ArrivalDepartureMode } from "@reissulla/api-client";
@@ -26,6 +26,8 @@ export function DepartureRow({
   showPlatform,
 }: DepartureRowProps) {
   const intl = useIntl();
+  const location = useLocation();
+  const fromHere = `${location.pathname}${location.search}`;
   const modeToken = vehicleModeToken(d.vehicleMode);
   const rtLabel = intl.formatMessage({
     id: d.realtime ? "transit.depart.realtime" : "transit.depart.scheduled",
@@ -168,6 +170,7 @@ export function DepartureRow({
       {d.tripId ? (
         <Link
           to={`/transit/trip/${encodeURIComponent(d.tripId)}`}
+          state={{ from: fromHere }}
           className="departure-row__link"
         >
           {cells}

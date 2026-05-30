@@ -6,7 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
 import type { TripDetail, TripDetailStop } from "@reissulla/shared";
 import { ApiError } from "@reissulla/api-client";
 import { useTripDetail } from "../hooks/useTransit";
@@ -234,17 +234,24 @@ function timesEqualToMinute(a: number, b: number): boolean {
 /**
  * "Takaisin pysäkille" / "Back to the stop" link.
  *
- * Plain anchor — no JS interception. The departure-board's per-stop
- * filter state lives in the URL (mode, lineFilter, direction, lowFloor,
- * platform, at), so the Link's natural navigation to /transit restores
- * the filtered board. Using navigate(-1) instead breaks once any
- * in-page state push (a filter tweak, a stop change) sits between the
- * user's arrival on this page and their press of the back link.
+ * Plain anchor — no JS interception. The originating /transit URL is
+ * round-tripped through router state by DepartureRow, so the back-link
+ * can return to the exact filtered board (mode, lineFilter, direction,
+ * lowFloor, platform, at). Falls back to bare /transit on deep entry.
+ * Using navigate(-1) instead breaks once any in-page state push sits
+ * between arrival on this page and the press of the back link.
  */
 function BackLink() {
+  const location = useLocation();
+  const fromRef = useRef<string | null>(null);
+  if (fromRef.current === null) {
+    const raw = (location.state as { from?: unknown } | null)?.from;
+    fromRef.current = typeof raw === "string" && raw.length > 0 ? raw : "";
+  }
+  const to = fromRef.current || "/transit";
   return (
     <nav className="trip-detail__back">
-      <Link to="/transit">
+      <Link to={to}>
         <FormattedMessage id="transit.trip.back" />
       </Link>
     </nav>
