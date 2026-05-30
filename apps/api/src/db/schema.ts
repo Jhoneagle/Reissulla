@@ -165,6 +165,32 @@ export const pinnedStops = pgTable(
   (t) => [uniqueIndex("pinned_stops_user_gtfs_idx").on(t.userId, t.gtfsId)],
 );
 
+// Pinned lines — user-owned shortcuts surfaced on the dashboard and on the
+// transit page. Column types mirror pinned_stops verbatim so the two surfaces
+// share the same id/user_id/varchar widths and index idiom.
+export const pinnedLines = pgTable(
+  "pinned_lines",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    gtfsId: varchar("gtfs_id", { length: 255 }).notNull(),
+    // Line shortName as riders see it on the destination sign (e.g. "550").
+    name: varchar("name", { length: 255 }).notNull(),
+    // BUS / TRAM / RAIL / SUBWAY / FERRY — required for icon rendering; the
+    // FE source (Line.mode) is non-nullable, so a missing value at insert
+    // time means the caller is buggy.
+    vehicleMode: varchar("vehicle_mode", { length: 32 }).notNull(),
+    pinnedAt: timestamp("pinned_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("pinned_lines_user_gtfs_idx").on(t.userId, t.gtfsId)],
+);
+
 // Recent stops — like recent_places but for transit stops. Kept distinct
 // from recent_places because the shape (gtfsId + vehicleMode) differs and
 // architecture §7.1 fixes recent_places to its current schema.
