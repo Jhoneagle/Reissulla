@@ -16,6 +16,7 @@ import {
   preferences,
   savedLocations,
   recentPlaces,
+  pinnedLines,
 } from "../db/schema.js";
 import type { FastifyInstance } from "fastify";
 
@@ -128,6 +129,27 @@ describe("GET /api/v1/account/export", () => {
     expect(body.tripLog).toEqual([]);
     expect(body.alertSeen).toEqual([]);
     expect(body.shareTokens).toEqual([]);
+  });
+
+  it("populates pinnedLines from the repository when present", async () => {
+    await db.insert(pinnedLines).values({
+      userId: TEST_USER_ID,
+      gtfsId: "HSL:1059",
+      name: "550",
+      vehicleMode: "BUS",
+    });
+
+    const res = await server.inject({
+      method: "GET",
+      url: "/api/v1/account/export",
+    });
+    const body = res.json();
+    expect(body.pinnedLines).toHaveLength(1);
+    expect(body.pinnedLines[0]).toMatchObject({
+      gtfsId: "HSL:1059",
+      name: "550",
+      vehicleMode: "BUS",
+    });
   });
 
   it("sets a Content-Disposition header for download", async () => {

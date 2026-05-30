@@ -21,6 +21,7 @@ import { parseJson } from "../utils/json.js";
 import { requireAuth } from "../auth/middleware.js";
 import { NotFoundError } from "../utils/error-envelope.js";
 import * as pinnedStopsRepo from "../db/repositories/pinned-stops.repo.js";
+import * as pinnedLinesRepo from "../db/repositories/pinned-lines.repo.js";
 import * as recentStopsRepo from "../db/repositories/recent-stops.repo.js";
 
 function isSubStopArray(value: unknown): value is Record<string, unknown>[] {
@@ -626,6 +627,68 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       },
     );
 
+    // ── Pinned lines ──
+    s.get("/api/v1/transit/pinned-lines", async (request) => {
+      const userId = request.session!.user.id;
+      const rows = await pinnedLinesRepo.listByUser(userId);
+      return { data: rows.map(pinnedLineToResponse) };
+    });
+
+    s.post<{
+      Body: {
+        gtfsId: string;
+        name: string;
+        vehicleMode: string;
+      };
+    }>(
+      "/api/v1/transit/pinned-lines",
+      {
+        schema: {
+          body: {
+            type: "object",
+            required: ["gtfsId", "name", "vehicleMode"],
+            properties: {
+              gtfsId: { type: "string", minLength: 1, maxLength: 255 },
+              name: { type: "string", minLength: 1, maxLength: 255 },
+              // NOT NULL on the column; a missing mode is a buggy caller.
+              vehicleMode: { type: "string", minLength: 1, maxLength: 32 },
+            },
+          },
+        },
+      },
+      async (request, reply) => {
+        const userId = request.session!.user.id;
+        const row = await pinnedLinesRepo.pin({
+          userId,
+          gtfsId: request.body.gtfsId,
+          name: request.body.name,
+          vehicleMode: request.body.vehicleMode,
+        });
+        return reply.status(201).send({ data: pinnedLineToResponse(row) });
+      },
+    );
+
+    s.delete<{ Params: { id: string } }>(
+      "/api/v1/transit/pinned-lines/:id",
+      {
+        schema: {
+          params: {
+            type: "object",
+            required: ["id"],
+            properties: { id: { type: "string" } },
+          },
+        },
+      },
+      async (request, reply) => {
+        const userId = request.session!.user.id;
+        const row = await pinnedLinesRepo.unpinById(request.params.id, userId);
+        if (!row) {
+          throw new NotFoundError("Pinned line not found");
+        }
+        return reply.status(204).send();
+      },
+    );
+
     s.post<{
       Body: {
         gtfsId: string;
@@ -671,6 +734,16 @@ function pinnedStopToResponse(row: pinnedStopsRepo.PinnedStopRow) {
     name: row.name,
     vehicleMode: row.vehicleMode,
     isStation: row.isStation,
+    pinnedAt: row.pinnedAt.toISOString(),
+  };
+}
+
+function pinnedLineToResponse(row: pinnedLinesRepo.PinnedLineRow) {
+  return {
+    id: row.id,
+    gtfsId: row.gtfsId,
+    name: row.name,
+    vehicleMode: row.vehicleMode,
     pinnedAt: row.pinnedAt.toISOString(),
   };
 }

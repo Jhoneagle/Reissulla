@@ -24,12 +24,12 @@ afterAll(async () => {
   await redis.quit();
 });
 
-// Pattern with two stops on line HSL:1059. The departures endpoint will
+// Pattern with two stops on line HSL:1550. The departures endpoint will
 // fan out one stopDepartures call per stop and filter by line gtfsId.
 const lineFixture = {
   data: {
     route: {
-      gtfsId: "HSL:1059",
+      gtfsId: "HSL:1550",
       shortName: "550",
       longName: "Itäkeskus - Westendinasema",
       mode: "BUS",
@@ -38,7 +38,7 @@ const lineFixture = {
       agency: { gtfsId: "HSL:HSL", name: "HSL" },
       patterns: [
         {
-          code: "HSL:1059:0:01",
+          code: "HSL:1550:0:01",
           headsign: "Westendinasema",
           directionId: 0,
           stops: [
@@ -66,7 +66,7 @@ const lineFixture = {
 };
 
 // Each per-stop response carries departures from multiple lines so the
-// filter (routeGtfsId === HSL:1059) is exercised.
+// filter (routeGtfsId === HSL:1550) is exercised.
 function stopDeparturesFor(stopName: string) {
   return {
     data: {
@@ -84,9 +84,9 @@ function stopDeparturesFor(stopName: string) {
             serviceDay: 1778100000,
             headsign: "Westendinasema",
             trip: {
-              gtfsId: "HSL:1059:trip:1",
+              gtfsId: "HSL:1550:trip:1",
               route: {
-                gtfsId: "HSL:1059",
+                gtfsId: "HSL:1550",
                 shortName: "550",
                 longName: "Itäkeskus - Westendinasema",
                 mode: "BUS",
@@ -125,9 +125,9 @@ function stopDeparturesFor(stopName: string) {
             serviceDay: 1778100000,
             headsign: "Westendinasema",
             trip: {
-              gtfsId: "HSL:1059:trip:2",
+              gtfsId: "HSL:1550:trip:2",
               route: {
-                gtfsId: "HSL:1059",
+                gtfsId: "HSL:1550",
                 shortName: "550",
                 longName: "Itäkeskus - Westendinasema",
                 mode: "BUS",
@@ -157,9 +157,9 @@ function mockLineThenStops() {
 }
 
 async function clearCaches() {
-  await cacheDel("transit:line:v1:HSL:1059");
-  await cacheDel("transit:line-departures:v1:HSL:1059:any");
-  await cacheDel("transit:line-departures:v1:HSL:1059:0");
+  await cacheDel("transit:line:v1:HSL:1550");
+  await cacheDel("transit:line-departures:v1:HSL:1550:any");
+  await cacheDel("transit:line-departures:v1:HSL:1550:0");
   await cacheDel("transit:departures:v2:HSL:STOP_A:20:false");
   await cacheDel("transit:departures:v2:HSL:STOP_B:20:false");
 }
@@ -175,7 +175,7 @@ describe("GET /api/v1/transit/lines/:gtfsId/departures", () => {
 
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/lines/HSL:1059/departures?direction=0",
+      url: "/api/v1/transit/lines/HSL:1550/departures?direction=0",
     });
 
     expect(res.statusCode).toBe(200);
@@ -212,7 +212,7 @@ describe("GET /api/v1/transit/lines/:gtfsId/departures", () => {
 
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/lines/HSL:1059/departures?direction=0",
+      url: "/api/v1/transit/lines/HSL:1550/departures?direction=0",
     });
 
     const body = res.json();
@@ -227,13 +227,13 @@ describe("GET /api/v1/transit/lines/:gtfsId/departures", () => {
 
     await server.inject({
       method: "GET",
-      url: "/api/v1/transit/lines/HSL:1059/departures?direction=0",
+      url: "/api/v1/transit/lines/HSL:1550/departures?direction=0",
     });
     const callsAfterFirst = fetchSpy.mock.calls.length;
 
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/lines/HSL:1059/departures?direction=0",
+      url: "/api/v1/transit/lines/HSL:1550/departures?direction=0",
     });
     // Cached → no further upstream calls.
     expect(fetchSpy.mock.calls.length).toBe(callsAfterFirst);
