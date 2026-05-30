@@ -11,6 +11,7 @@ import {
   getTripDetail,
   searchLines,
   getLine,
+  getLineDepartures,
   type DeparturesOptions,
   type ArrivalDepartureMode,
 } from "../services/transit/index.js";
@@ -384,6 +385,44 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       const gtfsId = decodeURIComponent(request.params.gtfsId).trim();
       if (gtfsId === "") return badRequest("gtfsId must not be empty");
       const { data, cached } = await getLine(gtfsId, request.persona);
+      return { data, cached };
+    },
+  );
+
+  // Per-stop "next on this line" enrichment for the LineView stop spine.
+  // direction=0|1 picks which pattern's stops to fan out across.
+  server.get<{
+    Params: { gtfsId: string };
+    Querystring: { direction?: string };
+  }>(
+    "/api/v1/transit/lines/:gtfsId/departures",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["gtfsId"],
+          properties: { gtfsId: { type: "string", minLength: 1 } },
+        },
+        querystring: {
+          type: "object",
+          properties: { direction: { type: "string", enum: ["0", "1"] } },
+        },
+      },
+    },
+    async (request) => {
+      const gtfsId = decodeURIComponent(request.params.gtfsId).trim();
+      if (gtfsId === "") return badRequest("gtfsId must not be empty");
+      const direction =
+        request.query.direction === "0"
+          ? 0
+          : request.query.direction === "1"
+            ? 1
+            : undefined;
+      const { data, cached } = await getLineDepartures(
+        gtfsId,
+        direction,
+        request.persona,
+      );
       return { data, cached };
     },
   );
