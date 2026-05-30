@@ -118,6 +118,14 @@ export function LineCard({
 
   const modeToken = vehicleModeToken(line.mode);
   const departures = departuresQuery.data?.data ?? [];
+  // Banner heuristic: departures fetched, no stop has an upcoming time.
+  // Distinguishes "line out of service right now" (late night, school
+  // holiday) from "still loading" or "no stops" — only fires when we have
+  // a confirmed empty projection so brief loading states don't flash it.
+  const noServiceNow =
+    !departuresQuery.isLoading &&
+    departures.length > 0 &&
+    departures.every((d) => d.nextDepartureUnix == null);
 
   return (
     <article className={`line-card line-card--mode-${modeToken}`}>
@@ -157,6 +165,12 @@ export function LineCard({
         dayType={dayType}
         onDayTypeChange={handleDayTypeChange}
       />
+
+      {noServiceNow && (
+        <p className="line-card__no-service" role="status">
+          <FormattedMessage id="transit.line.stops.noServiceNow" />
+        </p>
+      )}
 
       <LineStopRows
         stops={pattern.stops}

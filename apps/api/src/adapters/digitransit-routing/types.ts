@@ -335,6 +335,41 @@ export interface RawStoptimesForDateData {
   } | null;
 }
 
+// ---- Line-wide next departures (single-query line view) --------------------
+
+export interface RawRouteLineStoptime {
+  scheduledDeparture: number;
+  realtimeDeparture: number;
+  departureDelay: number;
+  realtime: boolean;
+  serviceDay: number;
+  trip: { gtfsId?: string };
+}
+
+export interface RawRouteLineStopGroup {
+  pattern: { code: string };
+  stoptimes: RawRouteLineStoptime[];
+}
+
+export interface RawRouteLineStop {
+  gtfsId: string;
+  stoptimesForPatterns: RawRouteLineStopGroup[];
+}
+
+export interface RawRouteLinePattern {
+  code: string;
+  directionId: number;
+  stops: RawRouteLineStop[];
+}
+
+export interface RawRouteLineDeparturesRoute {
+  patterns: RawRouteLinePattern[];
+}
+
+export interface RawRouteLineDeparturesData {
+  route: RawRouteLineDeparturesRoute | null;
+}
+
 // ---- Paged radius search ---------------------------------------------------
 
 export interface RawStopAtDistance {

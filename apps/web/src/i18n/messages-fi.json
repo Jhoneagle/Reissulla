@@ -351,6 +351,7 @@
   "transit.line.stops.nextDeparture": "seuraava klo {time}",
   "transit.line.stops.relative": "{minutes, plural, =0 {nyt} one {# min päästä} other {# min päästä}}",
   "transit.line.stops.noDeparture": "Ei tulevia lähtöjä",
+  "transit.line.stops.noServiceNow": "Linja ei aja juuri nyt. Tarkista aikataulu päivän ensimmäisen lähdön ajalta.",
   "transit.line.pin.add": "Kiinnitä linja {line}",
   "transit.line.pin.remove": "Poista kiinnitys linjasta {line}",
   "transit.line.pin.signin": "Kirjaudu sisään kiinnittääksesi",

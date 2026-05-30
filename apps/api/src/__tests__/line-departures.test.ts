@@ -24,8 +24,11 @@ afterAll(async () => {
   await redis.quit();
 });
 
-// Pattern with two stops on line HSL:1550. The departures endpoint will
-// fan out one stopDepartures call per stop and filter by line gtfsId.
+// Pattern with two stops on line HSL:1550. The departures endpoint runs
+// one routeLineDeparturesOperation that returns next-departures grouped
+// by pattern at each stop in a single round-trip.
+const PATTERN_CODE = "HSL:1550:0:01";
+
 const lineFixture = {
   data: {
     route: {
@@ -38,7 +41,7 @@ const lineFixture = {
       agency: { gtfsId: "HSL:HSL", name: "HSL" },
       patterns: [
         {
-          code: "HSL:1550:0:01",
+          code: PATTERN_CODE,
           headsign: "Westendinasema",
           directionId: 0,
           stops: [
@@ -65,74 +68,40 @@ const lineFixture = {
   },
 };
 
-// Each per-stop response carries departures from multiple lines so the
-// filter (routeGtfsId === HSL:1550) is exercised.
-function stopDeparturesFor(stopName: string) {
+// Mirrors RawRouteLineDeparturesData. Each pattern-stop carries stoptimes
+// already scoped to this route's patterns by the upstream filter, so the
+// fixture only has to express the next stoptimes for HSL:1550.
+function lineDeparturesPayload(opts: {
+  stopAStoptimes: Array<Partial<Stoptime>>;
+  stopBStoptimes: Array<Partial<Stoptime>>;
+}) {
   return {
     data: {
-      stop: {
-        name: stopName,
-        stoptimesWithoutPatterns: [
+      route: {
+        patterns: [
           {
-            scheduledArrival: 43000,
-            realtimeArrival: 43000,
-            arrivalDelay: 0,
-            scheduledDeparture: 43000,
-            realtimeDeparture: 43030,
-            departureDelay: 30,
-            realtime: true,
-            serviceDay: 1778100000,
-            headsign: "Westendinasema",
-            trip: {
-              gtfsId: "HSL:1550:trip:1",
-              route: {
-                gtfsId: "HSL:1550",
-                shortName: "550",
-                longName: "Itäkeskus - Westendinasema",
-                mode: "BUS",
+            code: PATTERN_CODE,
+            directionId: 0,
+            stops: [
+              {
+                gtfsId: "HSL:STOP_A",
+                stoptimesForPatterns: [
+                  {
+                    pattern: { code: PATTERN_CODE },
+                    stoptimes: opts.stopAStoptimes.map(fillStoptime),
+                  },
+                ],
               },
-            },
-          },
-          {
-            scheduledArrival: 43180,
-            realtimeArrival: 43180,
-            arrivalDelay: 0,
-            scheduledDeparture: 43180,
-            realtimeDeparture: 43180,
-            departureDelay: 0,
-            realtime: false,
-            serviceDay: 1778100000,
-            // Other line — must be filtered out.
-            headsign: "Kamppi",
-            trip: {
-              gtfsId: "HSL:14:trip:5",
-              route: {
-                gtfsId: "HSL:14",
-                shortName: "14",
-                longName: "Itäkeskus - Kamppi",
-                mode: "BUS",
+              {
+                gtfsId: "HSL:STOP_B",
+                stoptimesForPatterns: [
+                  {
+                    pattern: { code: PATTERN_CODE },
+                    stoptimes: opts.stopBStoptimes.map(fillStoptime),
+                  },
+                ],
               },
-            },
-          },
-          {
-            scheduledArrival: 43500,
-            realtimeArrival: 43500,
-            arrivalDelay: 0,
-            scheduledDeparture: 43500,
-            realtimeDeparture: 43500,
-            departureDelay: 0,
-            realtime: false,
-            serviceDay: 1778100000,
-            headsign: "Westendinasema",
-            trip: {
-              gtfsId: "HSL:1550:trip:2",
-              route: {
-                gtfsId: "HSL:1550",
-                shortName: "550",
-                longName: "Itäkeskus - Westendinasema",
-                mode: "BUS",
-              },
-            },
+            ],
           },
         ],
       },
@@ -140,9 +109,30 @@ function stopDeparturesFor(stopName: string) {
   };
 }
 
-function mockLineThenStops() {
-  // First fetch → route lookup; subsequent fetches → per-stop departures.
-  // The order matches the implementation (getLine → fan-out).
+interface Stoptime {
+  scheduledDeparture: number;
+  realtimeDeparture: number;
+  departureDelay: number;
+  realtime: boolean;
+  serviceDay: number;
+  trip: { gtfsId: string };
+}
+
+function fillStoptime(over: Partial<Stoptime>): Stoptime {
+  return {
+    scheduledDeparture: 43000,
+    realtimeDeparture: 43000,
+    departureDelay: 0,
+    realtime: false,
+    serviceDay: 1778100000,
+    trip: { gtfsId: "HSL:1550:trip:default" },
+    ...over,
+  };
+}
+
+function mockLineThenDepartures(
+  departuresPayload: ReturnType<typeof lineDeparturesPayload>,
+) {
   return vi
     .spyOn(globalThis, "fetch")
     .mockImplementationOnce(
@@ -150,18 +140,14 @@ function mockLineThenStops() {
     )
     .mockImplementation(
       async () =>
-        new Response(JSON.stringify(stopDeparturesFor("Stop")), {
-          status: 200,
-        }),
+        new Response(JSON.stringify(departuresPayload), { status: 200 }),
     );
 }
 
 async function clearCaches() {
   await cacheDel("transit:line:v1:HSL:1550");
-  await cacheDel("transit:line-departures:v1:HSL:1550:any");
-  await cacheDel("transit:line-departures:v1:HSL:1550:0");
-  await cacheDel("transit:departures:v2:HSL:STOP_A:20:false");
-  await cacheDel("transit:departures:v2:HSL:STOP_B:20:false");
+  await cacheDel("transit:line-departures:v2:HSL:1550:any");
+  await cacheDel("transit:line-departures:v2:HSL:1550:0");
 }
 
 describe("GET /api/v1/transit/lines/:gtfsId/departures", () => {
@@ -171,7 +157,24 @@ describe("GET /api/v1/transit/lines/:gtfsId/departures", () => {
   });
 
   it("returns one row per pattern stop with the next departure for the line", async () => {
-    mockLineThenStops();
+    mockLineThenDepartures(
+      lineDeparturesPayload({
+        stopAStoptimes: [
+          {
+            scheduledDeparture: 43000,
+            realtimeDeparture: 43030,
+            departureDelay: 30,
+            realtime: true,
+            trip: { gtfsId: "HSL:1550:trip:1" },
+          },
+          { scheduledDeparture: 43500, realtimeDeparture: 43500 },
+          { scheduledDeparture: 44000, realtimeDeparture: 44000 },
+        ],
+        stopBStoptimes: [
+          { scheduledDeparture: 43800, realtimeDeparture: 43800 },
+        ],
+      }),
+    );
 
     const res = await server.inject({
       method: "GET",
@@ -183,32 +186,20 @@ describe("GET /api/v1/transit/lines/:gtfsId/departures", () => {
     expect(body.data).toHaveLength(2);
     expect(body.data[0].stop.gtfsId).toBe("HSL:STOP_A");
     expect(body.data[1].stop.gtfsId).toBe("HSL:STOP_B");
-    // The filter must drop HSL:14 — the earliest 550 row has realtime
-    // departure 43030 (the realtime'd 43000), not 43180 (HSL:14).
     expect(body.data[0].nextDepartureUnix).toBe(1778100000 + 43030);
     expect(body.data[0].realtime).toBe(true);
     expect(body.data[0].delaySec).toBe(30);
   });
 
   it("returns null fields when a stop has no upcoming line departures", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockImplementationOnce(
-        async () => new Response(JSON.stringify(lineFixture), { status: 200 }),
-      )
-      .mockImplementation(
-        async () =>
-          new Response(
-            JSON.stringify({
-              data: {
-                stop: {
-                  name: "Stop",
-                  stoptimesWithoutPatterns: [],
-                },
-              },
-            }),
-            { status: 200 },
-          ),
-      );
+    mockLineThenDepartures(
+      lineDeparturesPayload({
+        stopAStoptimes: [],
+        stopBStoptimes: [
+          { scheduledDeparture: 43800, realtimeDeparture: 43800 },
+        ],
+      }),
+    );
 
     const res = await server.inject({
       method: "GET",
@@ -220,10 +211,22 @@ describe("GET /api/v1/transit/lines/:gtfsId/departures", () => {
     expect(body.data[0].scheduledDepartureUnix).toBeNull();
     expect(body.data[0].delaySec).toBe(0);
     expect(body.data[0].realtime).toBe(false);
+    // The second stop still produces a real row from the same single
+    // upstream response — proves the projection isn't all-or-nothing.
+    expect(body.data[1].nextDepartureUnix).toBe(1778100000 + 43800);
   });
 
   it("caches the resulting per-line projection", async () => {
-    const fetchSpy = mockLineThenStops();
+    const fetchSpy = mockLineThenDepartures(
+      lineDeparturesPayload({
+        stopAStoptimes: [
+          { scheduledDeparture: 43000, realtimeDeparture: 43030 },
+        ],
+        stopBStoptimes: [
+          { scheduledDeparture: 43800, realtimeDeparture: 43800 },
+        ],
+      }),
+    );
 
     await server.inject({
       method: "GET",
@@ -235,8 +238,55 @@ describe("GET /api/v1/transit/lines/:gtfsId/departures", () => {
       method: "GET",
       url: "/api/v1/transit/lines/HSL:1550/departures?direction=0",
     });
-    // Cached → no further upstream calls.
     expect(fetchSpy.mock.calls.length).toBe(callsAfterFirst);
     expect(res.json().cached).toBe(true);
+  });
+
+  it("picks the chronologically earliest stoptime even when upstream returns them out of order", async () => {
+    // OTP's stoptimesForPatterns is observed to return stoptimes in
+    // pattern order, not chronological — the projection must sort.
+    mockLineThenDepartures(
+      lineDeparturesPayload({
+        stopAStoptimes: [
+          { scheduledDeparture: 50000, realtimeDeparture: 50000 },
+          { scheduledDeparture: 43000, realtimeDeparture: 43000 },
+          { scheduledDeparture: 47000, realtimeDeparture: 47000 },
+        ],
+        stopBStoptimes: [
+          { scheduledDeparture: 43800, realtimeDeparture: 43800 },
+        ],
+      }),
+    );
+
+    const res = await server.inject({
+      method: "GET",
+      url: "/api/v1/transit/lines/HSL:1550/departures?direction=0",
+    });
+
+    const body = res.json();
+    expect(body.data[0].nextDepartureUnix).toBe(1778100000 + 43000);
+  });
+
+  it("issues exactly one departures fetch regardless of stop count", async () => {
+    const fetchSpy = mockLineThenDepartures(
+      lineDeparturesPayload({
+        stopAStoptimes: [
+          { scheduledDeparture: 43000, realtimeDeparture: 43000 },
+        ],
+        stopBStoptimes: [
+          { scheduledDeparture: 43800, realtimeDeparture: 43800 },
+        ],
+      }),
+    );
+
+    await server.inject({
+      method: "GET",
+      url: "/api/v1/transit/lines/HSL:1550/departures?direction=0",
+    });
+
+    // Exactly two upstream hits: getLine (route + patterns) plus the
+    // single line-departures call. The pre-rewrite fan-out would have
+    // produced 1 + N stop calls for an N-stop pattern.
+    expect(fetchSpy.mock.calls.length).toBe(2);
   });
 });

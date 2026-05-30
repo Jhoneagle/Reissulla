@@ -15,6 +15,11 @@ import { tryCache } from "../../utils/resilience.js";
 import { createGraphQLClient } from "../../adapters/digitransit-routing/client.js";
 import { routesOperation } from "../../adapters/digitransit-routing/operations/routes.js";
 import { routeWithPatternsOperation } from "../../adapters/digitransit-routing/operations/routeWithPatterns.js";
+import { routeLineDeparturesOperation } from "../../adapters/digitransit-routing/operations/routeLineDepartures.js";
+import type {
+  RawRouteLineDeparturesRoute,
+  RawRouteLineStoptime,
+} from "../../adapters/digitransit-routing/types.js";
 import {
   HSL_PREFIXES,
   VARELY_PREFIXES,
@@ -23,7 +28,6 @@ import {
 import type { AdapterContext } from "../../adapters/types.js";
 import { NotFoundError } from "../../utils/error-envelope.js";
 import { adapterRouter } from "./adapter-router.js";
-import { getStopDepartures } from "./departures.service.js";
 
 function makeContext(persona: Persona): AdapterContext {
   return { signal: new AbortController().signal, persona };
@@ -84,15 +88,9 @@ export async function searchLines(
   return { data, cached: false };
 }
 
-/**
- * Maximum number of stops we'll fan out a per-stop departure fetch across.
- * Real-world patterns rarely exceed 60 stops; an adversarial gtfsId
- * shouldn't blow the upstream budget, so we truncate.
- */
-const MAX_PATTERN_STOPS = 60;
-const LINE_DEPARTURES_MAX_PARALLEL = 10;
-/** How many departures to ask `getStopDepartures` to surface per stop. */
-const LINE_DEPARTURE_FETCH_COUNT = 20;
+/** Max stoptimes per pattern returned per stop. Three is enough to derive
+ *  a headway average (two gaps) while keeping the payload bounded. */
+const LINE_DEPARTURES_PER_STOP = 3;
 
 function pickPattern(
   patterns: Pattern[],
@@ -103,13 +101,22 @@ function pickPattern(
   return patterns.find((p) => p.directionId === directionId) ?? patterns[0];
 }
 
+function pickRawPattern(
+  rawRoute: RawRouteLineDeparturesRoute,
+  patternCode: string,
+) {
+  return rawRoute.patterns.find((p) => p.code === patternCode);
+}
+
 /**
- * Per-stop "next departure for this line" enrichment, fanned out across
- * the chosen pattern's stops. Consumes the shared `transit:departures:v2`
- * slot via `getStopDepartures` — line filtering is the edge transform, not
- * an upstream parameter (cache-source-filter-at-edge memory rule). The
- * line-departures slot caches the *resulting* per-line projection so the
- * fan-out runs once per (line, direction) per cache window.
+ * Per-stop "next departure for this line" projection. One upstream GraphQL
+ * round-trip via `routeLineDeparturesOperation` returns each pattern stop's
+ * next-departures already filtered to this route's patterns, so the LineView
+ * stop spine reliably hydrates even when off-peak headways would have
+ * pushed the next departure outside a 20-departure per-stop window (the
+ * failure mode of the previous fan-out). Cached by `(gtfsId, direction)`
+ * for 60 s — realtime moves but the *next-from-now* slot doesn't churn
+ * fast enough to justify shorter TTLs.
  */
 export async function getLineDepartures(
   gtfsId: string,
@@ -119,7 +126,7 @@ export async function getLineDepartures(
   const key = cacheKey(
     "transit",
     "line-departures",
-    1,
+    2,
     gtfsId,
     directionId === undefined ? "any" : String(directionId),
   );
@@ -133,27 +140,79 @@ export async function getLineDepartures(
     return { data: [], cached: false };
   }
 
-  const stops = pattern.stops.slice(0, MAX_PATTERN_STOPS);
+  const adapter = adapterRouter.forStopId(gtfsId);
+  const client = createGraphQLClient(adapter.name, adapter.graphUrl);
+  const ctx = makeContext(persona);
+  const startTime = Math.floor(Date.now() / 1000);
 
-  const results: LineStopDeparture[] = [];
-  for (let i = 0; i < stops.length; i += LINE_DEPARTURES_MAX_PARALLEL) {
-    const batch = stops.slice(i, i + LINE_DEPARTURES_MAX_PARALLEL);
-    const batchResults = await Promise.all(
-      batch.map((stop) => fetchStopNextForLine(stop, gtfsId, persona)),
+  let rawRoute: RawRouteLineDeparturesRoute | null = null;
+  try {
+    rawRoute = await routeLineDeparturesOperation(
+      client,
+      {
+        routeId: gtfsId,
+        startTime,
+        numberOfDepartures: LINE_DEPARTURES_PER_STOP,
+      },
+      ctx,
     );
-    results.push(...batchResults);
+  } catch {
+    // Upstream hiccup — return per-stop nulls so the page still renders
+    // the stop spine; caching the empty projection would mask a transient.
+    return {
+      data: pattern.stops.map((stop) => emptyDeparture(stop)),
+      cached: false,
+    };
   }
 
-  await tryCache(() => cacheSet(key, results, LINE_DEPARTURES_TTL));
-  return { data: results, cached: false };
+  if (!rawRoute) {
+    return {
+      data: pattern.stops.map((stop) => emptyDeparture(stop)),
+      cached: false,
+    };
+  }
+
+  const rawPattern = pickRawPattern(rawRoute, pattern.code);
+  const stoptimesByStop = new Map<string, RawRouteLineStoptime[]>();
+  if (rawPattern) {
+    for (const stop of rawPattern.stops) {
+      const onPattern = stop.stoptimesForPatterns.find(
+        (g) => g.pattern?.code === pattern.code,
+      );
+      // Sort ascending by absolute departure time so [0] is reliably the
+      // next upcoming run. OTP's `stoptimesForPatterns` returns stoptimes
+      // in pattern order, not chronological — the first entry can be a
+      // later run if the upstream interleaves alternate trips.
+      const sorted = [...(onPattern?.stoptimes ?? [])].sort(
+        (a, b) =>
+          a.serviceDay +
+          a.realtimeDeparture -
+          (b.serviceDay + b.realtimeDeparture),
+      );
+      stoptimesByStop.set(stop.gtfsId, sorted);
+    }
+  }
+
+  const data = pattern.stops.map((stop) => {
+    const stoptimes = stoptimesByStop.get(stop.gtfsId) ?? [];
+    if (stoptimes.length === 0) return emptyDeparture(stop);
+    const earliest = stoptimes[0]!;
+    return {
+      stop,
+      nextDepartureUnix: earliest.serviceDay + earliest.realtimeDeparture,
+      scheduledDepartureUnix: earliest.serviceDay + earliest.scheduledDeparture,
+      delaySec: earliest.departureDelay,
+      realtime: earliest.realtime,
+      headwayMin: averageHeadwayMin(stoptimes),
+    } satisfies LineStopDeparture;
+  });
+
+  await tryCache(() => cacheSet(key, data, LINE_DEPARTURES_TTL));
+  return { data, cached: false };
 }
 
-async function fetchStopNextForLine(
-  stop: PatternStop,
-  lineGtfsId: string,
-  persona: Persona,
-): Promise<LineStopDeparture> {
-  const empty: LineStopDeparture = {
+function emptyDeparture(stop: PatternStop): LineStopDeparture {
+  return {
     stop,
     nextDepartureUnix: null,
     scheduledDepartureUnix: null,
@@ -161,33 +220,6 @@ async function fetchStopNextForLine(
     realtime: false,
     headwayMin: null,
   };
-
-  try {
-    const { data } = await getStopDepartures(
-      stop.gtfsId,
-      LINE_DEPARTURE_FETCH_COUNT,
-      false,
-      persona,
-    );
-    const onLine = data.departures.filter((d) => d.routeGtfsId === lineGtfsId);
-    if (onLine.length === 0) return empty;
-
-    const earliest = onLine[0]!;
-    const headwayMin = averageHeadwayMin(onLine);
-
-    return {
-      stop,
-      nextDepartureUnix:
-        earliest.serviceDay + (earliest.realtimeDeparture ?? 0),
-      scheduledDepartureUnix:
-        earliest.serviceDay + (earliest.scheduledDeparture ?? 0),
-      delaySec: earliest.departureDelay,
-      realtime: earliest.realtime,
-      headwayMin,
-    };
-  } catch {
-    return empty;
-  }
 }
 
 function averageHeadwayMin(
