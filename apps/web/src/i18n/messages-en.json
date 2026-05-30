@@ -341,7 +341,7 @@
   "transit.line.freq.range": "{from}–{to}",
   "transit.line.freq.empty": "No timetable data available.",
   "transit.line.freq.sr": "{period}, from {from} to {to}, every {headway} minutes.",
-  "transit.line.freq.sparseHeading": "Departures today",
+  "transit.line.freq.sparseHeading": "Departures today: {times}",
   "transit.line.freq.sparseSr": "Today {count, plural, one {# departure} other {# departures}}: at {times}.",
   "transit.line.stops.label": "Stops",
   "transit.line.stops.terminus": "terminus",

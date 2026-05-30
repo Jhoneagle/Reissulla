@@ -341,7 +341,7 @@
   "transit.line.freq.range": "{from}–{to}",
   "transit.line.freq.empty": "Ei aikataulutietoja saatavilla.",
   "transit.line.freq.sr": "{period}, kello {from} alkaen {to} saakka, joka {headway} minuuttia.",
-  "transit.line.freq.sparseHeading": "Vuorot tänään",
+  "transit.line.freq.sparseHeading": "Vuorot tänään: {times}",
   "transit.line.freq.sparseSr": "Tänään {count, plural, one {# lähtö} other {# lähtöä}}: kello {times}.",
   "transit.line.stops.label": "Pysäkit",
   "transit.line.stops.terminus": "pääteasema",
