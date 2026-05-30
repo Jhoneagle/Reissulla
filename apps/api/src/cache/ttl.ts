@@ -14,8 +14,15 @@ export const PLAN_TTL = 300; // 5 min — itineraries decay with traffic
 // ---- Phase 2 entries -------------------------------------------------------
 // Defined here so the consuming services don't need to touch this file.
 
-/** Trip drill-down (transit:trip:v1:<tripId>). */
-export const TRIP_DETAIL_TTL = 300; // 5 min
+/**
+ * Trip drill-down (transit:trip:v1:<tripId>).
+ *
+ * The cached RawTrip carries realtimeArrival/Departure/Delay alongside the
+ * static skeleton — a 5-min TTL would let the live-status sentence
+ * ("Bussi pysäkillä Kamppi") lag reality by minutes. 60s matches
+ * DEPARTURES_TTL and the FE hook's 30s refetch cadence.
+ */
+export const TRIP_DETAIL_TTL = 60; // 1 min
 /** Operator label (transit:agency:v1:<feed>). */
 export const AGENCY_TTL = 86_400; // 24 h — operator names barely change
 /** Feed service-time range (transit:service-range:v1:<feed>). */

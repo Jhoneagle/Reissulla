@@ -3,14 +3,7 @@ import {
   type TransitDeparture,
   type TransitFrequency,
 } from "@reissulla/shared";
-import { cacheGet, cacheSet } from "../../cache/cache.js";
-import { cacheKey } from "../../cache/key.js";
-import { SERVICE_RANGE_TTL } from "../../cache/ttl.js";
-import { tryCache } from "../../utils/resilience.js";
-import { createGraphQLClient } from "../../adapters/digitransit-routing/client.js";
-import { tripOperation } from "../../adapters/digitransit-routing/operations/trip.js";
-import type { AdapterContext } from "../../adapters/types.js";
-import { adapterRouter } from "./adapter-router.js";
+import { fetchAndCacheTrip } from "./trip-cache.js";
 
 /**
  * Classify how busy a stop's schedule is around the anchor time. Drives
@@ -134,31 +127,17 @@ export function deriveServiceNoteFromActiveDates(
 }
 
 /**
- * Fetch the next trip's active dates from upstream, caching the result.
- * Used when the frequency regime is `sparse` to surface a day-type
- * qualifier in the kicker.
+ * Derive the sparse-frequency day-type qualifier for a trip. Reads from
+ * the shared `fetchAndCacheTrip` slot so a click-through to the trip
+ * detail page after this call is a cache hit.
  */
 export async function getServiceNoteForTrip(
   tripId: string,
   persona: Persona,
 ): Promise<string | undefined> {
-  const key = cacheKey("transit", "trip-active-dates", 1, tripId);
-  const cached = await tryCache(() => cacheGet<string | null>(key));
-  if (cached !== null && cached !== undefined) return cached || undefined;
-
-  const adapter = adapterRouter.forStopId(tripId);
-  const client = createGraphQLClient(adapter.name, adapter.graphUrl);
-  const ctx: AdapterContext = {
-    signal: new AbortController().signal,
-    persona,
-  };
-
   try {
-    const trip = await tripOperation(client, { tripId }, ctx);
-    const note = deriveServiceNoteFromActiveDates(trip?.activeDates ?? []);
-    // Cache empty string when undefined so the cache hit short-circuits.
-    await tryCache(() => cacheSet(key, note ?? "", SERVICE_RANGE_TTL));
-    return note;
+    const { data: trip } = await fetchAndCacheTrip(tripId, persona);
+    return deriveServiceNoteFromActiveDates(trip?.activeDates ?? []);
   } catch {
     return undefined;
   }
