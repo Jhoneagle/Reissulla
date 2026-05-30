@@ -1,6 +1,7 @@
 import { Dashboard } from "./pages/Dashboard";
 import { MapPage } from "./pages/Map";
 import { Transit } from "./pages/Transit";
+import { TripDetail } from "./pages/TripDetail";
 import { Settings } from "./pages/Settings";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
@@ -22,6 +23,13 @@ export const routes = [
     labelId: "nav.map",
     Component: MapPage,
     nav: true,
+  },
+  {
+    path: "/transit/trip/:tripId",
+    label: "Trip",
+    labelId: "transit.trip.heading",
+    Component: TripDetail,
+    nav: false,
   },
   {
     path: "/transit",
