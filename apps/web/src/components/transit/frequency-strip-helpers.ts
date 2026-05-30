@@ -36,14 +36,22 @@ export function barHeight(headwayMin: number): number {
 
 /**
  * Build a CSS `grid-template-columns` value where each band's column width is
- * proportional to its duration. Returned as an `fr` string ready to drop into
- * a `style.gridTemplateColumns` assignment.
+ * proportional to its duration. Each column is wrapped in
+ * `minmax(<minWidthPx>px, Xfr)` so a narrow band (e.g. a 60-minute slot
+ * inside a 17-hour day) never collapses below the width its caption needs;
+ * the caption then doesn't overflow into the neighbouring column.
  */
-export function buildGridColumns(bands: FrequencyBand[]): string {
+export function buildGridColumns(
+  bands: FrequencyBand[],
+  minColumnPx = 72,
+): string {
   const totals = bands.map(minutesBetween);
   const sum = totals.reduce((s, v) => s + v, 0);
-  if (sum <= 0) return bands.map(() => "1fr").join(" ");
-  return totals.map((v) => `${((v / sum) * 100).toFixed(2)}fr`).join(" ");
+  if (sum <= 0)
+    return bands.map(() => `minmax(${minColumnPx}px, 1fr)`).join(" ");
+  return totals
+    .map((v) => `minmax(${minColumnPx}px, ${((v / sum) * 100).toFixed(2)}fr)`)
+    .join(" ");
 }
 
 /** "06:00–09:00" range label using en-dash, mirroring the editorial spec. */

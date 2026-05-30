@@ -37,6 +37,7 @@
   gap: 2px;
   min-height: 96px;
   padding-top: var(--space-3);
+  overflow-x: auto;
 }
 
 .freq-strip__column {
@@ -75,6 +76,11 @@
   color: var(--color-ink-muted);
   letter-spacing: 0.06em;
   text-align: center;
+  /* Captions are intrinsically wider than narrow bars; allow them to
+     wrap inside the minmax-clamped column rather than overflow into
+     the next band. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .freq-strip__caption--headway {

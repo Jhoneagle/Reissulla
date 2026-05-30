@@ -60,23 +60,26 @@ describe("frequency-strip helpers", () => {
   });
 
   describe("buildGridColumns", () => {
-    it("returns proportional fr values that sum near 100", () => {
+    it("returns one minmax track per band with proportional fr weights", () => {
       const cols = buildGridColumns([
         band({ fromTimeOfDay: "06:00", toTimeOfDay: "09:00" }), // 180
         band({ fromTimeOfDay: "09:00", toTimeOfDay: "15:00" }), // 360
       ]);
-      const parts = cols.split(" ").map((s) => parseFloat(s));
-      expect(parts).toHaveLength(2);
-      const total = parts[0]! + parts[1]!;
-      expect(total).toBeGreaterThan(99.5);
-      expect(total).toBeLessThan(100.5);
-      // 360 min > 180 min → second column wider than first.
-      expect(parts[1]!).toBeGreaterThan(parts[0]!);
+      const tracks = cols
+        .split(") ")
+        .map((s) => (s.endsWith(")") ? s : `${s})`));
+      expect(tracks).toHaveLength(2);
+      // 360 min > 180 min → second column gets a larger fr weight.
+      const fr = (s: string) => parseFloat(s.split(",").pop()!.trim());
+      expect(fr(tracks[1]!)).toBeGreaterThan(fr(tracks[0]!));
+      // Every track is a minmax with the configured floor.
+      for (const t of tracks) {
+        expect(t.startsWith("minmax(72px,")).toBe(true);
+      }
     });
 
-    it("falls back to equal columns when total duration is zero", () => {
-      const cols = buildGridColumns([]);
-      expect(cols).toBe("");
+    it("returns empty string when given no bands", () => {
+      expect(buildGridColumns([])).toBe("");
     });
   });
 
