@@ -1,11 +1,24 @@
-import { DEFAULT_PERSONA, type Line, type Persona } from "@reissulla/shared";
+import {
+  DEFAULT_PERSONA,
+  type Line,
+  type LineView,
+  type Pattern,
+  type Persona,
+} from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
 import { LINE_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
 import { createGraphQLClient } from "../../adapters/digitransit-routing/client.js";
 import { routesOperation } from "../../adapters/digitransit-routing/operations/routes.js";
+import { routeWithPatternsOperation } from "../../adapters/digitransit-routing/operations/routeWithPatterns.js";
+import {
+  HSL_PREFIXES,
+  VARELY_PREFIXES,
+  WALTTI_PREFIXES,
+} from "../../adapters/digitransit-routing/dispatch.js";
 import type { AdapterContext } from "../../adapters/types.js";
+import { NotFoundError } from "../../utils/error-envelope.js";
 import { adapterRouter } from "./adapter-router.js";
 
 function makeContext(persona: Persona): AdapterContext {
@@ -62,6 +75,118 @@ export async function searchLines(
     // consumers would need to defend against.
     agency: r.agency ?? undefined,
   }));
+
+  await tryCache(() => cacheSet(key, data, LINE_TTL));
+  return { data, cached: false };
+}
+
+/**
+ * Region label derived from an agency gtfsId prefix. Agency *names* drift
+ * ("HSL" vs "Helsingin seudun liikenne -kuntayhtymä"), but the gtfsId
+ * prefix is the stable key Digitransit guarantees. Returns `null` when no
+ * prefix matches — Finland-wide long-distance / ELY rural feeds land here
+ * and the LineView fineprint omits the region segment.
+ *
+ * Region labels are Finnish-facing on purpose: the line view's fineprint
+ * is rendered alongside the operator name and the LINE id, all of which
+ * are already locale-blind text from the upstream feed.
+ */
+export function regionFromAgencyId(agencyGtfsId: string): string | null {
+  const prefix = agencyGtfsId.split(":")[0] ?? "";
+  if ((HSL_PREFIXES as readonly string[]).includes(prefix)) {
+    return "Helsingin seutu";
+  }
+  if ((WALTTI_PREFIXES as readonly string[]).includes(prefix)) {
+    return WALTTI_REGION_LABEL[prefix] ?? "Waltti-seutu";
+  }
+  if ((VARELY_PREFIXES as readonly string[]).includes(prefix)) {
+    return "ELY-alue";
+  }
+  return null;
+}
+
+const WALTTI_REGION_LABEL: Record<string, string> = {
+  tampere: "Tampereen seutu",
+  OULU: "Oulun seutu",
+  Lahti: "Lahden seutu",
+  Kuopio: "Kuopion seutu",
+  Joensuu: "Joensuun seutu",
+  Lappeenranta: "Lappeenrannan seutu",
+  Vaasa: "Vaasan seutu",
+  Pori: "Porin seutu",
+  Kotka: "Kotkan seutu",
+  Kouvola: "Kouvolan seutu",
+  Mikkeli: "Mikkelin seutu",
+  Hameenlinna: "Hämeenlinnan seutu",
+  Rovaniemi: "Rovaniemen seutu",
+  Salo: "Salon seutu",
+  Kajaani: "Kajaanin seutu",
+  LINKKI: "Jyväskylän seutu",
+  Raasepori: "Raaseporin seutu",
+  FOLI: "Turun seutu",
+  FUNI: "Funicular",
+};
+
+/**
+ * Line metadata + both directional patterns + per-pattern stop sequences in
+ * a single upstream call. Driven by the gtfsId prefix via adapterRouter —
+ * unknown prefixes fall back to the Finland adapter, so a feed we don't yet
+ * recognise still resolves rather than 503-ing the page.
+ *
+ * Empty `patterns` surfaces as a `LineView` with `patterns: []` (not a 404)
+ * — the empty-pattern plate on LineView wants a real LineView shape so the
+ * masthead can still render with the available metadata.
+ */
+export async function getLine(
+  gtfsId: string,
+  persona: Persona = DEFAULT_PERSONA,
+): Promise<{ data: LineView; cached: boolean }> {
+  const key = cacheKey("transit", "line", 1, gtfsId);
+  const cached = await tryCache(() => cacheGet<LineView>(key));
+  if (cached) return { data: cached, cached: true };
+
+  const adapter = adapterRouter.forStopId(gtfsId);
+  const client = createGraphQLClient(adapter.name, adapter.graphUrl);
+  const ctx = makeContext(persona);
+
+  const raw = await routeWithPatternsOperation(
+    client,
+    { routeId: gtfsId },
+    ctx,
+  );
+  if (!raw) throw new NotFoundError("Line not found");
+
+  // Coerce optional `Line.agency?:` to LineView.agency's required-or-null
+  // contract — don't spread the raw shape, the optionality is a foot-gun on
+  // consumers that branch on `agency === null`.
+  const agency = raw.agency ?? null;
+  const region = agency ? regionFromAgencyId(agency.gtfsId) : null;
+
+  const patterns: Pattern[] = raw.patterns.map((p) => ({
+    code: p.code,
+    headsign: p.headsign,
+    directionId: p.directionId,
+    stops: p.stops.map((s) => ({
+      gtfsId: s.gtfsId,
+      name: s.name,
+      lat: s.lat,
+      lon: s.lon,
+      code: s.code,
+      platformCode: s.platformCode,
+    })),
+  }));
+
+  const data: LineView = {
+    gtfsId: raw.gtfsId,
+    shortName: raw.shortName,
+    longName: raw.longName,
+    mode: raw.mode,
+    color: raw.color,
+    textColor: raw.textColor,
+    agency,
+    region,
+    patterns,
+  };
 
   await tryCache(() => cacheSet(key, data, LINE_TTL));
   return { data, cached: false };

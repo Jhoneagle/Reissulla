@@ -10,6 +10,7 @@ import {
   planRoute,
   getTripDetail,
   searchLines,
+  getLine,
   type DeparturesOptions,
   type ArrivalDepartureMode,
 } from "../services/transit/index.js";
@@ -362,6 +363,27 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       if (q === "") return badRequest("q must not be empty");
       const region = request.query.region?.trim() || undefined;
       const { data, cached } = await searchLines(q, region, request.persona);
+      return { data, cached };
+    },
+  );
+
+  // Single-line metadata + both directional patterns + per-pattern stops.
+  // The LineView page consumes this on first paint.
+  server.get<{ Params: { gtfsId: string } }>(
+    "/api/v1/transit/lines/:gtfsId",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["gtfsId"],
+          properties: { gtfsId: { type: "string", minLength: 1 } },
+        },
+      },
+    },
+    async (request) => {
+      const gtfsId = decodeURIComponent(request.params.gtfsId).trim();
+      if (gtfsId === "") return badRequest("gtfsId must not be empty");
+      const { data, cached } = await getLine(gtfsId, request.persona);
       return { data, cached };
     },
   );
