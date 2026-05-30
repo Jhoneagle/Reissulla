@@ -33,24 +33,20 @@
 
 .freq-strip__bars {
   display: grid;
-  align-items: end;
-  gap: 2px;
+  grid-template-rows: 1fr auto auto;
+  column-gap: 2px;
+  row-gap: 2px;
   min-height: 96px;
   padding-top: var(--space-3);
   overflow-x: auto;
-}
-
-.freq-strip__column {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
 }
 
 .freq-strip__bar {
   background: var(--mode-bus-strong);
   min-height: 40px;
   border-radius: var(--radius-xs);
+  grid-row: 1;
+  align-self: end;
 }
 
 .freq-strip--mode-tram .freq-strip__bar {
@@ -76,24 +72,17 @@
   color: var(--color-ink-muted);
   letter-spacing: 0.06em;
   text-align: center;
-  /* Captions are intrinsically wider than narrow bars; allow them to
-     wrap inside the minmax-clamped column rather than overflow into
-     the next band. */
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   min-width: 0;
 }
 
+.freq-strip__caption--range {
+  grid-row: 2;
+}
+
 .freq-strip__caption--headway {
+  grid-row: 3;
   color: var(--color-ink);
-}
-
-.freq-strip__headway-mobile {
-  display: none;
-}
-
-.freq-strip__headway-mobile > summary {
-  list-style: revert;
-  cursor: pointer;
 }
 
 .freq-strip__sparse {
@@ -127,11 +116,5 @@
   .freq-strip__caption {
     font-size: 10px;
     letter-spacing: 0.04em;
-  }
-  .freq-strip__caption--desktop {
-    display: none;
-  }
-  .freq-strip__headway-mobile {
-    display: block;
   }
 }

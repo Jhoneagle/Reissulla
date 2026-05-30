@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import type { FrequencyBand } from "@reissulla/shared";
 import { renderWithProviders } from "../../../test/test-utils";
 import { FrequencyStrip } from "../FrequencyStrip";
@@ -111,18 +111,19 @@ describe("FrequencyStrip", () => {
     expect(srSentences[1]!.textContent).toContain("12");
   });
 
-  it("renders the mobile headway disclosure alongside the desktop caption", () => {
-    renderStrip([band({ headwayMin: 8 })]);
-    const column = document.querySelector(".freq-strip__column")!;
-    const details = within(column as HTMLElement).getByText(/every 8 min/i, {
-      selector: "summary",
-    });
-    expect(details.tagName).toBe("SUMMARY");
-    expect(details.closest("details")).toHaveClass(
-      "freq-strip__headway-mobile",
-    );
-    const desktop = within(column as HTMLElement).getAllByText(/every 8 min/i);
-    // One inside <summary>, one inside the desktop span.
-    expect(desktop.length).toBeGreaterThanOrEqual(2);
+  it("renders one range and one headway caption per band as siblings in the grid", () => {
+    renderStrip([
+      band({ fromTimeOfDay: "06:00", toTimeOfDay: "09:00", headwayMin: 8 }),
+      band({ fromTimeOfDay: "09:00", toTimeOfDay: "15:00", headwayMin: 12 }),
+    ]);
+    const ranges = document.querySelectorAll(".freq-strip__caption--range");
+    const headways = document.querySelectorAll(".freq-strip__caption--headway");
+    expect(ranges).toHaveLength(2);
+    expect(headways).toHaveLength(2);
+    expect(ranges[0]).toHaveTextContent("06:00–09:00");
+    expect(headways[0]).toHaveTextContent(/every 8 min/i);
+    expect(headways[1]).toHaveTextContent(/every 12 min/i);
+    // No disclosure wrappers — headway is a plain span at all viewport sizes.
+    expect(document.querySelector("details")).toBeNull();
   });
 });

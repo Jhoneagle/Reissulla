@@ -106,29 +106,37 @@ export function FrequencyStrip({
             aria-hidden="true"
           >
             {bands.map((band, i) => (
-              <div className="freq-strip__column" key={`col-${i}`}>
-                <div
-                  className="freq-strip__bar"
-                  style={{ height: `${barHeight(band.headwayMin)}px` }}
-                  data-headway={band.headwayMin}
-                  data-width-min={minutesBetween(band)}
-                />
-                <span className="freq-strip__caption">{rangeLabel(band)}</span>
-                <details className="freq-strip__headway-mobile">
-                  <summary className="freq-strip__caption freq-strip__caption--headway">
-                    {intl.formatMessage(
-                      { id: "transit.line.freq.headway" },
-                      { minutes: band.headwayMin },
-                    )}
-                  </summary>
-                </details>
-                <span className="freq-strip__caption freq-strip__caption--headway freq-strip__caption--desktop">
-                  {intl.formatMessage(
-                    { id: "transit.line.freq.headway" },
-                    { minutes: band.headwayMin },
-                  )}
-                </span>
-              </div>
+              <div
+                className="freq-strip__bar"
+                key={`bar-${i}`}
+                style={{
+                  height: `${barHeight(band.headwayMin)}px`,
+                  gridColumn: i + 1,
+                }}
+                data-headway={band.headwayMin}
+                data-width-min={minutesBetween(band)}
+              />
+            ))}
+            {bands.map((band, i) => (
+              <span
+                className="freq-strip__caption freq-strip__caption--range"
+                key={`range-${i}`}
+                style={{ gridColumn: i + 1 }}
+              >
+                {rangeLabel(band)}
+              </span>
+            ))}
+            {bands.map((band, i) => (
+              <span
+                className="freq-strip__caption freq-strip__caption--headway"
+                key={`head-${i}`}
+                style={{ gridColumn: i + 1 }}
+              >
+                {intl.formatMessage(
+                  { id: "transit.line.freq.headway" },
+                  { minutes: band.headwayMin },
+                )}
+              </span>
             ))}
           </div>
         </>
