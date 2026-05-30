@@ -217,6 +217,12 @@
   line-height: var(--leading-tight);
   margin: 0;
   letter-spacing: -0.005em;
+  /* When stopName is the raw gtfsId (DepartureBoard restore-from-URL
+     path before departures resolves), the colons in "digitraffic:HKI:…"
+     are non-breaking. Force a break opportunity so the title can't
+     overflow into the pin button on narrow viewports. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .departure-masthead__title-spacer {

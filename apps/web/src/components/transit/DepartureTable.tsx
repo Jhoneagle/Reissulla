@@ -280,12 +280,18 @@ export function DepartureTable({
         ? "transit.depart.column.time"
         : "transit.depart.column.departs";
 
+  // The URL-restore path (DepartureBoard.stopFromQuery) seeds `stopName`
+  // with the raw gtfsId because the picker hasn't been touched yet — once
+  // the departures response lands it carries the real upstream name, which
+  // we prefer everywhere so the masthead never reads "digitraffic:HKI:…".
+  const displayName = result?.stopName ?? stopName;
+
   return (
     <section className="departure-board-section" aria-labelledby="dep-title">
       <header className="departure-masthead">
         <div className="departure-masthead__title-row">
           <h3 id="dep-title" className="departure-masthead__title">
-            {stopName}
+            {displayName}
           </h3>
           {vehicleMode && (
             <span className={`mode-tag mode-${modeToken}`}>
@@ -296,7 +302,7 @@ export function DepartureTable({
           <PinButton
             stop={{
               gtfsId: stopId,
-              name: stopName,
+              name: displayName,
               vehicleMode,
               isStation: isStation ?? false,
             }}
@@ -553,7 +559,7 @@ export function DepartureTable({
                 className={`departure-list${platformMod}`}
                 aria-label={intl.formatMessage(
                   { id: "transit.depart.caption" },
-                  { stopName, count: departures.length },
+                  { stopName: displayName, count: departures.length },
                 )}
               >
                 {departures.map((dep, i) => (
