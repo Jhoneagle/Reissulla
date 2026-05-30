@@ -15,6 +15,7 @@ import type {
   TransitSubStop,
   TransitDeparturesResult,
   TransitPlanResult,
+  TripDetail,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -417,6 +418,11 @@ export const transitApi = {
   plan(fromLat: number, fromLon: number, toLat: number, toLon: number) {
     return request<ApiResponse<TransitPlanResult>>(
       `/transit/plan?fromLat=${fromLat}&fromLon=${fromLon}&toLat=${toLat}&toLon=${toLon}`,
+    );
+  },
+  getTripDetail(tripId: string) {
+    return request<ApiResponse<TripDetail>>(
+      `/transit/trip/${encodeURIComponent(tripId)}`,
     );
   },
   listPinnedStops() {
