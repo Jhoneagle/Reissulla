@@ -256,7 +256,13 @@ export function DepartureTable({
     }
   }, [announcement]);
 
-  const modeToken = vehicleModeToken(vehicleMode);
+  // URL-restore path arrives with vehicleMode=null (stopFromQuery synthesises
+  // a TransitStop from ?stopId= alone). Recover the mode from the first
+  // departure once the response lands so the masthead tag stays visible
+  // after a back-navigation from /transit/trip/:tripId.
+  const effectiveVehicleMode =
+    vehicleMode ?? result?.departures?.[0]?.vehicleMode ?? null;
+  const modeToken = vehicleModeToken(effectiveVehicleMode);
   const firstLastData = firstLast.data?.data;
   const hasFirstLast = Boolean(firstLastData?.first && firstLastData?.last);
   const frequency = result?.frequency;
@@ -293,9 +299,9 @@ export function DepartureTable({
           <h3 id="dep-title" className="departure-masthead__title">
             {displayName}
           </h3>
-          {vehicleMode && (
+          {effectiveVehicleMode && (
             <span className={`mode-tag mode-${modeToken}`}>
-              {vehicleModeLabel(vehicleMode)}
+              {vehicleModeLabel(effectiveVehicleMode)}
             </span>
           )}
           <div className="departure-masthead__title-spacer" />
@@ -303,7 +309,7 @@ export function DepartureTable({
             stop={{
               gtfsId: stopId,
               name: displayName,
-              vehicleMode,
+              vehicleMode: effectiveVehicleMode,
               isStation: isStation ?? false,
             }}
           />
