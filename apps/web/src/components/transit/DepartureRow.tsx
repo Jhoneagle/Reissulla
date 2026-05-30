@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useIntl } from "react-intl";
 import type { TransitDeparture } from "@reissulla/shared";
 import type { ArrivalDepartureMode } from "@reissulla/api-client";
@@ -76,20 +77,20 @@ export function DepartureRow({
         )
       : "";
 
-  return (
-    <tr className="departure-row">
-      <td className="departure-row__line">
+  const cells = (
+    <>
+      <span className="departure-row__line">
         <span className={`mode-tag mode-${modeToken}`}>{d.routeShortName}</span>
-      </td>
-      <td className="departure-row__dest">{d.headsign}</td>
+      </span>
+      <span className="departure-row__dest">{d.headsign}</span>
       {showPlatform && (
-        <td className="departure-row__platform">
+        <span className="departure-row__platform">
           {d.platformCode && (
             <span className="platform-badge">{d.platformCode}</span>
           )}
-        </td>
+        </span>
       )}
-      <td className="departure-row__time">
+      <span className="departure-row__time">
         {showBoth ? (
           <span className="departure-row__pair">
             <span
@@ -148,14 +149,32 @@ export function DepartureRow({
         {announcement && (
           <span className="visually-hidden">{announcement}</span>
         )}
-      </td>
-      <td className="departure-row__rt">
+      </span>
+      <span className="departure-row__rt">
         <span
           className={`rt-dot${d.realtime ? " rt-dot--live" : ""}`}
           aria-label={rtLabel}
           title={rtLabel}
         />
-      </td>
-    </tr>
+      </span>
+    </>
+  );
+
+  // Upstream usually carries tripId; the guard keeps the row rendering
+  // when a stale cached payload omits it (e.g. an old v1 departures slot
+  // still in Redis after a deploy).
+  return (
+    <li className="departure-row">
+      {d.tripId ? (
+        <Link
+          to={`/transit/trip/${encodeURIComponent(d.tripId)}`}
+          className="departure-row__link"
+        >
+          {cells}
+        </Link>
+      ) : (
+        <div className="departure-row__static">{cells}</div>
+      )}
+    </li>
   );
 }
