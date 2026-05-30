@@ -236,18 +236,11 @@ export function LineSearch({ id = "line-search", onSelect }: LineSearchProps) {
                 role="option"
                 aria-selected={index === activeIndex}
                 className={`line-search__row line-search__row--mode-${modeToken}`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectResult(line);
-                }}
               >
                 <Link
                   to={lineHref(line.gtfsId)}
                   className="line-search__link"
-                  onClick={() => {
-                    setOpen(false);
-                    setActiveIndex(-1);
-                  }}
+                  onClick={() => selectResult(line)}
                 >
                   <span
                     className={`line-search__mode-tag line-search__mode-tag--${modeToken}`}
@@ -315,7 +308,7 @@ export function LineSearch({ id = "line-search", onSelect }: LineSearchProps) {
       <div aria-live="polite" className="visually-hidden">
         {showDropdown && !isLoading && results.length > 0
           ? intl.formatMessage(
-              { id: "transit.stopSearch.resultsAnnouncement" },
+              { id: "transit.line.search.resultsAnnouncement" },
               { count: results.length },
             )
           : ""}

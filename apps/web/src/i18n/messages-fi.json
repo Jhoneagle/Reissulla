@@ -328,6 +328,7 @@
   "transit.line.search.regionVarely": "Varely",
   "transit.line.search.empty": "Linjaa ei löytynyt.",
   "transit.line.search.emptyHint": "Kokeile lyhyempää numeroa tai vaihda aluetta.",
+  "transit.line.search.resultsAnnouncement": "{count, plural, one {# linja löytyi} other {# linjaa löytyi}}",
   "transit.line.pinned.heading": "Kiinnitetyt linjat",
   "transit.line.pinned.signinHint": "Kirjaudu sisään kiinnittääksesi linjoja.",
   "transit.line.pinned.emptyHint": "Aloita kirjoittamalla linjan numero.",
