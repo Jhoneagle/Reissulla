@@ -1,0 +1,80 @@
+.pinned-lines-card {
+  margin: var(--space-4) 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+}
+
+.pinned-lines-card__kicker {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+}
+
+.pinned-lines-card__title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--text-xl);
+  color: var(--color-ink);
+}
+
+.pinned-lines-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pinned-lines-card__item {
+  border-bottom: 1px solid var(--color-rule);
+  border-left: 4px solid var(--mode-bus-strong);
+  padding-left: var(--space-3);
+}
+
+.pinned-lines-card__item:last-child {
+  border-bottom: 0;
+}
+
+.pinned-lines-card__item--mode-tram {
+  border-left-color: var(--mode-tram-strong);
+}
+.pinned-lines-card__item--mode-rail {
+  border-left-color: var(--mode-rail-strong);
+}
+.pinned-lines-card__item--mode-subway {
+  border-left-color: var(--mode-subway-strong);
+}
+.pinned-lines-card__item--mode-ferry {
+  border-left-color: var(--mode-ferry-strong);
+}
+
+.pinned-lines-card__link {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.pinned-lines-card__link:hover {
+  color: var(--color-primary);
+}
+
+.pinned-lines-card__mode {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  min-width: 3.5rem;
+}
+
+.pinned-lines-card__name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
