@@ -1340,6 +1340,71 @@
   border-color: var(--color-primary);
 }
 
+/* ── Line pin button (LineView masthead, search rows) ─────────────── */
+
+.line-pin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--color-rule);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.line-pin-button:hover {
+  color: var(--color-ink);
+  border-color: var(--color-ink-muted);
+}
+
+.line-pin-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.line-pin-button--pinned {
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+
+.line-pin-button[data-mode="tram"].line-pin-button--pinned {
+  border-color: var(--mode-tram-strong);
+}
+.line-pin-button[data-mode="rail"].line-pin-button--pinned {
+  border-color: var(--mode-rail-strong);
+}
+.line-pin-button[data-mode="subway"].line-pin-button--pinned {
+  border-color: var(--mode-subway-strong);
+}
+.line-pin-button[data-mode="ferry"].line-pin-button--pinned {
+  border-color: var(--mode-ferry-strong);
+}
+.line-pin-button[data-mode="bus"].line-pin-button--pinned {
+  border-color: var(--mode-bus-strong);
+}
+
+.line-pin-button--anonymous {
+  color: var(--color-ink-muted);
+  border-style: dashed;
+  border-color: var(--color-rule);
+  cursor: pointer;
+}
+
+.line-pin-button--anonymous:hover {
+  /* Stay muted on hover so the visual cue doesn't promise interactivity
+     beyond the sign-in toast. The toast itself is the affordance. */
+  color: var(--color-ink-muted);
+  border-color: var(--color-rule);
+}
+
 /* ── Recent stops on the departure board ────────────────────────────── */
 
 .recent-stops {
