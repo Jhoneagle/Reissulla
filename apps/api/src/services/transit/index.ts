@@ -23,3 +23,4 @@ export {
   getLineDepartures,
   regionFromAgencyId,
 } from "./lines.service.js";
+export { getFrequency } from "./line-frequency.service.js";

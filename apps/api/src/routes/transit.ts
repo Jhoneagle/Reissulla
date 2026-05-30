@@ -12,6 +12,7 @@ import {
   searchLines,
   getLine,
   getLineDepartures,
+  getFrequency,
   type DeparturesOptions,
   type ArrivalDepartureMode,
 } from "../services/transit/index.js";
@@ -420,6 +421,53 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
             : undefined;
       const { data, cached } = await getLineDepartures(
         gtfsId,
+        direction,
+        request.persona,
+      );
+      return { data, cached };
+    },
+  );
+
+  // Day-of-day-type frequency rhythm for the LineView strip.
+  server.get<{
+    Params: { gtfsId: string };
+    Querystring: { dayType?: string; direction?: string };
+  }>(
+    "/api/v1/transit/lines/:gtfsId/frequency",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["gtfsId"],
+          properties: { gtfsId: { type: "string", minLength: 1 } },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            dayType: {
+              type: "string",
+              enum: ["weekday", "saturday", "sunday"],
+            },
+            direction: { type: "string", enum: ["0", "1"] },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const gtfsId = decodeURIComponent(request.params.gtfsId).trim();
+      if (gtfsId === "") return badRequest("gtfsId must not be empty");
+      const dayType =
+        (request.query.dayType as "weekday" | "saturday" | "sunday") ??
+        "weekday";
+      const direction =
+        request.query.direction === "0"
+          ? 0
+          : request.query.direction === "1"
+            ? 1
+            : undefined;
+      const { data, cached } = await getFrequency(
+        gtfsId,
+        dayType,
         direction,
         request.persona,
       );
