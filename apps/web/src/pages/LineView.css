@@ -1,0 +1,199 @@
+/* ── LineView page ─────────────────────────────────────────── */
+
+.line-view {
+  border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--mode-bus-strong);
+  border-radius: var(--radius-xs);
+  padding: var(--space-4) var(--space-5);
+  background: transparent;
+  margin-top: var(--space-3);
+}
+
+.line-view--mode-bus {
+  border-left-color: var(--mode-bus-strong);
+}
+.line-view--mode-tram {
+  border-left-color: var(--mode-tram-strong);
+}
+.line-view--mode-rail {
+  border-left-color: var(--mode-rail-strong);
+}
+.line-view--mode-subway {
+  border-left-color: var(--mode-subway-strong);
+}
+.line-view--mode-ferry {
+  border-left-color: var(--mode-ferry-strong);
+}
+
+/* ── Back nav ────────────────────────────────────────────── */
+
+.line-view__back {
+  margin-bottom: var(--space-3);
+}
+
+.line-view__back a {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.line-view__back a::before {
+  content: "←";
+}
+
+.line-view__back a:hover {
+  color: var(--color-ink);
+}
+
+.line-view__back a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Masthead ────────────────────────────────────────────── */
+
+.line-view__masthead {
+  margin-bottom: var(--space-4);
+}
+
+.line-view__masthead-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.line-view__kicker {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+}
+
+.line-view__top-rule {
+  border: 0;
+  height: 1px;
+  background: var(--color-rule-soft);
+  position: relative;
+  margin: 0 0 var(--space-3);
+}
+
+.line-view__top-rule::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 1px;
+  background: var(--color-primary);
+}
+
+.line-view__display {
+  display: block;
+}
+
+.line-view__number {
+  display: block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--text-hero);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--color-ink);
+}
+
+.line-view__headsign {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--text-xl);
+  color: var(--color-ink);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.line-view__origin,
+.line-view__destination {
+  color: var(--color-ink);
+}
+
+.line-view__arrow {
+  font-family: var(--font-mono);
+  color: var(--color-ink-muted);
+}
+
+.line-view__arrow::before {
+  content: "⇄";
+}
+
+.line-view__next {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── Fineprint ───────────────────────────────────────────── */
+
+.line-view__fineprint {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-rule-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  letter-spacing: 0.05em;
+}
+
+.line-view__fineprint p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Loading / error / empty ─────────────────────────────── */
+
+.line-view__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.line-view__error-block {
+  text-align: center;
+  padding: var(--space-5) var(--space-3);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+/* ── Forced-colors fallback ──────────────────────────────── */
+
+@media (forced-colors: active) {
+  .line-view {
+    border-left-color: CanvasText;
+  }
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .line-view {
+    padding: var(--space-3);
+  }
+  .line-view__number {
+    font-size: 3.5rem;
+  }
+  .line-view__headsign {
+    font-size: var(--text-lg);
+  }
+}
