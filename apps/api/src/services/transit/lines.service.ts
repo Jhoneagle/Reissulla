@@ -156,9 +156,16 @@ export async function getLineDepartures(
       },
       ctx,
     );
-  } catch {
+  } catch (err) {
     // Upstream hiccup — return per-stop nulls so the page still renders
     // the stop spine; caching the empty projection would mask a transient.
+    // Log so a schema drift / auth rotation doesn't look like "no upcoming
+    // departures" to operators — UX stays identical, observability improves.
+    console.warn("[lines.service] getLineDepartures upstream error", {
+      gtfsId,
+      adapter: adapter.name,
+      err: err instanceof Error ? err.message : String(err),
+    });
     return {
       data: pattern.stops.map((stop) => emptyDeparture(stop)),
       cached: false,

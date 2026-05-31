@@ -123,7 +123,11 @@ describe("FrequencyStrip", () => {
     expect(ranges[0]).toHaveTextContent("06:00–09:00");
     expect(headways[0]).toHaveTextContent(/every 8 min/i);
     expect(headways[1]).toHaveTextContent(/every 12 min/i);
-    // No disclosure wrappers — headway is a plain span at all viewport sizes.
+    // Deliberate spec divergence: the chunk-5 plan called for a <details>
+    // disclosure at <=480px, but the headway IS the only data — a
+    // disclosure with summary-only and no body would just rotate a
+    // triangle and reveal nothing. Captions stay as plain spans at every
+    // viewport; @media font-size shrink keeps them legible at 360px.
     expect(document.querySelector("details")).toBeNull();
   });
 });
