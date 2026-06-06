@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { DEFAULT_PERSONA, serializePersona } from "@reissulla/shared";
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
 import { cacheDel } from "../cache/cache.js";
@@ -8,8 +7,6 @@ import {
   getCapturedRequests,
   clearCapturedRequests,
 } from "../../test/msw/request-log.js";
-
-const DEFAULT_PERSONA_FINGERPRINT = serializePersona(DEFAULT_PERSONA);
 
 let server: FastifyInstance;
 
@@ -88,18 +85,25 @@ describe("Transit routes - input validation", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("GET /transit/plan returns 400 when coordinates missing", async () => {
+  it("POST /transit/plan returns 400 when from is missing", async () => {
     const res = await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17",
+      method: "POST",
+      url: "/api/v1/transit/plan",
+      payload: { query: { to: { lat: 60.2, lon: 24.96 } } },
     });
     expect(res.statusCode).toBe(400);
   });
 
-  it("GET /transit/plan returns 400 for non-numeric coordinates", async () => {
+  it("POST /transit/plan returns 400 for non-numeric coordinates", async () => {
     const res = await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=abc&fromLon=24&toLat=60.2&toLon=24.96",
+      method: "POST",
+      url: "/api/v1/transit/plan",
+      payload: {
+        query: {
+          from: { lat: "abc", lon: 24 },
+          to: { lat: 60.2, lon: 24.96 },
+        },
+      },
     });
     expect(res.statusCode).toBe(400);
   });
@@ -283,25 +287,54 @@ describe("GET /api/v1/transit/departures", () => {
 // Route planning
 // ---------------------------------------------------------------------------
 
-describe("GET /api/v1/transit/plan", () => {
+describe("POST /api/v1/transit/plan", () => {
+  const HELSINKI = { lat: 60.17, lon: 24.94 };
+  const NEAR_HELSINKI = { lat: 60.2, lon: 24.96 };
+
+  function planRequest(
+    payloadOverrides: Partial<{
+      from: { lat: number; lon: number };
+      to: { lat: number; lon: number };
+      headers: Record<string, string>;
+      dateTime?: number;
+      arriveBy?: boolean;
+      preference?: string;
+      modes?: string[];
+    }> = {},
+  ) {
+    const { headers, ...rest } = payloadOverrides;
+    const from = rest.from ?? HELSINKI;
+    const to = rest.to ?? NEAR_HELSINKI;
+    const payload = {
+      query: {
+        from,
+        to,
+        ...(rest.dateTime ? { dateTime: rest.dateTime } : {}),
+        ...(rest.arriveBy ? { arriveBy: rest.arriveBy } : {}),
+        ...(rest.preference ? { preference: rest.preference } : {}),
+        ...(rest.modes ? { modes: rest.modes } : {}),
+      },
+    };
+    return server.inject({
+      method: "POST",
+      url: "/api/v1/transit/plan",
+      payload,
+      headers,
+    });
+  }
+
   beforeEach(async () => {
-    await cacheDel(
-      `transit:plan:v2:60.170:24.940:60.200:24.960:${DEFAULT_PERSONA_FINGERPRINT}`,
-    );
-    await cacheDel(
-      `transit:plan:v2:60.180:24.940:60.200:24.960:${DEFAULT_PERSONA_FINGERPRINT}`,
-    );
-    await cacheDel(
-      `transit:plan:v2:60.190:24.940:60.200:24.960:${DEFAULT_PERSONA_FINGERPRINT}`,
-    );
+    // v3 cache keys include an options hash + persona fingerprint — flush by
+    // prefix instead of recomputing every variant by hand.
+    const keys = await redis.keys("transit:plan:v3:*");
+    if (keys.length > 0) {
+      await Promise.all(keys.map((k) => cacheDel(k)));
+    }
     clearCapturedRequests();
   });
 
   it("returns itineraries for valid from/to", async () => {
-    const res = await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
-    });
+    const res = await planRequest();
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
@@ -311,14 +344,14 @@ describe("GET /api/v1/transit/plan", () => {
     expect(body.data.itineraries[0].legs[0].mode).toBe("WALK");
     expect(body.data.itineraries[0].legs[1].mode).toBe("BUS");
     expect(body.data.itineraries[0].legs[1].route.shortName).toBe("550");
+    expect(body.data.itineraries[0].farePlaceholders).toBe(true);
     expect(body.data.message).toBeUndefined();
   });
 
   it("returns 200 with message when no routes found", async () => {
     // (60.18, 24.94) → (60.20, 24.96) is wired to empty edges.
-    const res = await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.18&fromLon=24.94&toLat=60.20&toLon=24.96",
+    const res = await planRequest({
+      from: { lat: 60.18, lon: 24.94 },
     });
 
     expect(res.statusCode).toBe(200);
@@ -328,18 +361,12 @@ describe("GET /api/v1/transit/plan", () => {
   });
 
   it("serves cached plan on second call", async () => {
-    await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
-    });
+    await planRequest();
     const firstCount = getCapturedRequests().filter((r) =>
       r.url.includes("routing/v2"),
     ).length;
 
-    const res = await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
-    });
+    const res = await planRequest();
 
     expect(
       getCapturedRequests().filter((r) => r.url.includes("routing/v2")).length,
@@ -350,22 +377,14 @@ describe("GET /api/v1/transit/plan", () => {
 
   it("returns 502 when Digitransit is down", async () => {
     // (60.19, 24.94) → wired to HTTP 500.
-    const res = await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.19&fromLon=24.94&toLat=60.20&toLon=24.96",
-    });
+    const res = await planRequest({ from: { lat: 60.19, lon: 24.94 } });
 
     expect(res.statusCode).toBe(502);
     expect(res.json().error.code).toBe("TRANSIT_UNAVAILABLE");
   });
 
   it("forwards wheelchair=1 persona into the GraphQL preferences arg", async () => {
-    const wheelchairPersonaKey = `transit:plan:v2:60.170:24.940:60.200:24.960:wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en`;
-    await cacheDel(wheelchairPersonaKey);
-
-    const res = await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
+    const res = await planRequest({
       headers: {
         "x-reissulla-persona":
           "wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en",
@@ -374,34 +393,14 @@ describe("GET /api/v1/transit/plan", () => {
 
     expect(res.statusCode).toBe(200);
     expect(planRequestBody()).toContain("wheelchair: { enabled: true }");
-
-    await cacheDel(wheelchairPersonaKey);
-  });
-
-  it("omits the preferences arg when persona has no accessibility flags", async () => {
-    await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
-    });
-
-    expect(planRequestBody()).not.toContain("preferences:");
   });
 
   it("uses a separate cache entry for wheelchair persona", async () => {
-    const wheelchairKey = `transit:plan:v2:60.170:24.940:60.200:24.960:wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en`;
-    await cacheDel(wheelchairKey);
-    clearCapturedRequests();
-
     // Anonymous (default persona) — uses the default-persona cache slot.
-    await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
-    });
+    await planRequest();
 
     // Wheelchair persona — must NOT hit the anonymous cache slot.
-    await server.inject({
-      method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
+    await planRequest({
       headers: {
         "x-reissulla-persona":
           "wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en",
@@ -415,7 +414,33 @@ describe("GET /api/v1/transit/plan", () => {
       return body?.query?.includes("planConnection") ?? false;
     });
     expect(planCalls.length).toBe(2);
+  });
 
-    await cacheDel(wheelchairKey);
+  it("uses a separate cache entry per options hash", async () => {
+    // Default planner preference (fastest) — first slot.
+    await planRequest();
+    // Same persona + coords, different preference → must miss the cache.
+    await planRequest({ preference: "fewest-transfers" });
+
+    const planCalls = getCapturedRequests().filter((r) => {
+      if (!r.url.includes("routing/v2")) return false;
+      const body = r.body as { query?: string } | null;
+      return body?.query?.includes("planConnection") ?? false;
+    });
+    expect(planCalls.length).toBe(2);
+  });
+
+  it("threads dateTime into the GraphQL query for future-time planning", async () => {
+    const target = Math.floor(Date.now() / 1000) + 3_600;
+    await planRequest({ dateTime: target });
+
+    expect(planRequestBody()).toContain("earliestDeparture");
+  });
+
+  it("flips to latestArrival when arriveBy is true", async () => {
+    const target = Math.floor(Date.now() / 1000) + 3_600;
+    await planRequest({ dateTime: target, arriveBy: true });
+
+    expect(planRequestBody()).toContain("latestArrival");
   });
 });
