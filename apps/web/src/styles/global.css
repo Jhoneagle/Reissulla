@@ -624,6 +624,12 @@ main {
   margin: 0 auto;
   padding: 1.5rem;
   outline: none;
+  /* As the flex item of #root, the default min-width: auto resolves to
+     min-content of the subtree — that turns any wide descendant
+     (horizontal strip, fixed-width chart) into a page-level scroll.
+     Pin to 0 so children that own their own overflow can clip. */
+  min-width: 0;
+  width: 100%;
 }
 
 main:has(.page-full-width) {
@@ -1605,6 +1611,10 @@ html[data-theme="dark"] .form-field select {
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-xs);
   background: var(--color-surface);
+  /* As a flex item of `.dashboard`, default min-width:auto = min-content
+     would propagate any child's natural width up the tree. Force shrink
+     so a long horizontal strip inside doesn't burst the page. */
+  min-width: 0;
 }
 
 /* Editorial hero for the primary card — full-width with a 4px
@@ -1700,6 +1710,7 @@ html[data-theme="dark"] .form-field select {
     grid-template-areas:
       "heading heading"
       "hero body"
+      "depth depth"
       "actions actions";
     grid-template-columns: minmax(8rem, auto) 1fr;
     column-gap: var(--space-6);
@@ -1717,6 +1728,11 @@ html[data-theme="dark"] .form-field select {
   }
   .dashboard-card--primary .dashboard-card__body {
     grid-area: body;
+    min-width: 0;
+  }
+  .dashboard-card--primary .dashboard-card__weather-depth {
+    grid-area: depth;
+    min-width: 0;
   }
   .dashboard-card--primary .dashboard-card__actions {
     grid-area: actions;

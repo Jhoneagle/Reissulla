@@ -15,7 +15,7 @@ import { LocationSearch } from "../components/LocationSearch";
 import { LocationListView } from "../components/LocationListView";
 import { CurrentWeatherCard } from "../components/weather/CurrentWeatherCard";
 import { ForecastStrip } from "../components/weather/ForecastStrip";
-import { useCurrentWeather, useWeatherForecast } from "../hooks/useWeather";
+import { useWeatherSnapshot } from "../hooks/useWeather";
 import { useSavedLocations } from "../hooks/useSavedLocations";
 import { useDefaultCenter } from "../hooks/useDefaultCenter";
 import { useGeolocationStore } from "../stores/geolocation";
@@ -45,15 +45,12 @@ export function MapPage() {
   // Weather is shown for: selected location > GPS position > null
   const weatherTarget = selectedLocation ?? geoPosition;
 
-  const currentWeather = useCurrentWeather(
+  const snapshot = useWeatherSnapshot(
     weatherTarget?.lat ?? null,
     weatherTarget?.lon ?? null,
   );
-
-  const forecast = useWeatherForecast(
-    weatherTarget?.lat ?? null,
-    weatherTarget?.lon ?? null,
-  );
+  const current = snapshot.data?.data.current ?? undefined;
+  const daily = snapshot.data?.data.forecast?.daily;
 
   const reverseQuery = useQuery({
     queryKey: [
@@ -207,17 +204,17 @@ export function MapPage() {
               <p className="weather-panel__heading">{weatherLocationName}</p>
             )}
             <CurrentWeatherCard
-              data={currentWeather.data?.data}
-              isLoading={currentWeather.isLoading}
-              isError={currentWeather.isError}
-              isStale={currentWeather.isStale}
-              dataUpdatedAt={currentWeather.dataUpdatedAt}
-              onRetry={currentWeather.refetch}
+              data={current ?? undefined}
+              isLoading={snapshot.isLoading}
+              isError={snapshot.isError && !current}
+              isStale={snapshot.isStale}
+              dataUpdatedAt={snapshot.dataUpdatedAt}
+              onRetry={snapshot.refetch}
             />
             <ForecastStrip
-              days={forecast.data?.data.daily}
-              isLoading={forecast.isLoading}
-              isError={forecast.isError}
+              days={daily}
+              isLoading={snapshot.isLoading}
+              isError={snapshot.isError && !daily}
             />
           </div>
         )}

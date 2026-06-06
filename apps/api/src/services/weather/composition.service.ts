@@ -122,9 +122,12 @@ export async function getWeatherSnapshot(
       () => openMeteoForecast.getCurrent(lat, lon, ctx),
     ),
     withCache(
-      cacheKey("weather", "forecast", 1, latKey, lonKey),
+      // Separate key from `weather:forecast:v1` so the lightweight
+      // endpoint stays at 7 days and the snapshot path can request the
+      // 14-day strip without bloating ListRow consumers' payloads.
+      cacheKey("weather", "forecast-14", 1, latKey, lonKey),
       WEATHER_FORECAST_TTL,
-      () => openMeteoForecast.getForecast(lat, lon, ctx),
+      () => openMeteoForecast.getForecast(lat, lon, ctx, { forecastDays: 14 }),
     ),
     withCache(
       cacheKey("weather", "aq", 1, latKey, lonKey),

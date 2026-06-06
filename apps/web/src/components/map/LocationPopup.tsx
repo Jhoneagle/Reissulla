@@ -1,6 +1,6 @@
 import { Marker, Popup } from "react-leaflet";
 import { Link } from "react-router";
-import { useCurrentWeather } from "../../hooks/useWeather";
+import { useWeatherSnapshot } from "../../hooks/useWeather";
 import {
   useIsLocationSaved,
   useSaveLocation,
@@ -23,10 +23,11 @@ export function LocationPopup({
   onClose,
 }: LocationPopupProps) {
   const user = useAuthStore((s) => s.user);
-  const { data, isLoading, isError } = useCurrentWeather(
+  const { data, isLoading, isError } = useWeatherSnapshot(
     position[0],
     position[1],
   );
+  const current = data?.data.current ?? undefined;
 
   const savedId = useIsLocationSaved(position[0], position[1]);
   const saveLocation = useSaveLocation();
@@ -61,9 +62,9 @@ export function LocationPopup({
             {position[0].toFixed(4)}, {position[1].toFixed(4)}
           </p>
           <PopupWeather
-            data={data?.data}
+            data={current}
             isLoading={isLoading}
-            isError={isError}
+            isError={isError && !current}
           />
           <div className="popup-save">
             {user ? (
