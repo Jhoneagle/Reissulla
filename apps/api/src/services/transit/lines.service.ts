@@ -145,7 +145,7 @@ export async function getLineDepartures(
   const ctx = makeContext(persona);
   const startTime = Math.floor(Date.now() / 1000);
 
-  let rawRoute: RawRouteLineDeparturesRoute | null = null;
+  let rawRoute: RawRouteLineDeparturesRoute | null;
   try {
     rawRoute = await routeLineDeparturesOperation(
       client,

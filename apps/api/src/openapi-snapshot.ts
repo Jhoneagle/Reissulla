@@ -19,12 +19,10 @@ async function main() {
   const spec = server.swagger();
   await writeFile(OUT_PATH, JSON.stringify(spec, null, 2) + "\n", "utf8");
   await server.close();
-  // eslint-disable-next-line no-console
   console.log(`Wrote OpenAPI snapshot → ${OUT_PATH}`);
 }
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   process.exit(1);
 });
