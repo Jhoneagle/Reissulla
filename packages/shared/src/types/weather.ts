@@ -8,6 +8,16 @@ export interface CurrentWeather {
   weatherDescription: string;
   isDay: boolean;
   timestamp: string;
+  // Phase 3 — optional additions on the existing surface. Adapters fill them
+  // when Open-Meteo's response carries the field; older consumers ignore.
+  /** Liquid-equivalent precipitation for the current hour (mm). */
+  precipitation?: number;
+  /** Snowfall for the current hour (cm). */
+  snowfall?: number;
+  /** Wind gust 10m, sampled over the last hour (m/s). */
+  windGust?: number;
+  /** Open-Meteo UV index for the current hour. */
+  uvIndex?: number;
 }
 
 export interface HourlyForecast {
@@ -18,6 +28,13 @@ export interface HourlyForecast {
   weatherCode: number;
   weatherDescription: string;
   windSpeed: number;
+  // Phase 3 — optional additions for the hourly graph and the rain nowcast.
+  /** Apparent temperature (°C) — populated alongside `temperature`. */
+  apparentTemperature?: number;
+  precipitation?: number;
+  snowfall?: number;
+  windGust?: number;
+  uvIndex?: number;
 }
 
 export interface DailyForecast {
@@ -29,6 +46,8 @@ export interface DailyForecast {
   weatherDescription: string;
   sunrise: string;
   sunset: string;
+  // Phase 3 — daily peak UV index for the SunWindowCard / outdoor cues.
+  uvIndexMax?: number;
 }
 
 export interface WeatherForecast {

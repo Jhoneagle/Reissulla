@@ -26,7 +26,10 @@ const ALL = [
 ];
 
 async function main(): Promise<void> {
-  const ctx: AdapterContext = { signal: new AbortController().signal };
+  const ctx: AdapterContext = {
+    signal: new AbortController().signal,
+    locale: "fi",
+  };
   for (const adapter of ALL) {
     if (!adapter.enabled()) {
       console.log(`\n[${adapter.name}] disabled — skipping`);

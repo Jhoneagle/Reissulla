@@ -3,8 +3,10 @@ import {
   getCurrentWeather,
   getWeatherForecast,
 } from "../services/weather.service.js";
+import { getWeatherSnapshot } from "../services/weather/composition.service.js";
 import { parseCoordinates } from "../utils/validation.js";
 import { UpstreamError } from "../utils/error-envelope.js";
+import type { AdapterLocale } from "../adapters/types.js";
 
 interface CoordinateQuery {
   lat: string;
@@ -47,6 +49,16 @@ function createWeatherHandler(
   };
 }
 
+function resolveLocale(request: FastifyRequest): AdapterLocale {
+  if (request.personaExplicit === true && request.persona !== undefined) {
+    return request.persona.language;
+  }
+  const header = request.headers["accept-language"];
+  const raw = Array.isArray(header) ? header[0] : header;
+  if (raw && /\ben\b/i.test(raw) && !/\bfi\b/i.test(raw)) return "en";
+  return "fi";
+}
+
 export const weatherRoutes: FastifyPluginAsync = async (server) => {
   const routeOpts = { schema: { querystring: coordinateSchema } };
 
@@ -59,5 +71,23 @@ export const weatherRoutes: FastifyPluginAsync = async (server) => {
     "/api/v1/weather/forecast",
     routeOpts,
     createWeatherHandler(getWeatherForecast),
+  );
+  server.get(
+    "/api/v1/weather/snapshot",
+    routeOpts,
+    async (request: FastifyRequest<{ Querystring: CoordinateQuery }>) => {
+      const { lat, lon } = parseCoordinates(request.query);
+      const locale = resolveLocale(request);
+      const { data, meta } = await getWeatherSnapshot(lat, lon, {
+        persona: request.persona,
+        locale,
+      });
+      return {
+        data,
+        meta,
+        coordinates: { latitude: lat, longitude: lon },
+        locale,
+      };
+    },
   );
 };

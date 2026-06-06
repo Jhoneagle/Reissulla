@@ -38,3 +38,29 @@ export const LINE_DEPARTURES_TTL = 60; // 1 min
  * policy; no flush required.
  */
 export const DEPARTURES_V2_TTL = 60; // 1 min
+
+// ---- Phase 3 entries -------------------------------------------------------
+// Weather composition fan-out caches each upstream piece on its own clock so
+// a single short-lived warning miss doesn't reflow a 30-min AQ read.
+
+/** Open-Meteo Air Quality AQI + pollen, coordinate-keyed. */
+export const WEATHER_AQ_TTL = 1_800; // 30 min
+/** Pollen sub-line counts; pollen taxa update on a slow daily cadence. */
+export const WEATHER_POLLEN_TTL = 21_600; // 6 h
+/**
+ * FMI active warnings, region- AND locale-keyed because FMI returns localized
+ * warning text. The `:<lang>` suffix is part of the cache key — see
+ * `docs/technical-plan.md` §5.1 (corrected in Phase 3) and the
+ * caching-philosophy note in `tmp-docs/phase-3-plan.md` §11.4.
+ */
+export const WEATHER_WARNINGS_TTL = 300; // 5 min
+/** Fintraffic road surface state (black-ice, slush). */
+export const WEATHER_ROADS_TTL = 600; // 10 min
+/**
+ * Sliding 60s-bucketed window of FMI radar tile URLs + frame timestamps.
+ * The cache key uses a 60-second-bucketed unix timestamp so concurrent
+ * requests within the same bucket share one upstream fetch.
+ */
+export const WEATHER_RADAR_TILES_TTL = 60; // 1 min
+/** Rain nowcast state derived from radar + Open-Meteo probability. */
+export const WEATHER_NOWCAST_TTL = 60; // 1 min

@@ -28,6 +28,7 @@ export async function attachPersona(request: FastifyRequest): Promise<void> {
 
   if (headerStr) {
     request.persona = parsePersona(headerStr);
+    request.personaExplicit = true;
     return;
   }
 
@@ -39,6 +40,7 @@ export async function attachPersona(request: FastifyRequest): Promise<void> {
       const stored = await loadStoredPersona(session.user.id);
       if (stored) {
         request.persona = stored;
+        request.personaExplicit = true;
         return;
       }
     }
@@ -47,6 +49,7 @@ export async function attachPersona(request: FastifyRequest): Promise<void> {
   }
 
   request.persona = { ...DEFAULT_PERSONA };
+  request.personaExplicit = false;
 }
 
 async function loadStoredPersona(userId: string): Promise<Persona | null> {
@@ -57,5 +60,13 @@ async function loadStoredPersona(userId: string): Promise<Persona | null> {
 declare module "fastify" {
   interface FastifyRequest {
     persona?: Persona;
+    /**
+     * True when persona was sourced from the x-reissulla-persona header or
+     * an authenticated session — the user expressed an intent. False when
+     * the middleware fell back to DEFAULT_PERSONA, in which case downstream
+     * locale resolution should prefer Accept-Language over persona.language
+     * to avoid defaulting anonymous Finnish-locale browsers to English.
+     */
+    personaExplicit?: boolean;
   }
 }

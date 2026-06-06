@@ -21,7 +21,11 @@ import type { PlanConnectionMode } from "../../adapters/digitransit-routing/type
 import { adapterRouter } from "./adapter-router.js";
 
 function makeContext(persona: Persona): AdapterContext {
-  return { signal: new AbortController().signal, persona };
+  return {
+    signal: new AbortController().signal,
+    locale: persona.language,
+    persona,
+  };
 }
 
 const WALK_SPEEDS: Record<PlanPreferences["walkingSpeed"], number> = {

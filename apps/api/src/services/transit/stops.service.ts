@@ -20,7 +20,11 @@ const ENRICH_MAX_PARALLEL = 10;
 const KNOWN_MODES = new Set(["BUS", "TRAM", "RAIL", "SUBWAY", "FERRY"]);
 
 function makeContext(persona: Persona): AdapterContext {
-  return { signal: new AbortController().signal, persona };
+  return {
+    signal: new AbortController().signal,
+    locale: persona.language,
+    persona,
+  };
 }
 
 async function reverseGeocodeCity(
@@ -41,7 +45,7 @@ async function reverseGeocodeCity(
   try {
     const features = await digitransitPelias.reverse(
       { lat: Number(rLat), lon: Number(rLon), size: 1 },
-      { signal: new AbortController().signal },
+      { signal: new AbortController().signal, locale: "fi" },
     );
     const props = features[0]?.properties;
     const city: string | undefined = props?.locality ?? props?.name;
