@@ -1,18 +1,15 @@
+import { HttpResponse, http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "../../../test/test-utils";
 import { PinnedLinesCard } from "../PinnedLinesCard";
+import { server } from "../../../test/msw/server";
 
 const useAuthStoreMock = vi.fn();
-const usePinnedLinesMock = vi.fn();
 
 vi.mock("../../../stores/auth", () => ({
   useAuthStore: (selector: (state: { user: unknown }) => unknown) =>
     selector({ user: useAuthStoreMock() }),
-}));
-
-vi.mock("../../../hooks/useTransit", () => ({
-  usePinnedLines: (...a: unknown[]) => usePinnedLinesMock(...a),
 }));
 
 function pin(
@@ -35,37 +32,48 @@ function pin(
 
 beforeEach(() => {
   useAuthStoreMock.mockReset().mockReturnValue(null);
-  usePinnedLinesMock
-    .mockReset()
-    .mockReturnValue({ data: { data: [] }, isLoading: false });
 });
 
 describe("PinnedLinesCard", () => {
   it("renders nothing for anonymous users", () => {
+    // No network call when anonymous — usePinnedLines disables itself.
     const { container } = renderWithProviders(<PinnedLinesCard />);
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("renders nothing when the signed-in user has no pinned lines", () => {
+  it("renders nothing when the signed-in user has no pinned lines", async () => {
     useAuthStoreMock.mockReturnValue({ id: "u1" });
     const { container } = renderWithProviders(<PinnedLinesCard />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("renders one row per pin with mode tag + name + deep link", () => {
-    useAuthStoreMock.mockReturnValue({ id: "u1" });
-    usePinnedLinesMock.mockReturnValue({
-      data: {
-        data: [
-          pin({ name: "25", vehicleMode: "BUS", gtfsId: "HSL:1025" }),
-          pin({ id: "pin-2", name: "9", vehicleMode: "TRAM", gtfsId: "HSL:9" }),
-        ],
-      },
-      isLoading: false,
+    // Default handler returns empty list — container stays empty after
+    // the query resolves.
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it("renders one row per pin with mode tag + name + deep link", async () => {
+    useAuthStoreMock.mockReturnValue({ id: "u1" });
+    server.use(
+      http.get("*/api/v1/transit/pinned-lines", () =>
+        HttpResponse.json({
+          data: [
+            pin({ name: "25", vehicleMode: "BUS", gtfsId: "HSL:1025" }),
+            pin({
+              id: "pin-2",
+              name: "9",
+              vehicleMode: "TRAM",
+              gtfsId: "HSL:9",
+            }),
+          ],
+        }),
+      ),
+    );
     renderWithProviders(<PinnedLinesCard />);
-    const items = document.querySelectorAll(".pinned-lines-card__item");
-    expect(items).toHaveLength(2);
+
+    await waitFor(() => {
+      const items = document.querySelectorAll(".pinned-lines-card__item");
+      expect(items).toHaveLength(2);
+    });
     expect(screen.getByText("25")).toBeInTheDocument();
     expect(screen.getByText("9")).toBeInTheDocument();
     const links = screen.getAllByRole("link");

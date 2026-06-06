@@ -75,14 +75,15 @@ export const nearestByGraphAndCoord: Record<
   Record<string, NearestRegistryEntry>
 > = {
   hsl: {
-    [coordKey(60.17, 24.94)]: helsinkiNearby,
+    [coordKey(60.17, 24.94)]: empty,
     [coordKey(60.55, 24.55)]: empty,
   },
   finland: {
-    [coordKey(60.17, 24.94)]: empty,
-    // error-envelope.test.ts drives the upstream-failure path via this coord.
-    // The finland adapter surfaces first in the router fan-out, so the
-    // error envelope identifies it as the failing source.
+    // adapterRouter.forCoordinate() returns the Finland-wide adapter today,
+    // so the canonical-success fixture lives here.
+    [coordKey(60.17, 24.94)]: helsinkiNearby,
+    // error-envelope.test.ts + transit.test.ts drive the upstream-failure
+    // path via this coord.
     [coordKey(60.55, 24.55)]: { kind: "network-error" },
   },
   varely: {

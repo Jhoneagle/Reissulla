@@ -1,201 +1,15 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-  vi,
-  beforeEach,
-} from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { DEFAULT_PERSONA, serializePersona } from "@reissulla/shared";
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
 import { cacheDel } from "../cache/cache.js";
 import type { FastifyInstance } from "fastify";
+import {
+  getCapturedRequests,
+  clearCapturedRequests,
+} from "../../test/msw/request-log.js";
 
 const DEFAULT_PERSONA_FINGERPRINT = serializePersona(DEFAULT_PERSONA);
-
-// -- Mock data matching Digitransit OTP2 GraphQL response shapes ----------
-
-const mockNearbyStopsResponse = {
-  data: {
-    nearest: {
-      edges: [
-        {
-          node: {
-            distance: 120,
-            place: {
-              gtfsId: "HSL:1040602",
-              name: "Rautatientori",
-              code: "0612",
-              lat: 60.1709,
-              lon: 24.9432,
-              vehicleMode: "BUS",
-              platformCode: null,
-            },
-          },
-        },
-        {
-          node: {
-            distance: 250,
-            place: {
-              gtfsId: "HSL:1040601",
-              name: "Rautatientori",
-              code: "0611",
-              lat: 60.1705,
-              lon: 24.9428,
-              vehicleMode: "TRAM",
-              platformCode: "1",
-            },
-          },
-        },
-      ],
-    },
-  },
-};
-
-const mockSearchStopsResponse = {
-  data: {
-    stops: [
-      {
-        gtfsId: "HSL:1040602",
-        name: "Rautatientori",
-        code: "0612",
-        lat: 60.1709,
-        lon: 24.9432,
-        vehicleMode: "BUS",
-        platformCode: null,
-      },
-    ],
-    stations: [
-      {
-        gtfsId: "HSL:1000003",
-        name: "Rautatientori",
-        lat: 60.171,
-        lon: 24.9435,
-        vehicleMode: "SUBWAY",
-        stops: [
-          {
-            gtfsId: "HSL:1000003_1",
-            name: "Rautatientori",
-            code: "M112",
-            platformCode: "1",
-            vehicleMode: "SUBWAY",
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const mockDeparturesResponse = {
-  data: {
-    stop: {
-      name: "Rautatientori",
-      stoptimesWithoutPatterns: [
-        {
-          scheduledDeparture: 43200,
-          realtimeDeparture: 43230,
-          departureDelay: 30,
-          realtime: true,
-          serviceDay: 1778101200,
-          headsign: "Westendinasema",
-          trip: {
-            route: {
-              shortName: "550",
-              longName: "Itäkeskus-Westendinasema",
-              mode: "BUS",
-            },
-          },
-        },
-        {
-          scheduledDeparture: 43500,
-          realtimeDeparture: 43500,
-          departureDelay: 0,
-          realtime: false,
-          serviceDay: 1778101200,
-          headsign: "Kamppi",
-          trip: {
-            route: {
-              shortName: "14",
-              longName: "Hernesaari-Kamppi",
-              mode: "TRAM",
-            },
-          },
-        },
-      ],
-    },
-  },
-};
-
-const mockDeparturesNullStopResponse = {
-  data: { stop: null },
-};
-
-const mockPlanResponse = {
-  data: {
-    planConnection: {
-      edges: [
-        {
-          node: {
-            startTime: 1778166000000,
-            endTime: 1778167800000,
-            numberOfTransfers: 0,
-            walkDistance: 450,
-            legs: [
-              {
-                mode: "WALK",
-                startTime: 1778166000000,
-                endTime: 1778166300000,
-                duration: 300,
-                distance: 250,
-                from: { name: "Origin", lat: 60.17, lon: 24.94, stop: null },
-                to: {
-                  name: "Rautatientori",
-                  lat: 60.1709,
-                  lon: 24.9432,
-                  stop: { gtfsId: "HSL:1040602", code: "0612" },
-                },
-                route: null,
-                intermediateStops: null,
-              },
-              {
-                mode: "BUS",
-                startTime: 1778166300000,
-                endTime: 1778167500000,
-                duration: 1200,
-                distance: 5000,
-                from: {
-                  name: "Rautatientori",
-                  lat: 60.1709,
-                  lon: 24.9432,
-                  stop: { gtfsId: "HSL:1040602", code: "0612" },
-                },
-                to: {
-                  name: "Destination",
-                  lat: 60.2,
-                  lon: 24.96,
-                  stop: { gtfsId: "HSL:2040601", code: "2041" },
-                },
-                route: {
-                  shortName: "550",
-                  longName: "Itäkeskus-Westendinasema",
-                },
-                intermediateStops: [
-                  { name: "Hakaniemi", gtfsId: "HSL:1050601" },
-                ],
-              },
-            ],
-          },
-        },
-      ],
-    },
-  },
-};
-
-const mockPlanEmptyResponse = {
-  data: { planConnection: { edges: [] } },
-};
 
 let server: FastifyInstance;
 
@@ -208,6 +22,18 @@ afterAll(async () => {
   await server.close();
   await redis.quit();
 });
+
+function planRequestBody() {
+  const planRequests = getCapturedRequests().filter((r) => {
+    if (!r.url.includes("routing/v2")) return false;
+    const body = r.body as { query?: string } | null;
+    return body?.query?.includes("planConnection") ?? false;
+  });
+  if (planRequests.length === 0) {
+    throw new Error("No planConnection request was captured");
+  }
+  return (planRequests.at(-1)!.body as { query: string }).query;
+}
 
 // ---------------------------------------------------------------------------
 // Input validation
@@ -302,14 +128,11 @@ describe("Transit routes - input validation", () => {
 describe("GET /api/v1/transit/stops", () => {
   beforeEach(async () => {
     await cacheDel("transit:stops-nearby:v1:60.170:24.940:500");
-    vi.restoreAllMocks();
+    await cacheDel("transit:stops-nearby:v1:60.550:24.550:500");
+    clearCapturedRequests();
   });
 
   it("returns nearby stops for Helsinki", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockNearbyStopsResponse), { status: 200 }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/stops?lat=60.17&lon=24.94",
@@ -325,36 +148,31 @@ describe("GET /api/v1/transit/stops", () => {
   });
 
   it("serves cached response on second call", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(mockNearbyStopsResponse), { status: 200 }),
-      );
-
     await server.inject({
       method: "GET",
       url: "/api/v1/transit/stops?lat=60.17&lon=24.94",
     });
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const firstCount = getCapturedRequests().filter((r) =>
+      r.url.includes("routing/v2"),
+    ).length;
 
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/stops?lat=60.17&lon=24.94",
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(
+      getCapturedRequests().filter((r) => r.url.includes("routing/v2")).length,
+    ).toBe(firstCount);
     expect(res.statusCode).toBe(200);
     expect(res.json().cached).toBe(true);
   });
 
   it("returns 502 when Digitransit is down", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
-      new Error("Network error"),
-    );
-
+    // (60.55, 24.55) is wired to network-error in the nearest fixture.
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/stops?lat=60.17&lon=24.94",
+      url: "/api/v1/transit/stops?lat=60.55&lon=24.55",
     });
 
     expect(res.statusCode).toBe(502);
@@ -369,14 +187,10 @@ describe("GET /api/v1/transit/stops", () => {
 describe("GET /api/v1/transit/stops/search", () => {
   beforeEach(async () => {
     await cacheDel("transit:stops-search:v1:rautatientori");
-    vi.restoreAllMocks();
+    await cacheDel("transit:stops-search:v1:rautatientori-error");
   });
 
   it("returns stops matching query", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockSearchStopsResponse), { status: 200 }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/stops/search?q=Rautatientori",
@@ -385,7 +199,6 @@ describe("GET /api/v1/transit/stops/search", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.data).toHaveLength(2);
-    // Results are split by mode — one for SUBWAY (station), one for BUS (stop)
     const subway = body.data.find(
       (d: { vehicleMode: string }) => d.vehicleMode === "SUBWAY",
     );
@@ -404,13 +217,10 @@ describe("GET /api/v1/transit/stops/search", () => {
   });
 
   it("returns 502 when Digitransit is down", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response("Service Unavailable", { status: 503 }),
-    );
-
+    // "Rautatientori-error" → HSL graph returns HTTP 503 in the fixture.
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/stops/search?q=Rautatientori",
+      url: "/api/v1/transit/stops/search?q=Rautatientori-error",
     });
 
     expect(res.statusCode).toBe(502);
@@ -426,14 +236,10 @@ describe("GET /api/v1/transit/departures", () => {
   beforeEach(async () => {
     await cacheDel("transit:departures:v2:HSL:1040602:20:false");
     await cacheDel("transit:departures:v2:UNKNOWN:9999:20:false");
-    vi.restoreAllMocks();
+    await cacheDel("transit:departures:v2:HSL:1040602-network-error:20:false");
   });
 
   it("returns departures for a valid stop", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockDeparturesResponse), { status: 200 }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/departures?stopId=HSL:1040602",
@@ -450,12 +256,6 @@ describe("GET /api/v1/transit/departures", () => {
   });
 
   it("returns 200 with message when stop not found", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockDeparturesNullStopResponse), {
-        status: 200,
-      }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/departures?stopId=UNKNOWN:9999",
@@ -469,13 +269,9 @@ describe("GET /api/v1/transit/departures", () => {
   });
 
   it("returns 502 when Digitransit is down", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
-      new Error("Network error"),
-    );
-
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/departures?stopId=HSL:1040602",
+      url: "/api/v1/transit/departures?stopId=HSL:1040602-network-error",
     });
 
     expect(res.statusCode).toBe(502);
@@ -492,14 +288,16 @@ describe("GET /api/v1/transit/plan", () => {
     await cacheDel(
       `transit:plan:v2:60.170:24.940:60.200:24.960:${DEFAULT_PERSONA_FINGERPRINT}`,
     );
-    vi.restoreAllMocks();
+    await cacheDel(
+      `transit:plan:v2:60.180:24.940:60.200:24.960:${DEFAULT_PERSONA_FINGERPRINT}`,
+    );
+    await cacheDel(
+      `transit:plan:v2:60.190:24.940:60.200:24.960:${DEFAULT_PERSONA_FINGERPRINT}`,
+    );
+    clearCapturedRequests();
   });
 
   it("returns itineraries for valid from/to", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
@@ -517,13 +315,10 @@ describe("GET /api/v1/transit/plan", () => {
   });
 
   it("returns 200 with message when no routes found", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockPlanEmptyResponse), { status: 200 }),
-    );
-
+    // (60.18, 24.94) → (60.20, 24.96) is wired to empty edges.
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
+      url: "/api/v1/transit/plan?fromLat=60.18&fromLon=24.94&toLat=60.20&toLon=24.96",
     });
 
     expect(res.statusCode).toBe(200);
@@ -533,36 +328,31 @@ describe("GET /api/v1/transit/plan", () => {
   });
 
   it("serves cached plan on second call", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
-      );
-
     await server.inject({
       method: "GET",
       url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
     });
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const firstCount = getCapturedRequests().filter((r) =>
+      r.url.includes("routing/v2"),
+    ).length;
 
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(
+      getCapturedRequests().filter((r) => r.url.includes("routing/v2")).length,
+    ).toBe(firstCount);
     expect(res.statusCode).toBe(200);
     expect(res.json().cached).toBe(true);
   });
 
   it("returns 502 when Digitransit is down", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response("Internal Server Error", { status: 500 }),
-    );
-
+    // (60.19, 24.94) → wired to HTTP 500.
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
+      url: "/api/v1/transit/plan?fromLat=60.19&fromLon=24.94&toLat=60.20&toLon=24.96",
     });
 
     expect(res.statusCode).toBe(502);
@@ -572,12 +362,6 @@ describe("GET /api/v1/transit/plan", () => {
   it("forwards wheelchair=1 persona into the GraphQL preferences arg", async () => {
     const wheelchairPersonaKey = `transit:plan:v2:60.170:24.940:60.200:24.960:wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en`;
     await cacheDel(wheelchairPersonaKey);
-
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
-      );
 
     const res = await server.inject({
       method: "GET",
@@ -589,44 +373,24 @@ describe("GET /api/v1/transit/plan", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const requestInit = fetchSpy.mock.calls[0]![1] as RequestInit;
-    const body = JSON.parse(requestInit.body as string) as { query: string };
-    expect(body.query).toContain("wheelchair: { enabled: true }");
+    expect(planRequestBody()).toContain("wheelchair: { enabled: true }");
 
     await cacheDel(wheelchairPersonaKey);
   });
 
   it("omits the preferences arg when persona has no accessibility flags", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
-      );
-
     await server.inject({
       method: "GET",
       url: "/api/v1/transit/plan?fromLat=60.17&fromLon=24.94&toLat=60.20&toLon=24.96",
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const requestInit = fetchSpy.mock.calls[0]![1] as RequestInit;
-    const body = JSON.parse(requestInit.body as string) as { query: string };
-    expect(body.query).not.toContain("preferences:");
+    expect(planRequestBody()).not.toContain("preferences:");
   });
 
   it("uses a separate cache entry for wheelchair persona", async () => {
     const wheelchairKey = `transit:plan:v2:60.170:24.940:60.200:24.960:wheelchair=1;lowFloor=0;noStairs=0;stroller=0;sr=0;lv=0;lang=en`;
     await cacheDel(wheelchairKey);
-
-    // Fresh Response per call — `mockResolvedValue` would hand out the same
-    // body object both times and `await res.json()` would fail on the second.
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockImplementation(
-        async () =>
-          new Response(JSON.stringify(mockPlanResponse), { status: 200 }),
-      );
+    clearCapturedRequests();
 
     // Anonymous (default persona) — uses the default-persona cache slot.
     await server.inject({
@@ -644,7 +408,13 @@ describe("GET /api/v1/transit/plan", () => {
       },
     });
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    // Exactly two upstream planConnection hits — once per persona cache slot.
+    const planCalls = getCapturedRequests().filter((r) => {
+      if (!r.url.includes("routing/v2")) return false;
+      const body = r.body as { query?: string } | null;
+      return body?.query?.includes("planConnection") ?? false;
+    });
+    expect(planCalls.length).toBe(2);
 
     await cacheDel(wheelchairKey);
   });

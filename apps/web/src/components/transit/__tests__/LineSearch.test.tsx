@@ -1,3 +1,4 @@
+import { HttpResponse, http } from "msw";
 import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
@@ -5,24 +6,13 @@ import userEvent from "@testing-library/user-event";
 import type { Line, PinnedLine } from "@reissulla/shared";
 import { renderWithProviders } from "../../../test/test-utils";
 import { LineSearch } from "../LineSearch";
+import { server } from "../../../test/msw/server";
 
 const useAuthStoreMock = vi.fn();
-const useLineSearchMock = vi.fn();
-const usePinnedLinesMock = vi.fn();
-const usePreferencesMock = vi.fn();
 
 vi.mock("../../../stores/auth", () => ({
   useAuthStore: (selector: (state: { user: unknown }) => unknown) =>
     selector({ user: useAuthStoreMock() }),
-}));
-
-vi.mock("../../../hooks/useTransit", () => ({
-  useLineSearch: (...args: unknown[]) => useLineSearchMock(...args),
-  usePinnedLines: (...args: unknown[]) => usePinnedLinesMock(...args),
-}));
-
-vi.mock("../../../hooks/usePreferences", () => ({
-  usePreferences: () => usePreferencesMock(),
 }));
 
 function lineHit(overrides: Partial<Line> = {}): Line {
@@ -49,8 +39,6 @@ function pinned(overrides: Partial<PinnedLine & { id: string }> = {}) {
   };
 }
 
-const idleQuery = { data: undefined, isLoading: false, isError: false };
-
 function renderLineSearch(
   props: Partial<ComponentProps<typeof LineSearch>> = {},
 ) {
@@ -67,23 +55,21 @@ function renderLineSearch(
 
 beforeEach(() => {
   useAuthStoreMock.mockReset().mockReturnValue(null);
-  useLineSearchMock.mockReset().mockReturnValue(idleQuery);
-  usePinnedLinesMock.mockReset().mockReturnValue({ data: { data: [] } });
-  usePreferencesMock.mockReset().mockReturnValue({ data: undefined });
 });
 
 describe("LineSearch", () => {
   it("renders one row per result, sorted by shortName length", async () => {
-    useLineSearchMock.mockReturnValue({
-      data: {
-        data: [
-          lineHit({ gtfsId: "a:25A", shortName: "25A", longName: "Variant" }),
-          lineHit({ gtfsId: "a:25", shortName: "25", longName: "Trunk" }),
-        ],
-      },
-      isLoading: false,
-      isError: false,
-    });
+    server.use(
+      http.get("*/api/v1/transit/lines/search", () =>
+        HttpResponse.json({
+          data: [
+            lineHit({ gtfsId: "a:25A", shortName: "25A", longName: "Variant" }),
+            lineHit({ gtfsId: "a:25", shortName: "25", longName: "Trunk" }),
+          ],
+          cached: false,
+        }),
+      ),
+    );
 
     const user = userEvent.setup();
     renderLineSearch();
@@ -100,11 +86,14 @@ describe("LineSearch", () => {
   });
 
   it("renders each result row as a link to the standalone line page", async () => {
-    useLineSearchMock.mockReturnValue({
-      data: { data: [lineHit({ gtfsId: "HSL:1025" })] },
-      isLoading: false,
-      isError: false,
-    });
+    server.use(
+      http.get("*/api/v1/transit/lines/search", () =>
+        HttpResponse.json({
+          data: [lineHit({ gtfsId: "HSL:1025" })],
+          cached: false,
+        }),
+      ),
+    );
 
     const user = userEvent.setup();
     renderLineSearch();
@@ -118,20 +107,25 @@ describe("LineSearch", () => {
     expect(document.querySelector("details")).toBeNull();
   });
 
-  it("renders pinned chips when signed in and the query is empty", () => {
+  it("renders pinned chips when signed in and the query is empty", async () => {
     useAuthStoreMock.mockReturnValue({
       id: "user-1",
       email: "x@example.com",
     });
-    usePinnedLinesMock.mockReturnValue({
-      data: {
-        data: [pinned({ name: "25" }), pinned({ id: "pin-2", name: "9" })],
-      },
-    });
+    server.use(
+      http.get("*/api/v1/transit/pinned-lines", () =>
+        HttpResponse.json({
+          data: [
+            pinned({ name: "25" }),
+            pinned({ id: "pin-2", name: "9", gtfsId: "HSL:9" }),
+          ],
+        }),
+      ),
+    );
 
     renderLineSearch();
 
-    const pinnedNav = screen.getByRole("navigation", {
+    const pinnedNav = await screen.findByRole("navigation", {
       name: /pinned lines/i,
     });
     expect(pinnedNav).toBeInTheDocument();
@@ -143,12 +137,22 @@ describe("LineSearch", () => {
     expect(screen.getByText(/Sign in to pin lines/i)).toBeInTheDocument();
   });
 
-  it("defaults the region facet to preferences.transitRegion", () => {
-    usePreferencesMock.mockReturnValue({ data: { transitRegion: "hsl" } });
+  it("defaults the region facet to preferences.transitRegion", async () => {
+    // usePreferences is gated on auth — preferences only fetch for signed-in
+    // users so the region default kicks in.
+    useAuthStoreMock.mockReturnValue({ id: "u1", email: "x@example.com" });
+    server.use(
+      http.get("*/api/v1/preferences", () =>
+        HttpResponse.json({ data: { transitRegion: "hsl" } }),
+      ),
+    );
     renderLineSearch();
-    const select = screen.getByRole("combobox", {
-      name: /^region$/i,
-    }) as HTMLSelectElement;
-    expect(select.value).toBe("hsl");
+
+    await waitFor(() => {
+      const select = screen.getByRole("combobox", {
+        name: /^region$/i,
+      }) as HTMLSelectElement;
+      expect(select.value).toBe("hsl");
+    });
   });
 });

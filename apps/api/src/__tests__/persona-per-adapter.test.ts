@@ -87,4 +87,37 @@ describe.each(ADAPTERS)("$name forwards persona accessibility", (adapter) => {
     const body = req.body as { query: string };
     expect(body.query).toContain("wheelchair: { enabled: true }");
   });
+
+  it("emits exactly one wheelchair preference when both wheelchair and noStairs are set", async () => {
+    await adapter.planConnection(
+      PLAN_ARGS,
+      ctxWith({ ...DEFAULT_PERSONA, wheelchair: true, noStairs: true }),
+    );
+
+    const req = lastPlanRequest();
+    const body = req.body as { query: string };
+    const matches = body.query.match(/wheelchair: \{ enabled: true \}/g);
+    expect(matches).toHaveLength(1);
+  });
+
+  it("omits the wheelchair preference for personas that don't imply step-free routing", async () => {
+    // lowFloor / stroller / sr / lv don't translate into OTP2 wheelchair
+    // preferences — they're FE rendering hints (vehicle filtering, audio
+    // cues, contrast). The plan call must NOT degrade itineraries for
+    // these riders.
+    await adapter.planConnection(
+      PLAN_ARGS,
+      ctxWith({
+        ...DEFAULT_PERSONA,
+        lowFloor: true,
+        stroller: true,
+        screenReader: true,
+        lowVision: true,
+      }),
+    );
+
+    const req = lastPlanRequest();
+    const body = req.body as { query: string };
+    expect(body.query).not.toContain("wheelchair: { enabled: true }");
+  });
 });

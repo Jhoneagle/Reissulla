@@ -24,4 +24,7 @@ export * from "./routes.js";
 export * from "./line-departures.js";
 export * from "./search-routes.js";
 export * from "./nearest.js";
+export * from "./stops-search.js";
+export * from "./stop-departures.js";
+export * from "./plan.js";
 export * from "./misc.js";

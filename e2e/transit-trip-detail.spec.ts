@@ -71,6 +71,33 @@ test("clearing the selected stop drops the filter slice from the URL", async ({
   await expect(page).not.toHaveURL(/[?&]direction=It%C3%A4keskus\b/);
 });
 
+test("trip detail renders route, stops, and schedule for the canonical tram-4 morning trip", async ({
+  page,
+}) => {
+  // MSW seeds this trip id with a deterministic 2-stop Helsinki tram trip.
+  // The page can finally assert on content because the upstream is fixed.
+  const TRIP_ID = "HSL:4_22550_2410211146";
+  await page.goto(`/transit/trip/${encodeURIComponent(TRIP_ID)}`);
+
+  // Route shortName "4" in the masthead.
+  await expect(
+    page.locator(".trip-detail__number").filter({ hasText: "4" }),
+  ).toBeVisible();
+
+  // Headsign rendered.
+  await expect(
+    page
+      .locator(".trip-detail__destination")
+      .filter({ hasText: "Munkkiniemi" }),
+  ).toBeVisible();
+
+  // Both stops appear somewhere on the page (past + upcoming sections).
+  await expect(page.getByText("Rautatientori")).toBeVisible();
+  await expect(page.getByText("Kauppatori")).toBeVisible();
+
+  await expectNoSeriousA11yViolations(page);
+});
+
 test("trip detail renders a not-found UI for an unknown tripId", async ({
   page,
 }) => {

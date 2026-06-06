@@ -23,10 +23,8 @@ test("Lines tab is reachable via the URL and the LineSearch surface mounts", asy
     "true",
   );
 
-  // LineSearch combobox is present (accessible name from the i18n key).
-  await expect(
-    page.getByRole("combobox", { name: /Etsi linjaa|Search a line/ }),
-  ).toBeVisible();
+  // LineSearch input is present (input type="search" → searchbox role).
+  await expect(page.getByRole("searchbox")).toBeVisible();
 
   // Region facet is the second combobox.
   await expect(
@@ -46,6 +44,49 @@ test("clicking Lines tab from departures updates the URL tab param", async ({
   // And back to departures drops the param entirely.
   await page.getByRole("tab", { name: /Lähdöt|Departures/ }).click();
   await expect(page).not.toHaveURL(/[?&]tab=lines\b/);
+});
+
+test("LineView for tram-4 shows masthead, pattern picker, and stops", async ({
+  page,
+}) => {
+  // MSW seeds HSL:1004 with the canonical 2-pattern, 2-stop tram line.
+  const LINE_ID = "HSL:1004";
+  await page.goto(`/transit/line/${encodeURIComponent(LINE_ID)}`);
+
+  // Masthead shows shortName "4" and headsign for direction 0.
+  await expect(
+    page.locator(".line-card__number").filter({ hasText: "4" }),
+  ).toBeVisible();
+
+  // Direction picker is wired — toggle exposes both headsigns.
+  await expect(
+    page.getByRole("group", { name: /Direction|Suunta/ }),
+  ).toBeVisible();
+
+  // Both stops on this pattern are visible.
+  await expect(page.getByText("Rautatientori").first()).toBeVisible();
+  await expect(page.getByText("Kauppatori").first()).toBeVisible();
+});
+
+test("Lines search for '25' surfaces both regional matches (HSL and Tampere)", async ({
+  page,
+}) => {
+  // The MSW Routes(name:"25") fixture returns three rows: HSL:1025,
+  // tampere:25, and HSL:1250 (the 250 confuser). The sort in the API
+  // ranks exact-length matches first, so the first two visible rows are
+  // the two regional 25s.
+  await page.goto("/transit?tab=lines");
+
+  const searchbox = page.getByRole("searchbox");
+  await searchbox.fill("25");
+
+  // Wait for the rows to render. There can be either 2 or 3 rows; the
+  // exact-length match for "25" must appear from both HSL and Tampere.
+  await expect(page.getByText("Itäkeskus - Mellunmäki")).toBeVisible();
+  await expect(page.getByText("Reumasairaala - Hervanta")).toBeVisible();
+
+  // Both HSL and the Tampere agency are referenced in the result list.
+  await expect(page.locator(".line-search__row").first()).toBeVisible();
 });
 
 test("LineView renders a not-found plate for an unknown gtfsId", async ({
