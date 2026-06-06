@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import type { DayType, DirectionId } from "@reissulla/shared";
@@ -77,13 +77,13 @@ function BackLink() {
   // Snapshot the originating URL once. In-page setSearchParams() calls
   // (direction toggle, day-type tab) overwrite location.state with null,
   // so reading it on every render would lose the search context the
-  // moment the user adjusts the view.
-  const fromRef = useRef<string | null>(null);
-  if (fromRef.current === null) {
+  // moment the user adjusts the view. useState's lazy initializer
+  // captures the value on first render and never updates.
+  const [from] = useState(() => {
     const raw = (location.state as { from?: unknown } | null)?.from;
-    fromRef.current = typeof raw === "string" && raw.length > 0 ? raw : "";
-  }
-  const to = fromRef.current || "/transit?tab=lines";
+    return typeof raw === "string" && raw.length > 0 ? raw : "";
+  });
+  const to = from || "/transit?tab=lines";
   return (
     <nav className="line-view__back">
       <Link to={to}>

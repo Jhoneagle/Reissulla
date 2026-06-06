@@ -243,12 +243,14 @@ function timesEqualToMinute(a: number, b: number): boolean {
  */
 function BackLink() {
   const location = useLocation();
-  const fromRef = useRef<string | null>(null);
-  if (fromRef.current === null) {
+  // useState's lazy initializer captures the value on first render and
+  // never updates — see LineView BackLink for the in-page setSearchParams
+  // overwrite reasoning.
+  const [from] = useState(() => {
     const raw = (location.state as { from?: unknown } | null)?.from;
-    fromRef.current = typeof raw === "string" && raw.length > 0 ? raw : "";
-  }
-  const to = fromRef.current || "/transit";
+    return typeof raw === "string" && raw.length > 0 ? raw : "";
+  });
+  const to = from || "/transit";
   return (
     <nav className="trip-detail__back">
       <Link to={to}>

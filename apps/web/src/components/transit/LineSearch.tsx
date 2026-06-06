@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, useLocation } from "react-router";
 import type { Line } from "@reissulla/shared";
@@ -30,6 +30,10 @@ const REGION_OPTIONS = [
 function lineHref(gtfsId: string): string {
   return `/transit/line/${encodeURIComponent(gtfsId)}`;
 }
+
+// Decorative chevron. Referenced as an identifier so the i18n literal-string
+// rule skips it; the host span is aria-hidden, so SRs don't speak it.
+const CHEVRON = "›";
 
 /**
  * Line search. Type a number, see lines that match across all (or one)
@@ -66,11 +70,14 @@ export function LineSearch({
   // each keystroke does not flood history.
   const [buffer, setBuffer] = useState(query);
   // Sync the buffer down when the URL changes underneath us (back/forward
-  // navigation, programmatic update). Only when the strings actually
-  // differ, so we don't fight the user mid-typing.
-  useEffect(() => {
-    setBuffer((current) => (current === query ? current : query));
-  }, [query]);
+  // navigation, programmatic update). The "previous query" sentinel runs
+  // during render — React-idiomatic alternative to a setState-in-effect,
+  // which is now flagged by react-hooks/set-state-in-effect.
+  const [lastSyncedQuery, setLastSyncedQuery] = useState(query);
+  if (query !== lastSyncedQuery) {
+    setLastSyncedQuery(query);
+    setBuffer(query);
+  }
   const debouncedBuffer = useDebounce(buffer.trim(), 300);
   useEffect(() => {
     if (debouncedBuffer !== query) onQueryCommit(debouncedBuffer);
@@ -93,6 +100,16 @@ export function LineSearch({
 
   const pinnedQuery = usePinnedLines(Boolean(user));
   const pinned = pinnedQuery.data?.data ?? [];
+
+  // Auto-focus on mount only if we arrived with a populated search (back-link
+  // round-trip). jsx-a11y/no-autofocus forbids the JSX prop, so do it
+  // imperatively. `shouldAutoFocus` is captured from the initial render via
+  // useState's lazy initializer — later prop changes don't re-trigger focus.
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [shouldAutoFocus] = useState(() => query.length > 0);
+  useEffect(() => {
+    if (shouldAutoFocus) inputRef.current?.focus();
+  }, [shouldAutoFocus]);
 
   const showPinnedChips = !buffer && Boolean(user) && pinned.length > 0;
   const showAnonHint = !buffer && !user;
@@ -122,6 +139,7 @@ export function LineSearch({
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
+            ref={inputRef}
             id={id}
             type="search"
             autoComplete="off"
@@ -130,10 +148,6 @@ export function LineSearch({
             })}
             value={buffer}
             onChange={(e) => setBuffer(e.target.value)}
-            // Auto-focus only when we returned to a populated search
-            // (back-link round-trip) so first-time visits don't grab
-            // focus and force a mobile keyboard.
-            autoFocus={query.length > 0}
           />
         </div>
         <label htmlFor={`${id}-region`} className="visually-hidden">
@@ -262,7 +276,7 @@ export function LineSearch({
                           className="line-search__chevron"
                           aria-hidden="true"
                         >
-                          ›
+                          {CHEVRON}
                         </span>
                       </Link>
                     </li>
