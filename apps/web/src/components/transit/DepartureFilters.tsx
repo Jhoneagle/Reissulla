@@ -1,5 +1,8 @@
 import { useState, type KeyboardEvent } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { usePersonaStore } from "../../stores/persona";
+import { useAuthStore } from "../../stores/auth";
+import { useUpdatePreferences } from "../../hooks/usePreferences";
 
 export interface AdvancedFilterState {
   lineFilter: string[];
@@ -21,6 +24,25 @@ const EMPTY: AdvancedFilterState = {
 export function DepartureFilters({ value, onChange }: DepartureFiltersProps) {
   const intl = useIntl();
   const [draftLine, setDraftLine] = useState("");
+  const persona = usePersonaStore((s) => s.persona);
+  const setPersona = usePersonaStore((s) => s.set);
+  const user = useAuthStore((s) => s.user);
+  const updatePreferences = useUpdatePreferences();
+
+  // Cross-link A11Y-19 — when the user enables the low-floor filter here
+  // but their planner persona hasn't picked it up yet, surface a one-tap
+  // affordance to mirror the choice into trip planning. Hidden as soon as
+  // persona.lowFloor is on (or the filter itself is off).
+  const showPlannerCrossLink = value.lowFloorOnly && !persona.lowFloor;
+
+  function applyLowFloorToPlanner() {
+    setPersona({ lowFloor: true });
+    if (user) {
+      updatePreferences.mutate({
+        extra: { persona: { ...persona, lowFloor: true } },
+      });
+    }
+  }
 
   function commitLine() {
     const code = draftLine.trim();
@@ -151,6 +173,15 @@ export function DepartureFilters({ value, onChange }: DepartureFiltersProps) {
               <FormattedMessage id="transit.depart.filters.lowFloor" />
             </span>
           </label>
+          {showPlannerCrossLink && (
+            <button
+              type="button"
+              className="btn btn--link departure-filters__planner-link"
+              onClick={applyLowFloorToPlanner}
+            >
+              <FormattedMessage id="transit.depart.filters.lowFloor.planLink" />
+            </button>
+          )}
         </div>
 
         {hasAny && (

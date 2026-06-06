@@ -105,6 +105,8 @@ export interface RawStoptime {
     gtfsId?: string;
     /** GTFS wheelchairAccessible — POSSIBLE means low-floor. */
     wheelchairAccessible?: RawWheelchairBoarding;
+    /** "0" | "1" | null per OTP2 schema. Backs DEP-3 rail direction split. */
+    directionId?: string | null;
     route: {
       gtfsId?: string;
       shortName: string;

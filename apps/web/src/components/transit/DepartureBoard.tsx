@@ -125,6 +125,7 @@ export function DepartureBoard() {
           subStops={selectedStop.subStops ?? []}
           isStation={selectedStop.isStation}
           stationId={selectedStop.isStation ? selectedStop.gtfsId : undefined}
+          wheelchairBoarding={selectedStop.wheelchairBoarding}
         />
       )}
     </div>

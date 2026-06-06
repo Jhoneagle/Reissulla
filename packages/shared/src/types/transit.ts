@@ -89,6 +89,13 @@ export interface TransitDeparture {
    * `mode=arrivals` hides rows where this is false. Default true.
    */
   canAlight?: boolean;
+  /**
+   * GTFS direction id ("0" / "1") — populated when the upstream feed
+   * exposes it (HSL does; some other feeds may not). Drives the DEP-3
+   * commuter-rail inbound/outbound clustering with a headsign fallback
+   * for feeds where the field is absent.
+   */
+  directionId?: string;
 }
 
 /**
@@ -137,6 +144,25 @@ export interface TransitDeparturesResult {
   serviceNote?: string;
   /** Departure-frequency classification — drives the kicker variant. */
   frequency?: TransitFrequency;
+  /**
+   * DEP-3 — populated only for RAIL stops/stations whose response has
+   * trips spread across two distinguishable directions. Lets the FE
+   * render a junat.net-style inbound + outbound side-by-side layout
+   * without re-clustering on the client. The flat `departures` array
+   * stays the source of truth; this field is an optional view of it.
+   */
+  byDirection?: TransitDepartureByDirection;
+}
+
+export interface TransitDepartureByDirection {
+  a: { label: string; departures: TransitDeparture[] };
+  b: { label: string; departures: TransitDeparture[] };
+  /**
+   * Departures that didn't fit either of the two dominant directions —
+   * irregular short-turn trips or unusual headsigns. The FE renders
+   * these inline above the split so they aren't lost.
+   */
+  other: TransitDeparture[];
 }
 
 export interface TransitItineraryLeg {

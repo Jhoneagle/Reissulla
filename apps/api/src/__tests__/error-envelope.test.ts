@@ -47,7 +47,7 @@ describe("error envelope", () => {
     // (60.55, 24.55) is wired in the MSW fixture to make the finland graph
     // return a network error — every other graph returns empty so the
     // failing source is unambiguously the finland adapter.
-    await cacheDel("transit:stops-nearby:v1:60.550:24.550:500");
+    await cacheDel("transit:stops-nearby:v2:60.550:24.550:500");
 
     const res = await server.inject({
       method: "GET",

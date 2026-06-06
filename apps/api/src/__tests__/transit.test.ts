@@ -131,8 +131,8 @@ describe("Transit routes - input validation", () => {
 
 describe("GET /api/v1/transit/stops", () => {
   beforeEach(async () => {
-    await cacheDel("transit:stops-nearby:v1:60.170:24.940:500");
-    await cacheDel("transit:stops-nearby:v1:60.550:24.550:500");
+    await cacheDel("transit:stops-nearby:v2:60.170:24.940:500");
+    await cacheDel("transit:stops-nearby:v2:60.550:24.550:500");
     clearCapturedRequests();
   });
 

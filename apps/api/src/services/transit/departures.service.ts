@@ -20,6 +20,19 @@ import {
   classifyFrequency,
   getServiceNoteForTrip,
 } from "./frequency.service.js";
+import {
+  classifyRailHeadsign,
+  type RailDirectionLabel,
+} from "./rail-direction.js";
+
+/**
+ * DEP-3 — minimum departures across distinguishable directions for the
+ * inbound/outbound split to engage. Below this we skip clustering and
+ * the FE renders the flat list (one direction's worth of trips reads
+ * fine as a single column).
+ */
+const RAIL_DIRECTION_MIN_TOTAL = 4;
+const RAIL_DIRECTION_MIN_PER_BUCKET = 2;
 
 const MAX_PARALLEL_STOP_QUERIES = 10;
 /**
@@ -69,12 +82,112 @@ function mapStoptimes(stoptimes: RawStoptime[]): TransitDeparture[] {
     platformCode: st.stop?.platformCode ?? st.stop?.code ?? null,
     tripId: st.trip.gtfsId,
     wheelchairAccessible: st.trip.wheelchairAccessible ?? undefined,
+    directionId: st.trip.directionId ?? undefined,
     // pickupType / dropoffType === NONE flag the event as unavailable
     // at this stop. At through-stops both are SCHEDULED — the same row
     // represents both an arrival and a departure for the same vehicle.
     canBoard: st.pickupType === "NONE" ? false : true,
     canAlight: st.dropoffType === "NONE" ? false : true,
   }));
+}
+
+/**
+ * Cluster RAIL departures into inbound vs outbound for the DEP-3 split.
+ *
+ * Strategy:
+ * 1. When trips carry `directionId` (HSL feed), bucket by that — the
+ *    feed's own split is the authoritative one.
+ * 2. When directionId is missing across the board, fall back to the two
+ *    most common terminus headsigns; each row joins the bucket whose
+ *    headsign it matches. Headsigns that don't match either fall into
+ *    `other`.
+ *
+ * Returns `undefined` when the result doesn't merit a split:
+ * - the result isn't all-RAIL (so the heading and layout shouldn't change)
+ * - we have fewer than 4 trips total
+ * - one of the two buckets ends up empty or near-empty
+ *
+ * Labels are derived through `classifyRailHeadsign` so the same heuristic
+ * surfaces wherever a direction needs a Finnish-readable name.
+ */
+export function clusterRailDirections(
+  departures: TransitDeparture[],
+): TransitDeparturesResult["byDirection"] | undefined {
+  if (departures.length < RAIL_DIRECTION_MIN_TOTAL) return undefined;
+  if (!departures.every((d) => d.vehicleMode === "RAIL")) return undefined;
+
+  // ---- Strategy 1: directionId is populated on every trip ------------
+  // Only engage when *every* row carries directionId. Mixed feeds (HSL +
+  // Digitraffic at Pasila) leave many rows with null directionId, and
+  // the headsign-bucket strategy below covers them more uniformly.
+  const allHaveDirectionId = departures.every((d) => d.directionId);
+  if (allHaveDirectionId) {
+    const directionIds = new Set(departures.map((d) => d.directionId!));
+    if (directionIds.size === 2) {
+      const [idA, idB] = Array.from(directionIds);
+      const aDeps = departures.filter((d) => d.directionId === idA);
+      const bDeps = departures.filter((d) => d.directionId === idB);
+      if (
+        aDeps.length < RAIL_DIRECTION_MIN_PER_BUCKET ||
+        bDeps.length < RAIL_DIRECTION_MIN_PER_BUCKET
+      ) {
+        return undefined;
+      }
+      return {
+        a: { label: pickDirectionLabel(aDeps), departures: aDeps },
+        b: { label: pickDirectionLabel(bDeps), departures: bDeps },
+        other: [],
+      };
+    }
+  }
+
+  // ---- Strategy 2: cluster by semantic headsign bucket ---------------
+  // Group every trip into a coarse SOUTH/NORTH/EAST/RING/OTHER bucket
+  // via the rail-direction heuristic, pick the two most populated as A
+  // and B, and let the rest fall into "other". This handles busy hubs
+  // (Pasila) cleanly even with feeds that don't expose directionId.
+  const byBucket = new Map<RailDirectionLabel, TransitDeparture[]>();
+  for (const d of departures) {
+    const bucket = classifyRailHeadsign(d.headsign).bucket;
+    const list = byBucket.get(bucket) ?? [];
+    list.push(d);
+    byBucket.set(bucket, list);
+  }
+  const sorted = Array.from(byBucket.entries()).sort(
+    (a, b) => b[1].length - a[1].length,
+  );
+  if (sorted.length < 2) return undefined;
+  const [bucketA, bucketB] = sorted;
+  if (
+    bucketA![1].length < RAIL_DIRECTION_MIN_PER_BUCKET ||
+    bucketB![1].length < RAIL_DIRECTION_MIN_PER_BUCKET
+  ) {
+    return undefined;
+  }
+  const aDeps = bucketA![1];
+  const bDeps = bucketB![1];
+  const others = sorted.slice(2).flatMap(([, list]) => list);
+  return {
+    a: { label: pickDirectionLabel(aDeps), departures: aDeps },
+    b: { label: pickDirectionLabel(bDeps), departures: bDeps },
+    other: others,
+  };
+}
+
+/**
+ * Pick the cluster's visible direction label from its dominant headsign.
+ * Falls back to "Suunta A/B" when the bucket has no clear majority — never
+ * leaves the FE with an empty label.
+ */
+function pickDirectionLabel(deps: TransitDeparture[]): string {
+  if (deps.length === 0) return "";
+  const counts = new Map<string, number>();
+  for (const d of deps) {
+    counts.set(d.headsign, (counts.get(d.headsign) ?? 0) + 1);
+  }
+  const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0];
+  if (!top) return "";
+  return classifyRailHeadsign(top[0]).label;
 }
 
 function applyFilters(
@@ -145,15 +258,20 @@ function dataKeySegments(
 /**
  * Wraps a cached or freshly-fetched result with the active filter chain
  * applied to its `departures` array. Other fields (stopName, subStops,
- * serviceDay, etc.) pass through unchanged.
+ * serviceDay, etc.) pass through unchanged. The DEP-3 `byDirection`
+ * view is derived from the filtered list so toggling line / platform
+ * filters keeps the side-by-side layout in sync with the visible rows.
  */
 function withFilteredDepartures(
   result: TransitDeparturesResult,
   options: DeparturesOptions,
 ): TransitDeparturesResult {
+  const departures = applyFilters(result.departures, options);
+  const byDirection = clusterRailDirections(departures);
   return {
     ...result,
-    departures: applyFilters(result.departures, options),
+    departures,
+    byDirection,
   };
 }
 

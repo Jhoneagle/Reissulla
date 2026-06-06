@@ -102,7 +102,8 @@ export async function getNearbyStops(
     radiusMeters,
   ];
   if (options.mode) segments.push(options.mode);
-  const key = cacheKey("transit", "stops-nearby", 1, ...segments);
+  // v2 — added enriched `city` on each stop (Chunk 7 FIN-1).
+  const key = cacheKey("transit", "stops-nearby", 2, ...segments);
   const cached = await tryCache(() => cacheGet<TransitStop[]>(key));
   if (cached) return { data: cached, cached: true };
 
@@ -129,6 +130,11 @@ export async function getNearbyStops(
   if (options.mode) {
     data = data.filter((s) => s.vehicleMode === options.mode);
   }
+
+  // City labels under each nearby stop disambiguate cross-region results
+  // ("Pasila, Helsinki" vs "Pasila, Tampere") and let the dashboard
+  // primary card show the locality even when the user is travelling.
+  await enrichStopsWithCity(data);
 
   sortAccessibleFirstIfPersona(data, persona);
 

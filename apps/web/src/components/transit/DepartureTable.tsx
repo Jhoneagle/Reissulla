@@ -12,6 +12,7 @@ import {
   formatDeparture,
   serviceDayFromUnix,
   type TransitSubStop,
+  type WheelchairBoarding,
 } from "@reissulla/shared";
 import type {
   ArrivalDepartureMode,
@@ -34,6 +35,8 @@ import { DepartureRow } from "./DepartureRow";
 import { PinButton } from "./PinButton";
 import { TimePickerDialog } from "./TimePickerDialog";
 import { DepartureFilters, type AdvancedFilterState } from "./DepartureFilters";
+import { StopAccessibilityDisclosure } from "./StopAccessibilityDisclosure";
+import { DepartureDirectionSplit } from "./DepartureDirectionSplit";
 
 interface DepartureTableProps {
   /** GTFS id (stop or station) — drives pin and recent-stops tracking. */
@@ -43,6 +46,8 @@ interface DepartureTableProps {
   subStops: TransitSubStop[];
   isStation?: boolean;
   stationId?: string;
+  /** Feed-confirmed accessibility flag — backs the A11Y-20 disclosure. */
+  wheelchairBoarding?: WheelchairBoarding;
 }
 
 function subStopLabel(ss: TransitSubStop): string {
@@ -110,6 +115,7 @@ export function DepartureTable({
   subStops,
   isStation,
   stationId,
+  wheelchairBoarding,
 }: DepartureTableProps) {
   const intl = useIntl();
   const user = useAuthStore((s) => s.user);
@@ -380,6 +386,8 @@ export function DepartureTable({
         )}
       </header>
 
+      <StopAccessibilityDisclosure wheelchairBoarding={wheelchairBoarding} />
+
       <div className="departure-controls">
         <div className="departure-controls__primary">
           <button
@@ -533,7 +541,26 @@ export function DepartureTable({
           </div>
         )}
 
+      {departures.length > 0 && result?.byDirection && !filterStopId && (
+        <>
+          <DepartureDirectionSplit
+            byDirection={result.byDirection}
+            mode={mode}
+            stopName={displayName}
+          />
+          {dataUpdatedAt > 0 && (
+            <p className="departure-list__timestamp">
+              <FormattedMessage
+                id="transit.depart.updatedAgo"
+                values={{ seconds: updatedAgo }}
+              />
+            </p>
+          )}
+        </>
+      )}
+
       {departures.length > 0 &&
+        !(result?.byDirection && !filterStopId) &&
         (() => {
           const showPlatformCol = showPlatformFilter && !filterStopId;
           const platformMod = showPlatformCol
