@@ -1,17 +1,13 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
 import { cacheDel } from "../cache/cache.js";
 import { regionFromAgencyId } from "../services/transit/lines.service.js";
+import {
+  getCapturedRequests,
+  clearCapturedRequests,
+} from "../../test/msw/request-log.js";
 
 let server: FastifyInstance;
 
@@ -24,103 +20,6 @@ afterAll(async () => {
   await server.close();
   await redis.quit();
 });
-
-// Two-direction line, two stops per direction — minimum fixture that
-// exercises the direction toggle on the LineView page.
-const mockRoute550Response = {
-  data: {
-    route: {
-      gtfsId: "HSL:1059",
-      shortName: "550",
-      longName: "Itäkeskus - Westendinasema",
-      mode: "BUS",
-      color: "00A6E2",
-      textColor: "FFFFFF",
-      agency: { gtfsId: "HSL:HSL", name: "HSL" },
-      patterns: [
-        {
-          code: "HSL:1059:0:01",
-          headsign: "Westendinasema",
-          directionId: 0,
-          stops: [
-            {
-              gtfsId: "HSL:1454102",
-              name: "Itäkeskus",
-              lat: 60.21,
-              lon: 25.08,
-              code: "T1234",
-              platformCode: null,
-            },
-            {
-              gtfsId: "HSL:2222204",
-              name: "Westendinasema",
-              lat: 60.17,
-              lon: 24.81,
-              code: "E2222",
-              platformCode: null,
-            },
-          ],
-        },
-        {
-          code: "HSL:1059:1:01",
-          headsign: "Itäkeskus",
-          directionId: 1,
-          stops: [
-            {
-              gtfsId: "HSL:2222204",
-              name: "Westendinasema",
-              lat: 60.17,
-              lon: 24.81,
-              code: "E2222",
-              platformCode: null,
-            },
-            {
-              gtfsId: "HSL:1454102",
-              name: "Itäkeskus",
-              lat: 60.21,
-              lon: 25.08,
-              code: "T1234",
-              platformCode: null,
-            },
-          ],
-        },
-      ],
-    },
-  },
-};
-
-const mockRouteSingleDirectionResponse = {
-  data: {
-    route: {
-      gtfsId: "HSL:1009",
-      shortName: "9",
-      longName: "Kolmikulma - Pasila",
-      mode: "TRAM",
-      color: null,
-      textColor: null,
-      agency: { gtfsId: "HSL:HSL", name: "HSL" },
-      patterns: [
-        {
-          code: "HSL:1009:0:01",
-          headsign: "Pasila",
-          directionId: 0,
-          stops: [
-            {
-              gtfsId: "HSL:1010101",
-              name: "Kolmikulma",
-              lat: 60.16,
-              lon: 24.94,
-              code: null,
-              platformCode: null,
-            },
-          ],
-        },
-      ],
-    },
-  },
-};
-
-const mockRouteNotFound = { data: { route: null } };
 
 describe("regionFromAgencyId", () => {
   it("returns Helsingin seutu for HSL prefixes", () => {
@@ -148,14 +47,10 @@ describe("GET /api/v1/transit/lines/:gtfsId", () => {
     await cacheDel("transit:line:v1:HSL:1059");
     await cacheDel("transit:line:v1:HSL:1009");
     await cacheDel("transit:line:v1:HSL:404");
-    vi.restoreAllMocks();
+    clearCapturedRequests();
   });
 
   it("returns both directional patterns + stops", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockRoute550Response), { status: 200 }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/lines/HSL:1059",
@@ -173,10 +68,6 @@ describe("GET /api/v1/transit/lines/:gtfsId", () => {
   });
 
   it("404s on an unknown gtfsId", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockRouteNotFound), { status: 200 }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/lines/HSL:404",
@@ -185,12 +76,6 @@ describe("GET /api/v1/transit/lines/:gtfsId", () => {
   });
 
   it("returns a single-direction line with patterns.length === 1", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockRouteSingleDirectionResponse), {
-        status: 200,
-      }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/lines/HSL:1009",
@@ -201,31 +86,28 @@ describe("GET /api/v1/transit/lines/:gtfsId", () => {
   });
 
   it("serves cached response on second call", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(mockRoute550Response), { status: 200 }),
-      );
-
-    await server.inject({
+    const first = await server.inject({
       method: "GET",
       url: "/api/v1/transit/lines/HSL:1059",
     });
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(first.statusCode).toBe(200);
+    const firstCount = getCapturedRequests().filter((r) =>
+      r.url.includes("routing/v2"),
+    ).length;
+    expect(firstCount).toBeGreaterThanOrEqual(1);
 
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/lines/HSL:1059",
     });
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const secondCount = getCapturedRequests().filter((r) =>
+      r.url.includes("routing/v2"),
+    ).length;
+    expect(secondCount).toBe(firstCount);
     expect(res.json().cached).toBe(true);
   });
 
   it("decodes URL-encoded gtfsIds (colon-bearing prefix)", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(mockRoute550Response), { status: 200 }),
-    );
-
     const res = await server.inject({
       method: "GET",
       url: "/api/v1/transit/lines/HSL%3A1059",

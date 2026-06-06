@@ -10,5 +10,10 @@
     "declaration": false,
     "declarationMap": false
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests live under src/__tests__/ but import the MSW helpers from
+  // apps/api/test/ — outside rootDir. They are excluded from the build
+  // (production dist/ ships no test code) and covered separately by
+  // tsconfig.test.json for `pnpm type-check`.
+  "exclude": ["src/__tests__/**"]
 }

@@ -1,31 +1,56 @@
-import type {
-  CurrentWeather,
-  WeatherForecast,
-  GeocodingResult,
-  ReverseGeocodingResult,
-  SavedLocation,
-  CreateLocationInput,
-  UpdateLocationInput,
-  RecentPlace,
-  RecordVisitInput,
-  Preferences,
-  PreferencesPatch,
-  PinnedStop,
-  PinnedLine,
-  TransitStop,
-  TransitSubStop,
-  TransitDeparturesResult,
-  TransitPlanResult,
-  TripDetail,
-  Line,
-  LineView,
-  LineStopDeparture,
-  FrequencyBand,
-  DayType,
-  DirectionId,
+import {
+  DEFAULT_PERSONA,
+  PERSONA_HEADER,
+  serializePersona,
+  type CurrentWeather,
+  type WeatherForecast,
+  type GeocodingResult,
+  type ReverseGeocodingResult,
+  type SavedLocation,
+  type CreateLocationInput,
+  type UpdateLocationInput,
+  type RecentPlace,
+  type RecordVisitInput,
+  type Preferences,
+  type PreferencesPatch,
+  type Persona,
+  type PinnedStop,
+  type PinnedLine,
+  type TransitStop,
+  type TransitSubStop,
+  type TransitDeparturesResult,
+  type TransitPlanResult,
+  type TripDetail,
+  type Line,
+  type LineView,
+  type LineStopDeparture,
+  type FrequencyBand,
+  type DayType,
+  type DirectionId,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
+
+const PERSONA_STORAGE_KEY = "reissulla:persona";
+
+function readPersonaFromStorage(): Persona | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PERSONA_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Persona>;
+    if (typeof parsed !== "object" || parsed === null) return null;
+    return { ...DEFAULT_PERSONA, ...parsed };
+  } catch {
+    return null;
+  }
+}
+
+function personaHeaders(): Record<string, string> {
+  const persona = readPersonaFromStorage();
+  if (!persona) return {};
+  return { [PERSONA_HEADER]: serializePersona(persona) };
+}
 
 export interface ApiResponse<T> {
   data: T;
@@ -49,7 +74,10 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, { credentials: "include" });
+  const res = await fetch(`${BASE_URL}${path}`, {
+    credentials: "include",
+    headers: { ...personaHeaders() },
+  });
   if (!res.ok) {
     const body = await res
       .json()
@@ -72,7 +100,10 @@ async function mutationRequest<T>(
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     credentials: "include",
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...personaHeaders(),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {

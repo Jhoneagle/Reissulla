@@ -11,7 +11,7 @@ function buildPlanQuery(args: PlanConnectionArgs, ctx: AdapterContext): string {
     ? `preferences: { accessibility: { wheelchair: { enabled: true } } }`
     : "";
 
-  return `{
+  return `query PlanConnection {
     planConnection(
       origin: { location: { coordinate: { latitude: ${args.fromLat}, longitude: ${args.fromLon} } } }
       destination: { location: { coordinate: { latitude: ${args.toLat}, longitude: ${args.toLon} } } }

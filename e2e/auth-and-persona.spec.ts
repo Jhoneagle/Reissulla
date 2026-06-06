@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/mock-browser-externals";
 import { expectNoSeriousA11yViolations, uniqueTestEmail } from "./helpers";
 
 /**
@@ -36,12 +36,6 @@ test("sign up + wizard sets wheelchair persona and sends it on subsequent API ca
   // Settings page's Profile "Save" button or other duplicate roles.
   await wizard.getByRole("radio", { name: /^Yes|^Kyllä/ }).click();
 
-  // Inspect: capture the next outbound /api/v1/* request and verify the
-  // x-reissulla-persona header has wheelchair=1.
-  const apiRequest = page.waitForRequest(
-    (req) => req.url().includes("/api/v1/") && req.method() !== "OPTIONS",
-  );
-
   // After auto-advance from step 1, we're on step 2. Click Next to
   // step 3 (skipping = null, not false — wire encoder drops it), then
   // Finish to persist.
@@ -53,7 +47,16 @@ test("sign up + wizard sets wheelchair persona and sends it on subsequent API ca
     page.getByLabel(/Wheelchair-accessible routing|Pyörätuolireitti/),
   ).toBeChecked();
 
-  // Whichever API request fires next should carry the persona header.
+  // Navigate somewhere that fires an API call after the persona has been
+  // committed — that request should carry x-reissulla-persona. Capture
+  // it before the navigation so the listener is armed.
+  const apiRequest = page.waitForRequest(
+    (req) =>
+      req.url().includes("/api/v1/") &&
+      req.method() === "GET" &&
+      !req.url().endsWith("/api/v1/me"),
+  );
+  await page.goto("/");
   const req = await apiRequest;
   const personaHeader = req.headers()["x-reissulla-persona"];
   expect(personaHeader).toBeTruthy();

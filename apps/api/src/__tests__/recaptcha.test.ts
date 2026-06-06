@@ -1,27 +1,28 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { createHash } from "node:crypto";
 import { redis } from "../cache/redis.js";
 import { cacheDel } from "../cache/cache.js";
 import { config } from "../config.js";
+import { recaptcha } from "@reissulla/test-fixtures";
+import {
+  getCapturedRequests,
+  clearCapturedRequests,
+} from "../../test/msw/request-log.js";
 
-// Override the config for these tests so verifyRecaptcha doesn't take the
-// disabled-passthrough path. Restored in afterAll.
+const {
+  SUCCESS_LOGIN_TOKEN,
+  SUCCESS_REGISTER_TOKEN,
+  FAILURE_TIMEOUT_DUPLICATE_TOKEN,
+  ACTION_MISMATCH_TOKEN,
+  NETWORK_ERROR_TOKEN,
+  HTTP_503_TOKEN,
+} = recaptcha;
+
 const ORIGINAL_SECRET = config.recaptchaSecretKey;
 const TEST_SECRET = "test-recaptcha-secret";
 
 beforeAll(async () => {
   await redis.connect();
-  // Mutating the imported config object — the module reads it dynamically per
-  // call, so this lets tests exercise the configured path without spawning a
-  // separate server instance.
   (config as { recaptchaSecretKey: string }).recaptchaSecretKey = TEST_SECRET;
 });
 
@@ -36,14 +37,11 @@ function tokenKey(token: string, action: string): string {
   return `recaptcha:token:v1:${hash}:${action}`;
 }
 
-beforeEach(async () => {
-  vi.restoreAllMocks();
-});
+async function clearTokenCache(token: string, action: string) {
+  await cacheDel(tokenKey(token, action));
+}
 
 async function importVerifier() {
-  // Dynamic import inside each test so the module re-reads `config` at call
-  // time. (The module-level `RECAPTCHA_THRESHOLD` snapshot doesn't matter for
-  // these tests — we only exercise verifyRecaptcha.)
   const mod = await import("../auth/recaptcha.js");
   return mod;
 }
@@ -68,38 +66,27 @@ describe("verifyRecaptcha — disabled passthrough", () => {
   it("does not call Google when disabled", async () => {
     (config as { recaptchaSecretKey: string }).recaptchaSecretKey = "";
     const { verifyRecaptcha } = await importVerifier();
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    clearCapturedRequests();
 
     await verifyRecaptcha("any-token", "login");
-    expect(fetchSpy).not.toHaveBeenCalled();
+
+    const upstream = getCapturedRequests().filter((r) =>
+      r.url.includes("recaptcha"),
+    );
+    expect(upstream).toHaveLength(0);
 
     (config as { recaptchaSecretKey: string }).recaptchaSecretKey = TEST_SECRET;
   });
 });
 
 describe("verifyRecaptcha — happy path", () => {
-  const TOKEN = "valid-token-123";
-
   beforeEach(async () => {
-    await cacheDel(tokenKey(TOKEN, "login"));
+    await clearTokenCache(SUCCESS_LOGIN_TOKEN, "login");
   });
 
   it("returns the upstream verification facts", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          success: true,
-          score: 0.9,
-          action: "login",
-          hostname: "reissulla.fi",
-          challenge_ts: "2026-05-23T10:00:00Z",
-        }),
-        { status: 200 },
-      ),
-    );
-
     const { verifyRecaptcha } = await importVerifier();
-    const result = await verifyRecaptcha(TOKEN, "login");
+    const result = await verifyRecaptcha(SUCCESS_LOGIN_TOKEN, "login");
 
     expect(result).toEqual({
       success: true,
@@ -110,160 +97,105 @@ describe("verifyRecaptcha — happy path", () => {
   });
 
   it("sends secret + token in x-www-form-urlencoded body", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          success: true,
-          score: 0.9,
-          action: "login",
-          hostname: "reissulla.fi",
-        }),
-        { status: 200 },
-      ),
-    );
-
+    clearCapturedRequests();
     const { verifyRecaptcha } = await importVerifier();
-    await verifyRecaptcha(TOKEN, "login");
+    await verifyRecaptcha(SUCCESS_LOGIN_TOKEN, "login");
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchSpy.mock.calls[0]!;
-    expect(url).toBe("https://www.google.com/recaptcha/api/siteverify");
-    expect((init as RequestInit).method).toBe("POST");
-    const body = (init as RequestInit).body as URLSearchParams;
-    expect(body.get("secret")).toBe(TEST_SECRET);
-    expect(body.get("response")).toBe(TOKEN);
+    const upstream = getCapturedRequests().filter((r) =>
+      r.url.includes("recaptcha"),
+    );
+    expect(upstream).toHaveLength(1);
+    expect(upstream[0]!.method).toBe("POST");
+
+    const params = new URLSearchParams(upstream[0]!.body as string);
+    expect(params.get("secret")).toBe(TEST_SECRET);
+    expect(params.get("response")).toBe(SUCCESS_LOGIN_TOKEN);
   });
 });
 
 describe("verifyRecaptcha — caching", () => {
-  const TOKEN = "cache-test-token";
-
   beforeEach(async () => {
-    await cacheDel(tokenKey(TOKEN, "register"));
+    await clearTokenCache(SUCCESS_REGISTER_TOKEN, "register");
+    await clearTokenCache(SUCCESS_REGISTER_TOKEN, "login");
   });
 
   it("serves a second call from cache without calling Google", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          success: true,
-          score: 0.7,
-          action: "register",
-          hostname: "reissulla.fi",
-        }),
-        { status: 200 },
-      ),
-    );
-
+    clearCapturedRequests();
     const { verifyRecaptcha } = await importVerifier();
 
-    const first = await verifyRecaptcha(TOKEN, "register");
-    const second = await verifyRecaptcha(TOKEN, "register");
+    const first = await verifyRecaptcha(SUCCESS_REGISTER_TOKEN, "register");
+    const second = await verifyRecaptcha(SUCCESS_REGISTER_TOKEN, "register");
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const upstream = getCapturedRequests().filter((r) =>
+      r.url.includes("recaptcha"),
+    );
+    expect(upstream).toHaveLength(1);
     expect(second).toEqual(first);
 
-    await cacheDel(tokenKey(TOKEN, "register"));
+    await clearTokenCache(SUCCESS_REGISTER_TOKEN, "register");
   });
 
   it("caches per (token, action) — different action triggers a new call", async () => {
-    // Fresh Response per call so the second call doesn't read a consumed body.
-    // The mock echoes the action back so the verifier doesn't trip action-mismatch.
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockImplementation(async (_url, init) => {
-        const body = (init as RequestInit).body as URLSearchParams;
-        // Use the call number as a proxy for which action was requested.
-        // First call: register, second call: login (test order).
-        const action = fetchSpy.mock.calls.length === 1 ? "register" : "login";
-        // Touch body so the urlencoded fixture isn't dropped as unused.
-        void body.get("response");
-        return new Response(
-          JSON.stringify({
-            success: true,
-            score: 0.7,
-            action,
-            hostname: "reissulla.fi",
-          }),
-          { status: 200 },
-        );
-      });
-
+    clearCapturedRequests();
     const { verifyRecaptcha } = await importVerifier();
-    await verifyRecaptcha(TOKEN, "register");
-    await verifyRecaptcha(TOKEN, "login");
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    // First call: register → cached. Second call: same token, different
+    // action → fresh upstream hit. The action-mismatch happens because
+    // the SUCCESS_REGISTER_TOKEN fixture returns action="register"; the
+    // verifier treats it as a failure with reason="action-mismatch"
+    // when we ask it to verify action="login". We're only asserting on
+    // call count here, not the result.
+    await verifyRecaptcha(SUCCESS_REGISTER_TOKEN, "register");
+    await verifyRecaptcha(SUCCESS_REGISTER_TOKEN, "login");
 
-    await cacheDel(tokenKey(TOKEN, "register"));
-    await cacheDel(tokenKey(TOKEN, "login"));
+    const upstream = getCapturedRequests().filter((r) =>
+      r.url.includes("recaptcha"),
+    );
+    expect(upstream).toHaveLength(2);
+
+    await clearTokenCache(SUCCESS_REGISTER_TOKEN, "register");
+    await clearTokenCache(SUCCESS_REGISTER_TOKEN, "login");
   });
 });
 
 describe("verifyRecaptcha — failures", () => {
-  const TOKEN = "fail-test-token";
-
   beforeEach(async () => {
-    await cacheDel(tokenKey(TOKEN, "login"));
+    await clearTokenCache(FAILURE_TIMEOUT_DUPLICATE_TOKEN, "login");
+    await clearTokenCache(ACTION_MISMATCH_TOKEN, "login");
+    await clearTokenCache(NETWORK_ERROR_TOKEN, "login");
+    await clearTokenCache(HTTP_503_TOKEN, "login");
   });
 
   it("returns success=false with the upstream error code as reason", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          success: false,
-          "error-codes": ["timeout-or-duplicate"],
-        }),
-        { status: 200 },
-      ),
-    );
-
     const { verifyRecaptcha } = await importVerifier();
-    const result = await verifyRecaptcha(TOKEN, "login");
+    const result = await verifyRecaptcha(
+      FAILURE_TIMEOUT_DUPLICATE_TOKEN,
+      "login",
+    );
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe("timeout-or-duplicate");
   });
 
   it("treats action mismatch as failure even when upstream says success", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          success: true,
-          score: 0.9,
-          action: "register",
-          hostname: "reissulla.fi",
-        }),
-        { status: 200 },
-      ),
-    );
-
     const { verifyRecaptcha } = await importVerifier();
-    const result = await verifyRecaptcha(TOKEN, "login");
+    const result = await verifyRecaptcha(ACTION_MISMATCH_TOKEN, "login");
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe("action-mismatch");
   });
 
   it("returns success=false with reason='network' on fetch rejection", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
-      new Error("Network error"),
-    );
-
     const { verifyRecaptcha } = await importVerifier();
-    const result = await verifyRecaptcha(TOKEN, "login");
+    const result = await verifyRecaptcha(NETWORK_ERROR_TOKEN, "login");
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe("network");
   });
 
   it("returns success=false with reason='http-503' on upstream HTTP failure", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response("upstream down", { status: 503 }),
-    );
-
     const { verifyRecaptcha } = await importVerifier();
-    const result = await verifyRecaptcha(TOKEN, "login");
+    const result = await verifyRecaptcha(HTTP_503_TOKEN, "login");
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe("http-503");
