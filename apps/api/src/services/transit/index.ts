@@ -15,7 +15,7 @@ export type {
   ArrivalDepartureMode,
   FirstLastResult,
 } from "./departures.service.js";
-export { planRoute } from "./trip.service.js";
+export { planRoute, planRouteFull, optionsHash } from "./trip.service.js";
 export { getTripDetail } from "./trip-detail.service.js";
 export {
   searchLines,

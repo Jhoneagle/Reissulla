@@ -1,22 +1,77 @@
+import { createHash } from "node:crypto";
 import {
   DEFAULT_PERSONA,
+  DEFAULT_PLAN_PREFERENCES,
+  personaToPlanArgs,
   serializePersona,
+  type PlanPreferences,
+  type PlanRouteOptions,
   type Persona,
   type TransitItinerary,
   type TransitItineraryLeg,
   type TransitPlanResult,
+  type TripQuery,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
 import { PLAN_TTL } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
 import type { AdapterContext } from "../../adapters/types.js";
+import type { PlanConnectionMode } from "../../adapters/digitransit-routing/types.js";
 import { adapterRouter } from "./adapter-router.js";
 
 function makeContext(persona: Persona): AdapterContext {
   return { signal: new AbortController().signal, persona };
 }
 
+const WALK_SPEEDS: Record<PlanPreferences["walkingSpeed"], number> = {
+  slow: 1.0,
+  normal: 1.34,
+  fast: 1.6,
+};
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(",")}}`;
+}
+
+/**
+ * Stable hash of the options that don't already appear in the cache key as
+ * coordinates or persona. Deep-sorted keys + SHA-1 prefix → identical options
+ * produce identical hash, different options produce different slots.
+ */
+export function optionsHash(
+  query: Omit<TripQuery, "persona" | "from" | "to">,
+  numItineraries: number,
+): string {
+  const normalised = {
+    arriveBy: query.arriveBy === true,
+    dateTime: typeof query.dateTime === "number" ? query.dateTime : null,
+    modes: [...query.modes].sort(),
+    numItineraries,
+    planPreferences: {
+      avoidStairs: query.planPreferences.avoidStairs === true,
+      avoidTransfers: query.planPreferences.avoidTransfers === true,
+      maxWalkDistanceMeters: query.planPreferences.maxWalkDistanceMeters,
+      walkingSpeed: query.planPreferences.walkingSpeed,
+    },
+    preference: query.preference,
+  };
+  return createHash("sha1")
+    .update(stableStringify(normalised))
+    .digest("hex")
+    .slice(0, 12);
+}
+
+/**
+ * Compatibility wrapper for the legacy 4-coordinate call site. Wraps the
+ * coordinates in a default `TripQuery` and forwards to `planRouteFull`.
+ */
 export async function planRoute(
   fromLat: number,
   fromLon: number,
@@ -25,25 +80,81 @@ export async function planRoute(
   numItineraries = 5,
   persona: Persona = DEFAULT_PERSONA,
 ): Promise<{ data: TransitPlanResult; cached: boolean }> {
-  // v2: persona is part of the cache key — wheelchair / step-free toggles
-  // produce different itineraries and must not collide with the default
-  // result. Serialised persona is deterministic and human-readable in logs.
+  return planRouteFull({
+    query: {
+      from: { lat: fromLat, lon: fromLon },
+      to: { lat: toLat, lon: toLon },
+      preference: "fastest",
+      modes: ["BUS", "RAIL", "TRAM", "SUBWAY", "FERRY"],
+      planPreferences: DEFAULT_PLAN_PREFERENCES,
+      persona,
+    },
+    numItineraries,
+  });
+}
+
+export async function planRouteFull({
+  query,
+  numItineraries,
+}: PlanRouteOptions): Promise<{ data: TransitPlanResult; cached: boolean }> {
+  const persona = query.persona ?? DEFAULT_PERSONA;
+  // v3: cache key now embeds an options hash so the planner depth controls
+  // produce per-config slots without colliding with the default plan call.
   const key = cacheKey(
     "transit",
     "plan",
-    2,
-    fromLat.toFixed(3),
-    fromLon.toFixed(3),
-    toLat.toFixed(3),
-    toLon.toFixed(3),
+    3,
+    query.from.lat.toFixed(3),
+    query.from.lon.toFixed(3),
+    query.to.lat.toFixed(3),
+    query.to.lon.toFixed(3),
+    optionsHash(
+      {
+        arriveBy: query.arriveBy,
+        dateTime: query.dateTime,
+        modes: query.modes,
+        planPreferences: query.planPreferences,
+        preference: query.preference,
+      },
+      numItineraries,
+    ),
     serializePersona(persona),
   );
   const cached = await tryCache(() => cacheGet<TransitPlanResult>(key));
   if (cached) return { data: cached, cached: true };
 
-  const adapter = adapterRouter.forCoordinate(fromLat, fromLon);
+  const personaArgs = personaToPlanArgs(persona);
+  const preference = query.preference;
+  const adapter = adapterRouter.forCoordinate(query.from.lat, query.from.lon);
   const raw = await adapter.planConnection(
-    { fromLat, fromLon, toLat, toLon, numItineraries },
+    {
+      fromLat: query.from.lat,
+      fromLon: query.from.lon,
+      toLat: query.to.lat,
+      toLon: query.to.lon,
+      numItineraries,
+      dateTime: query.dateTime,
+      arriveBy: query.arriveBy,
+      transitModes: query.modes.filter(
+        (m) => m !== "WALK" && m !== "BICYCLE",
+      ) as PlanConnectionMode[],
+      walkSpeedMetresPerSec:
+        personaArgs.walkSpeedMetresPerSec ??
+        WALK_SPEEDS[query.planPreferences.walkingSpeed],
+      walkReluctanceBoost:
+        preference === "least-walking" ||
+        personaArgs.avoidStairs === true ||
+        query.planPreferences.avoidStairs === true,
+      numberOfTransfers:
+        query.planPreferences.avoidTransfers ||
+        preference === "fewest-transfers" ||
+        personaArgs.preferFewerTransfers === true
+          ? 1
+          : undefined,
+      avoidStairs:
+        query.planPreferences.avoidStairs === true ||
+        personaArgs.avoidStairs === true,
+    },
     makeContext(persona),
   );
 
@@ -55,8 +166,15 @@ export async function planRoute(
       message:
         "No transit routes found between these locations. They may be outside the transit coverage area.",
     };
+    await tryCache(() => cacheSet(key, data, PLAN_TTL));
     return { data, cached: false };
   }
+
+  const appliedPersonaFlags: TransitItinerary["appliedPersonaFlags"] = {
+    wheelchair: personaArgs.wheelchair === true,
+    lowFloor: persona.lowFloor === true,
+    stroller: persona.stroller && !personaArgs.wheelchair,
+  };
 
   const itineraries: TransitItinerary[] = edges.map((edge) => {
     const node = edge.node;
@@ -78,8 +196,18 @@ export async function planRoute(
         lon: leg.to.lon,
         stop: leg.to.stop ?? undefined,
       },
-      route: leg.route ?? undefined,
+      route: leg.route
+        ? { shortName: leg.route.shortName, longName: leg.route.longName }
+        : undefined,
+      operator:
+        leg.route?.agency && leg.route.agency.name
+          ? { gtfsId: leg.route.agency.gtfsId, name: leg.route.agency.name }
+          : undefined,
       intermediateStops: leg.intermediateStops ?? undefined,
+      steps:
+        leg.mode === "WALK" && leg.steps && leg.steps.length > 0
+          ? leg.steps
+          : undefined,
     }));
 
     return {
@@ -89,6 +217,8 @@ export async function planRoute(
       walkDistance: node.walkDistance,
       transfers: node.numberOfTransfers,
       legs,
+      farePlaceholders: true,
+      appliedPersonaFlags,
     };
   });
 
