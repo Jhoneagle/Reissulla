@@ -572,6 +572,13 @@
 .departure-filters__row--inline {
   flex-direction: row;
   align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.departure-filters__planner-link {
+  font-size: var(--text-xs);
+  padding: 0;
 }
 
 .departure-filters__label {

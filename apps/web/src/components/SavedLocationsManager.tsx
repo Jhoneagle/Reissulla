@@ -14,6 +14,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { showToast } from "../stores/toast";
 import { useUndoableDelete } from "../hooks/useUndoableDelete";
 import { FoldedMapArt } from "./art/EmptyArt";
+import { usePersonaStore } from "../stores/persona";
 
 const CATEGORIES: ReadonlyArray<SavedLocationCategory> = [
   "home",
@@ -152,6 +153,7 @@ export function SavedLocationsManager() {
 
   return (
     <div className="saved-locations-manager">
+      <SavedLocationsPersonaSummary />
       <ul className="saved-locations-list">
         {locations.map((loc, index) => {
           const isFirst = index === 0;
@@ -346,6 +348,50 @@ function RowActionsMobile({
       </summary>
       <div className="row-actions-mobile__items">{children}</div>
     </details>
+  );
+}
+
+/**
+ * A11Y-17 reinforcement — when the user has any accessibility flag set in
+ * their persona, surface it inline at the top of the saved-locations list.
+ * The persona is global (one profile per user) but it shapes the route
+ * suggestions for every saved location, so a small reminder here keeps
+ * the connection visible without forcing the user back to Settings to
+ * remember what's on.
+ */
+function SavedLocationsPersonaSummary() {
+  const intl = useIntl();
+  const persona = usePersonaStore((s) => s.persona);
+  const flags: string[] = [];
+  if (persona.wheelchair) flags.push("wheelchair");
+  if (persona.lowFloor) flags.push("lowFloor");
+  if (persona.noStairs) flags.push("noStairs");
+  if (persona.stroller) flags.push("stroller");
+  if (flags.length === 0) return null;
+  return (
+    <aside
+      className="saved-locations-persona"
+      aria-label={intl.formatMessage({ id: "locations.persona.label" })}
+    >
+      <p className="saved-locations-persona__kicker">
+        <FormattedMessage id="locations.persona.kicker" />
+      </p>
+      <p className="saved-locations-persona__body">
+        <FormattedMessage id="locations.persona.body" />
+      </p>
+      <ul className="saved-locations-persona__flags">
+        {flags.map((flag) => (
+          <li key={flag} className="saved-locations-persona__flag">
+            <FormattedMessage id={`settings.persona.${flag}`} />
+          </li>
+        ))}
+      </ul>
+      <p className="saved-locations-persona__manage">
+        <Link to="/settings">
+          <FormattedMessage id="locations.persona.manage" />
+        </Link>
+      </p>
+    </aside>
   );
 }
 
