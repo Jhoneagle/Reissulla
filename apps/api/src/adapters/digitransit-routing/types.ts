@@ -206,12 +206,26 @@ export interface RawRouteWithPatterns extends RawRouteMeta {
   patterns: RawPatternMeta[];
 }
 
+/**
+ * Fat selection returned by `routeWithPatternsOperation` — route metadata
+ * AND patterns with stop sequences in a single request. The line-view
+ * surface needs both halves on first render, and Digitransit's GraphQL
+ * already nests them naturally, so we save one round-trip per page load.
+ */
+export interface RawRouteWithPatternsAndStops extends RawRouteMeta {
+  patterns: RawPattern[];
+}
+
 export interface RawRoutesData {
   routes: RawRouteMeta[];
 }
 
 export interface RawRouteData {
   route: RawRouteWithPatterns | null;
+}
+
+export interface RawRouteWithPatternsAndStopsData {
+  route: RawRouteWithPatternsAndStops | null;
 }
 
 export interface RawPatternData {
@@ -319,6 +333,41 @@ export interface RawStoptimesForDateData {
     name: string;
     stoptimesForServiceDate: RawStoptimesForDateInPattern[];
   } | null;
+}
+
+// ---- Line-wide next departures (single-query line view) --------------------
+
+export interface RawRouteLineStoptime {
+  scheduledDeparture: number;
+  realtimeDeparture: number;
+  departureDelay: number;
+  realtime: boolean;
+  serviceDay: number;
+  trip: { gtfsId?: string };
+}
+
+export interface RawRouteLineStopGroup {
+  pattern: { code: string };
+  stoptimes: RawRouteLineStoptime[];
+}
+
+export interface RawRouteLineStop {
+  gtfsId: string;
+  stoptimesForPatterns: RawRouteLineStopGroup[];
+}
+
+export interface RawRouteLinePattern {
+  code: string;
+  directionId: number;
+  stops: RawRouteLineStop[];
+}
+
+export interface RawRouteLineDeparturesRoute {
+  patterns: RawRouteLinePattern[];
+}
+
+export interface RawRouteLineDeparturesData {
+  route: RawRouteLineDeparturesRoute | null;
 }
 
 // ---- Paged radius search ---------------------------------------------------

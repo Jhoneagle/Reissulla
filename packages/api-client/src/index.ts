@@ -11,11 +11,18 @@ import type {
   Preferences,
   PreferencesPatch,
   PinnedStop,
+  PinnedLine,
   TransitStop,
   TransitSubStop,
   TransitDeparturesResult,
   TransitPlanResult,
   TripDetail,
+  Line,
+  LineView,
+  LineStopDeparture,
+  FrequencyBand,
+  DayType,
+  DirectionId,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -335,6 +342,10 @@ export interface PinnedStopResponse extends PinnedStop {
   id: string;
 }
 
+export interface PinnedLineResponse extends PinnedLine {
+  id: string;
+}
+
 export interface RecentStopResponse {
   id: string;
   gtfsId: string;
@@ -460,6 +471,47 @@ export const transitApi = {
       "POST",
       input,
     );
+  },
+  searchLines(query: string, region?: string) {
+    const params = new URLSearchParams({ q: query });
+    if (region) params.set("region", region);
+    return request<ApiResponse<Line[]>>(`/transit/lines/search?${params}`);
+  },
+  getLine(gtfsId: string) {
+    return request<ApiResponse<LineView>>(
+      `/transit/lines/${encodeURIComponent(gtfsId)}`,
+    );
+  },
+  getLineDepartures(gtfsId: string, direction?: DirectionId) {
+    const params = new URLSearchParams();
+    if (direction !== undefined) params.set("direction", String(direction));
+    const qs = params.toString();
+    return request<ApiResponse<LineStopDeparture[]>>(
+      `/transit/lines/${encodeURIComponent(gtfsId)}/departures${qs ? `?${qs}` : ""}`,
+    );
+  },
+  getFrequency(gtfsId: string, dayType: DayType, direction?: DirectionId) {
+    const params = new URLSearchParams({ dayType });
+    if (direction !== undefined) params.set("direction", String(direction));
+    return request<ApiResponse<FrequencyBand[]>>(
+      `/transit/lines/${encodeURIComponent(gtfsId)}/frequency?${params}`,
+    );
+  },
+  listPinnedLines() {
+    return request<{ data: PinnedLineResponse[] }>("/transit/pinned-lines");
+  },
+  // vehicleMode is non-nullable on the wire — the column is NOT NULL and
+  // Line.mode on the FE source is non-nullable. The route validator will
+  // 400 on missing values; no client-side null tolerance.
+  pinLine(input: { gtfsId: string; name: string; vehicleMode: string }) {
+    return mutationRequest<{ data: PinnedLineResponse }>(
+      "/transit/pinned-lines",
+      "POST",
+      input,
+    );
+  },
+  unpinLine(id: string) {
+    return mutationRequest<void>(`/transit/pinned-lines/${id}`, "DELETE");
   },
 };
 

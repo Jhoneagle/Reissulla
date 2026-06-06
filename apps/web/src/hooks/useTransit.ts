@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { TransitSubStop } from "@reissulla/shared";
+import type { DayType, DirectionId, TransitSubStop } from "@reissulla/shared";
 import {
   transitApi,
   type DeparturesOptions,
   type NearbyStopsOptions,
+  type PinnedLineResponse,
   type SearchStopsOptions,
 } from "@reissulla/api-client";
+import { useDebounce } from "./useDebounce";
 
 export function useStopSearch(query: string, options?: SearchStopsOptions) {
   const mode = options?.mode;
@@ -162,5 +164,125 @@ export function useTripDetail(tripId: string | null) {
     // detail page stays in sync with what the user just clicked from.
     staleTime: 30 * 1000,
     refetchInterval: 30_000,
+  });
+}
+
+// ── Line view ────────────────────────────────────────────────────────────
+
+export function useLineSearch(query: string, region?: string) {
+  const debounced = useDebounce(query, 300);
+  return useQuery({
+    queryKey: ["transit-line-search", debounced, region ?? "all"],
+    queryFn: () => transitApi.searchLines(debounced, region),
+    enabled: debounced.trim().length >= 1,
+    // 30 min — line catalogues barely shift inside that window.
+    staleTime: 30 * 60 * 1000,
+  });
+}
+
+export function useLine(gtfsId: string | null) {
+  return useQuery({
+    queryKey: ["transit-line", gtfsId],
+    queryFn: () => transitApi.getLine(gtfsId!),
+    enabled: Boolean(gtfsId),
+    staleTime: 30 * 60 * 1000,
+  });
+}
+
+export function useLineDepartures(
+  gtfsId: string | null,
+  direction?: DirectionId,
+) {
+  return useQuery({
+    queryKey: ["transit-line-departures", gtfsId, direction ?? "any"],
+    queryFn: () => transitApi.getLineDepartures(gtfsId!, direction),
+    enabled: Boolean(gtfsId),
+    // Mirrors LINE_DEPARTURES_TTL (60s) + the FE's 30s refetch cadence so
+    // the per-stop "next departure" times feel live without hammering.
+    staleTime: 60 * 1000,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useFrequency(
+  gtfsId: string | null,
+  dayType: DayType,
+  direction?: DirectionId,
+) {
+  return useQuery({
+    queryKey: ["transit-line-frequency", gtfsId, dayType, direction ?? "any"],
+    queryFn: () => transitApi.getFrequency(gtfsId!, dayType, direction),
+    enabled: Boolean(gtfsId),
+    staleTime: 30 * 60 * 1000,
+  });
+}
+
+const PINNED_LINES_KEY = ["transit-pinned-lines"] as const;
+
+export function usePinnedLines(enabled = true) {
+  return useQuery({
+    queryKey: PINNED_LINES_KEY,
+    queryFn: () => transitApi.listPinnedLines(),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePinLine() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: transitApi.pinLine,
+    // Optimistic: flip the FE icon now, invalidate to reconcile after the
+    // server confirms. The mutation rolls back on error via onError.
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: PINNED_LINES_KEY });
+      const previous = qc.getQueryData<{ data: PinnedLineResponse[] }>(
+        PINNED_LINES_KEY,
+      );
+      qc.setQueryData<{ data: PinnedLineResponse[] }>(
+        PINNED_LINES_KEY,
+        (curr) => ({
+          data: [
+            {
+              id: `optimistic-${input.gtfsId}`,
+              gtfsId: input.gtfsId,
+              name: input.name,
+              vehicleMode: input.vehicleMode,
+              pinnedAt: new Date().toISOString(),
+            },
+            ...(curr?.data ?? []),
+          ],
+        }),
+      );
+      return { previous };
+    },
+    onError: (_err, _input, ctx) => {
+      if (ctx?.previous) qc.setQueryData(PINNED_LINES_KEY, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: PINNED_LINES_KEY }),
+  });
+}
+
+export function useUnpinLine() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => transitApi.unpinLine(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: PINNED_LINES_KEY });
+      const previous = qc.getQueryData<{ data: PinnedLineResponse[] }>(
+        PINNED_LINES_KEY,
+      );
+      qc.setQueryData<{ data: PinnedLineResponse[] }>(
+        PINNED_LINES_KEY,
+        (curr) => ({
+          data: (curr?.data ?? []).filter((row) => row.id !== id),
+        }),
+      );
+      return { previous };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.previous) qc.setQueryData(PINNED_LINES_KEY, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: PINNED_LINES_KEY }),
   });
 }

@@ -217,6 +217,12 @@
   line-height: var(--leading-tight);
   margin: 0;
   letter-spacing: -0.005em;
+  /* When stopName is the raw gtfsId (DepartureBoard restore-from-URL
+     path before departures resolves), the colons in "digitraffic:HKI:…"
+     are non-breaking. Force a break opportunity so the title can't
+     overflow into the pin button on narrow viewports. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .departure-masthead__title-spacer {
@@ -1340,6 +1346,117 @@
   border-color: var(--color-primary);
 }
 
+/* ── Line pin button (LineView masthead, search rows) ─────────────── */
+
+.line-pin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--color-rule);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.line-pin-button:hover {
+  color: var(--color-ink);
+  border-color: var(--color-ink-muted);
+}
+
+.line-pin-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.line-pin-button--pinned {
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+
+.line-pin-button[data-mode="tram"].line-pin-button--pinned {
+  border-color: var(--mode-tram-strong);
+}
+.line-pin-button[data-mode="rail"].line-pin-button--pinned {
+  border-color: var(--mode-rail-strong);
+}
+.line-pin-button[data-mode="subway"].line-pin-button--pinned {
+  border-color: var(--mode-subway-strong);
+}
+.line-pin-button[data-mode="ferry"].line-pin-button--pinned {
+  border-color: var(--mode-ferry-strong);
+}
+.line-pin-button[data-mode="bus"].line-pin-button--pinned {
+  border-color: var(--mode-bus-strong);
+}
+
+.line-pin-button--anonymous {
+  color: var(--color-ink-muted);
+  border-style: dashed;
+  border-color: var(--color-rule);
+  cursor: pointer;
+}
+
+.line-pin-button--anonymous:hover {
+  /* Stay muted on hover so the visual cue doesn't promise interactivity
+     beyond the sign-in toast. The toast itself is the affordance. */
+  color: var(--color-ink-muted);
+  border-color: var(--color-rule);
+}
+
+/* ── Direction toggle ──────────────────────────────────────────────── */
+
+.direction-toggle {
+  display: inline-flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.direction-toggle__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper);
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.direction-toggle__chip:hover {
+  color: var(--color-ink);
+  border-color: var(--color-ink-muted);
+}
+
+.direction-toggle__chip--active {
+  color: var(--color-ink);
+  background: var(--color-surface-sunk);
+  border-color: var(--color-ink);
+}
+
+.direction-toggle__arrow {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.direction-toggle__arrow--right::before {
+  content: "›";
+}
+
+.direction-toggle__arrow--left::before {
+  content: "‹";
+}
+
 /* ── Recent stops on the departure board ────────────────────────────── */
 
 .recent-stops {
@@ -1445,4 +1562,257 @@
 .pinned-stops-card__mode {
   color: var(--color-ink-muted);
   font-size: 0.8125rem;
+}
+
+/* --- Line search ------------------------------------------- */
+.line-search {
+  position: relative;
+}
+
+.line-search__controls {
+  display: flex;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.line-search__input-wrap {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+.line-search__icon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-ink-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.line-search__input-wrap input {
+  width: 100%;
+  padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+  border: 1px solid var(--color-rule);
+  border-radius: 0.75rem;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.line-search__input-wrap input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.line-search__region {
+  flex: 0 0 auto;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--color-rule);
+  border-radius: 0.75rem;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.line-search__region:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.line-search__results {
+  margin-top: var(--space-3);
+}
+
+.line-search__status {
+  padding: 0.625rem 0.75rem;
+  color: var(--color-ink-muted);
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
+.line-search__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.line-search__row {
+  border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--mode-bus-strong);
+  border-radius: var(--radius-xs);
+  background: var(--color-paper);
+  transition: background 0.15s ease;
+}
+
+.line-search__row:hover {
+  background: var(--color-surface-sunk);
+}
+
+.line-search__row--mode-tram {
+  border-left-color: var(--mode-tram-strong);
+}
+.line-search__row--mode-rail {
+  border-left-color: var(--mode-rail-strong);
+}
+.line-search__row--mode-subway {
+  border-left-color: var(--mode-subway-strong);
+}
+.line-search__row--mode-ferry {
+  border-left-color: var(--mode-ferry-strong);
+}
+
+.line-search__row-link {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  column-gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+  color: inherit;
+}
+
+.line-search__row-link:focus-visible {
+  outline: 2px solid var(--color-focus, currentColor);
+  outline-offset: -2px;
+}
+
+.line-search__chevron {
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-ink-muted);
+  align-self: center;
+}
+
+.line-search__mode-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.line-search__short {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9375rem;
+  color: var(--color-ink);
+}
+
+.line-search__long {
+  font-size: 0.8125rem;
+  color: var(--color-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-search__agency {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-muted);
+}
+
+.line-search__pins {
+  margin-top: var(--space-3);
+}
+
+.line-search__pins-heading {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.line-search__pins-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.line-search__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--mode-bus-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  transition: background 0.15s ease;
+}
+
+.line-search__chip:hover {
+  background: var(--color-surface-sunk);
+}
+
+.line-search__chip--mode-tram {
+  border-left-color: var(--mode-tram-strong);
+}
+.line-search__chip--mode-rail {
+  border-left-color: var(--mode-rail-strong);
+}
+.line-search__chip--mode-subway {
+  border-left-color: var(--mode-subway-strong);
+}
+.line-search__chip--mode-ferry {
+  border-left-color: var(--mode-ferry-strong);
+}
+
+.line-search__chip-name {
+  font-weight: 600;
+}
+
+.line-search__hint {
+  margin: var(--space-3) 0 0;
+  color: var(--color-ink-muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 480px) {
+  .line-search__controls {
+    flex-direction: column;
+  }
+  .line-search__row-link {
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    row-gap: var(--space-1);
+  }
+  .line-search__long {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+  .line-search__agency {
+    grid-column: 1 / -1;
+  }
+  .line-search__chevron {
+    grid-column: 3;
+    grid-row: 1 / -1;
+  }
 }

@@ -9,6 +9,10 @@ import {
   getFirstLastOfDay,
   planRoute,
   getTripDetail,
+  searchLines,
+  getLine,
+  getLineDepartures,
+  getFrequency,
   type DeparturesOptions,
   type ArrivalDepartureMode,
 } from "../services/transit/index.js";
@@ -17,6 +21,7 @@ import { parseJson } from "../utils/json.js";
 import { requireAuth } from "../auth/middleware.js";
 import { NotFoundError } from "../utils/error-envelope.js";
 import * as pinnedStopsRepo from "../db/repositories/pinned-stops.repo.js";
+import * as pinnedLinesRepo from "../db/repositories/pinned-lines.repo.js";
 import * as recentStopsRepo from "../db/repositories/recent-stops.repo.js";
 
 function isSubStopArray(value: unknown): value is Record<string, unknown>[] {
@@ -339,6 +344,138 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
     },
   );
 
+  // Line catalogue search by short or long name (LINE-1 discovery gate).
+  // `region` keys off `preferences.transitRegion` and picks the upstream
+  // graph — `"all"` (or unset) fans the query across the Finland-wide adapter
+  // so cross-region disambiguation ("25" → Tampere 25 + HSL 25) surfaces.
+  server.get<{ Querystring: { q?: string; region?: string } }>(
+    "/api/v1/transit/lines/search",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: {
+            q: { type: "string" },
+            region: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const q = (request.query.q ?? "").trim();
+      if (q === "") return badRequest("q must not be empty");
+      const region = request.query.region?.trim() || undefined;
+      const { data, cached } = await searchLines(q, region, request.persona);
+      return { data, cached };
+    },
+  );
+
+  // Single-line metadata + both directional patterns + per-pattern stops.
+  // The LineView page consumes this on first paint.
+  server.get<{ Params: { gtfsId: string } }>(
+    "/api/v1/transit/lines/:gtfsId",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["gtfsId"],
+          properties: { gtfsId: { type: "string", minLength: 1 } },
+        },
+      },
+    },
+    async (request) => {
+      const gtfsId = decodeURIComponent(request.params.gtfsId).trim();
+      if (gtfsId === "") return badRequest("gtfsId must not be empty");
+      const { data, cached } = await getLine(gtfsId, request.persona);
+      return { data, cached };
+    },
+  );
+
+  // Per-stop "next on this line" enrichment for the LineView stop spine.
+  // direction=0|1 picks which pattern's stops to fan out across.
+  server.get<{
+    Params: { gtfsId: string };
+    Querystring: { direction?: string };
+  }>(
+    "/api/v1/transit/lines/:gtfsId/departures",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["gtfsId"],
+          properties: { gtfsId: { type: "string", minLength: 1 } },
+        },
+        querystring: {
+          type: "object",
+          properties: { direction: { type: "string", enum: ["0", "1"] } },
+        },
+      },
+    },
+    async (request) => {
+      const gtfsId = decodeURIComponent(request.params.gtfsId).trim();
+      if (gtfsId === "") return badRequest("gtfsId must not be empty");
+      const direction =
+        request.query.direction === "0"
+          ? 0
+          : request.query.direction === "1"
+            ? 1
+            : undefined;
+      const { data, cached } = await getLineDepartures(
+        gtfsId,
+        direction,
+        request.persona,
+      );
+      return { data, cached };
+    },
+  );
+
+  // Day-of-day-type frequency rhythm for the LineView strip.
+  server.get<{
+    Params: { gtfsId: string };
+    Querystring: { dayType?: string; direction?: string };
+  }>(
+    "/api/v1/transit/lines/:gtfsId/frequency",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["gtfsId"],
+          properties: { gtfsId: { type: "string", minLength: 1 } },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            dayType: {
+              type: "string",
+              enum: ["weekday", "saturday", "sunday"],
+            },
+            direction: { type: "string", enum: ["0", "1"] },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const gtfsId = decodeURIComponent(request.params.gtfsId).trim();
+      if (gtfsId === "") return badRequest("gtfsId must not be empty");
+      const dayType =
+        (request.query.dayType as "weekday" | "saturday" | "sunday") ??
+        "weekday";
+      const direction =
+        request.query.direction === "0"
+          ? 0
+          : request.query.direction === "1"
+            ? 1
+            : undefined;
+      const { data, cached } = await getFrequency(
+        gtfsId,
+        dayType,
+        direction,
+        request.persona,
+      );
+      return { data, cached };
+    },
+  );
+
   server.get<{ Params: { tripId: string } }>(
     "/api/v1/transit/trip/:tripId",
     {
@@ -490,6 +627,68 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
       },
     );
 
+    // ── Pinned lines ──
+    s.get("/api/v1/transit/pinned-lines", async (request) => {
+      const userId = request.session!.user.id;
+      const rows = await pinnedLinesRepo.listByUser(userId);
+      return { data: rows.map(pinnedLineToResponse) };
+    });
+
+    s.post<{
+      Body: {
+        gtfsId: string;
+        name: string;
+        vehicleMode: string;
+      };
+    }>(
+      "/api/v1/transit/pinned-lines",
+      {
+        schema: {
+          body: {
+            type: "object",
+            required: ["gtfsId", "name", "vehicleMode"],
+            properties: {
+              gtfsId: { type: "string", minLength: 1, maxLength: 255 },
+              name: { type: "string", minLength: 1, maxLength: 255 },
+              // NOT NULL on the column; a missing mode is a buggy caller.
+              vehicleMode: { type: "string", minLength: 1, maxLength: 32 },
+            },
+          },
+        },
+      },
+      async (request, reply) => {
+        const userId = request.session!.user.id;
+        const row = await pinnedLinesRepo.pin({
+          userId,
+          gtfsId: request.body.gtfsId,
+          name: request.body.name,
+          vehicleMode: request.body.vehicleMode,
+        });
+        return reply.status(201).send({ data: pinnedLineToResponse(row) });
+      },
+    );
+
+    s.delete<{ Params: { id: string } }>(
+      "/api/v1/transit/pinned-lines/:id",
+      {
+        schema: {
+          params: {
+            type: "object",
+            required: ["id"],
+            properties: { id: { type: "string" } },
+          },
+        },
+      },
+      async (request, reply) => {
+        const userId = request.session!.user.id;
+        const row = await pinnedLinesRepo.unpinById(request.params.id, userId);
+        if (!row) {
+          throw new NotFoundError("Pinned line not found");
+        }
+        return reply.status(204).send();
+      },
+    );
+
     s.post<{
       Body: {
         gtfsId: string;
@@ -535,6 +734,16 @@ function pinnedStopToResponse(row: pinnedStopsRepo.PinnedStopRow) {
     name: row.name,
     vehicleMode: row.vehicleMode,
     isStation: row.isStation,
+    pinnedAt: row.pinnedAt.toISOString(),
+  };
+}
+
+function pinnedLineToResponse(row: pinnedLinesRepo.PinnedLineRow) {
+  return {
+    id: row.id,
+    gtfsId: row.gtfsId,
+    name: row.name,
+    vehicleMode: row.vehicleMode,
     pinnedAt: row.pinnedAt.toISOString(),
   };
 }

@@ -17,3 +17,10 @@ export type {
 } from "./departures.service.js";
 export { planRoute } from "./trip.service.js";
 export { getTripDetail } from "./trip-detail.service.js";
+export {
+  searchLines,
+  getLine,
+  getLineDepartures,
+  regionFromAgencyId,
+} from "./lines.service.js";
+export { getFrequency } from "./line-frequency.service.js";

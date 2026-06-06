@@ -1,0 +1,120 @@
+.freq-strip {
+  display: grid;
+  row-gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+
+.freq-strip__tabs {
+  display: flex;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.freq-strip__tab {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  background: transparent;
+  border: 0;
+  padding: var(--space-1) 0;
+  cursor: pointer;
+}
+
+.freq-strip__tab[aria-current="page"] {
+  color: var(--color-ink);
+}
+
+.freq-strip__tab:hover {
+  color: var(--color-ink);
+}
+
+.freq-strip__bars {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  column-gap: 2px;
+  row-gap: 2px;
+  min-height: 96px;
+  padding-top: var(--space-3);
+  overflow-x: auto;
+}
+
+.freq-strip__bar {
+  background: var(--mode-bus-strong);
+  min-height: 40px;
+  border-radius: var(--radius-xs);
+  grid-row: 1;
+  align-self: end;
+}
+
+.freq-strip--mode-tram .freq-strip__bar {
+  background: var(--mode-tram-strong);
+}
+
+.freq-strip--mode-rail .freq-strip__bar {
+  background: var(--mode-rail-strong);
+}
+
+.freq-strip--mode-subway .freq-strip__bar {
+  background: var(--mode-subway-strong);
+}
+
+.freq-strip--mode-ferry .freq-strip__bar {
+  background: var(--mode-ferry-strong);
+}
+
+.freq-strip__caption {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  letter-spacing: 0.06em;
+  text-align: center;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.freq-strip__caption--range {
+  grid-row: 2;
+}
+
+.freq-strip__caption--headway {
+  grid-row: 3;
+  color: var(--color-ink);
+}
+
+.freq-strip__sparse {
+  margin: 0;
+  padding: var(--space-3) 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  color: var(--color-ink);
+}
+
+.freq-strip__empty {
+  margin: 0;
+  padding: var(--space-3) 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  font-style: italic;
+}
+
+@media (forced-colors: active) {
+  .freq-strip__bar {
+    background: CanvasText !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .freq-strip__bars {
+    min-height: 64px;
+  }
+  .freq-strip__caption {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+}

@@ -54,6 +54,7 @@ function mapStoptimes(stoptimes: RawStoptime[]): TransitDeparture[] {
   return stoptimes.map((st) => ({
     routeShortName: st.trip.route.shortName,
     routeLongName: st.trip.route.longName,
+    routeGtfsId: st.trip.route.gtfsId,
     headsign: st.headsign,
     scheduledArrival: st.scheduledArrival,
     realtimeArrival: st.realtimeArrival,

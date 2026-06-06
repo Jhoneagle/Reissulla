@@ -256,7 +256,13 @@ export function DepartureTable({
     }
   }, [announcement]);
 
-  const modeToken = vehicleModeToken(vehicleMode);
+  // URL-restore path arrives with vehicleMode=null (stopFromQuery synthesises
+  // a TransitStop from ?stopId= alone). Recover the mode from the first
+  // departure once the response lands so the masthead tag stays visible
+  // after a back-navigation from /transit/trip/:tripId.
+  const effectiveVehicleMode =
+    vehicleMode ?? result?.departures?.[0]?.vehicleMode ?? null;
+  const modeToken = vehicleModeToken(effectiveVehicleMode);
   const firstLastData = firstLast.data?.data;
   const hasFirstLast = Boolean(firstLastData?.first && firstLastData?.last);
   const frequency = result?.frequency;
@@ -280,24 +286,30 @@ export function DepartureTable({
         ? "transit.depart.column.time"
         : "transit.depart.column.departs";
 
+  // The URL-restore path (DepartureBoard.stopFromQuery) seeds `stopName`
+  // with the raw gtfsId because the picker hasn't been touched yet — once
+  // the departures response lands it carries the real upstream name, which
+  // we prefer everywhere so the masthead never reads "digitraffic:HKI:…".
+  const displayName = result?.stopName ?? stopName;
+
   return (
     <section className="departure-board-section" aria-labelledby="dep-title">
       <header className="departure-masthead">
         <div className="departure-masthead__title-row">
           <h3 id="dep-title" className="departure-masthead__title">
-            {stopName}
+            {displayName}
           </h3>
-          {vehicleMode && (
+          {effectiveVehicleMode && (
             <span className={`mode-tag mode-${modeToken}`}>
-              {vehicleModeLabel(vehicleMode)}
+              {vehicleModeLabel(effectiveVehicleMode)}
             </span>
           )}
           <div className="departure-masthead__title-spacer" />
           <PinButton
             stop={{
               gtfsId: stopId,
-              name: stopName,
-              vehicleMode,
+              name: displayName,
+              vehicleMode: effectiveVehicleMode,
               isStation: isStation ?? false,
             }}
           />
@@ -553,7 +565,7 @@ export function DepartureTable({
                 className={`departure-list${platformMod}`}
                 aria-label={intl.formatMessage(
                   { id: "transit.depart.caption" },
-                  { stopName, count: departures.length },
+                  { stopName: displayName, count: departures.length },
                 )}
               >
                 {departures.map((dep, i) => (

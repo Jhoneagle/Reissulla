@@ -48,6 +48,12 @@ export interface TransitStop {
 export interface TransitDeparture {
   routeShortName: string;
   routeLongName: string;
+  /**
+   * Line gtfsId — the stable cross-region identifier ("HSL:1059" vs
+   * "tampere:25"). Optional because legacy cached payloads pre-date the
+   * field; new readers can fall back to routeShortName when needed.
+   */
+  routeGtfsId?: string;
   headsign: string;
   /**
    * Times are seconds within the service day. The same row carries

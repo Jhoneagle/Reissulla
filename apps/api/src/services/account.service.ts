@@ -2,6 +2,7 @@ import * as usersRepo from "../db/repositories/users.repo.js";
 import * as savedLocationsRepo from "../db/repositories/saved-locations.repo.js";
 import * as recentPlacesRepo from "../db/repositories/recent-places.repo.js";
 import * as pinnedStopsRepo from "../db/repositories/pinned-stops.repo.js";
+import * as pinnedLinesRepo from "../db/repositories/pinned-lines.repo.js";
 import * as recentStopsRepo from "../db/repositories/recent-stops.repo.js";
 import * as preferencesRepo from "../db/repositories/preferences.repo.js";
 import type { PreferencesExtra } from "../db/repositories/preferences-extra.js";
@@ -125,12 +126,14 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
     savedLocations,
     recentPlaces,
     pinnedStopRows,
+    pinnedLineRows,
     recentStopRows,
   ] = await Promise.all([
     preferencesRepo.findByUserId(userId),
     savedLocationsRepo.listByUser(userId),
     recentPlacesRepo.listByUser(userId, 1000),
     pinnedStopsRepo.listByUser(userId),
+    pinnedLinesRepo.listByUser(userId),
     recentStopsRepo.listByUser(userId, 1000),
   ]);
 
@@ -196,7 +199,12 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
       visitCount: row.visitCount,
       lastVisitedAt: row.lastVisitedAt.toISOString(),
     })),
-    pinnedLines: [],
+    pinnedLines: pinnedLineRows.map((row) => ({
+      gtfsId: row.gtfsId,
+      name: row.name,
+      vehicleMode: row.vehicleMode,
+      pinnedAt: row.pinnedAt.toISOString(),
+    })),
     tripLog: [],
     alertSeen: [],
     shareTokens: [],
