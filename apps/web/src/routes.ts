@@ -3,6 +3,7 @@ import { MapPage } from "./pages/Map";
 import { Transit } from "./pages/Transit";
 import { TripDetail } from "./pages/TripDetail";
 import { LineView } from "./pages/LineView";
+import { SharedItinerary } from "./pages/SharedItinerary";
 import { Settings } from "./pages/Settings";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
@@ -45,6 +46,13 @@ export const routes = [
     labelId: "nav.transit",
     Component: Transit,
     nav: true,
+  },
+  {
+    path: "/t",
+    label: "Shared trip",
+    labelId: "transit.itinerary.share.viewHeading",
+    Component: SharedItinerary,
+    nav: false,
   },
   {
     path: "/settings",
