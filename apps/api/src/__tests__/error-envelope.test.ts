@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { buildServer } from "../app.js";
 import { redis } from "../cache/redis.js";
 import { cacheDel } from "../cache/cache.js";
@@ -44,18 +44,14 @@ describe("error envelope", () => {
   });
 
   it("returns { error: { code: 'TRANSIT_UNAVAILABLE', source: 'digitransit-finland' } } when the upstream fails", async () => {
-    // Other test files share this Redis instance and may have primed the
-    // stops-nearby cache for these coordinates; clear so we know the
-    // request will reach the (mocked-failing) upstream.
-    await cacheDel("transit:stops-nearby:v1:60.170:24.940:500");
-
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
-      new Error("Network error"),
-    );
+    // (60.55, 24.55) is wired in the MSW fixture to make the finland graph
+    // return a network error — every other graph returns empty so the
+    // failing source is unambiguously the finland adapter.
+    await cacheDel("transit:stops-nearby:v1:60.550:24.550:500");
 
     const res = await server.inject({
       method: "GET",
-      url: "/api/v1/transit/stops?lat=60.17&lon=24.94",
+      url: "/api/v1/transit/stops?lat=60.55&lon=24.55",
     });
 
     expect(res.statusCode).toBe(502);

@@ -31,7 +31,7 @@ export default defineConfig({
 
   webServer: [
     {
-      command: "pnpm --filter @reissulla/api dev",
+      command: "pnpm --filter @reissulla/api dev:e2e",
       port: 3000,
       reuseExistingServer: !process.env.CI,
       env: {

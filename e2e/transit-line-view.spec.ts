@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/mock-browser-externals";
 import { expectNoSeriousA11yViolations } from "./helpers";
 
 /**

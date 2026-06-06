@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:e2e": "tsx test/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src/",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit -p tsconfig.test.json",
     "clean": "rm -rf dist",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -34,9 +35,11 @@
     "postgres": "^3.4.9"
   },
   "devDependencies": {
+    "@reissulla/test-fixtures": "workspace:*",
     "@types/node": "^25.6.0",
     "@types/nodemailer": "^8.0.0",
     "drizzle-kit": "^0.31.10",
+    "msw": "^2.7.3",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "vitest": "^4.1.5"
