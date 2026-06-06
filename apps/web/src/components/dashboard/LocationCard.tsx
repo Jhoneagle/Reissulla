@@ -185,7 +185,12 @@ export function LocationCard({
                         />
                       </span>
                     </span>
-                    <span className="stops-board__name">{stop.name}</span>
+                    <span className="stops-board__name">
+                      {stop.name}
+                      {stop.city && (
+                        <span className="stops-board__city">{stop.city}</span>
+                      )}
+                    </span>
                     {stop.distance !== undefined && (
                       <span className="stops-board__distance">
                         {Math.round(stop.distance)} m

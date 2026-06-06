@@ -1798,6 +1798,15 @@ html[data-theme="dark"] .form-field select {
   font-weight: 500;
   font-size: var(--text-base);
   color: var(--color-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stops-board__city {
+  font-weight: 400;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
 }
 
 .stops-board__distance {
