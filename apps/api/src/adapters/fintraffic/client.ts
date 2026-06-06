@@ -12,7 +12,8 @@ const FETCH_TIMEOUT_MS = 10_000;
 
 export const FINTRAFFIC_DEFAULT_BASE = "https://tie.digitraffic.fi";
 
-const ROAD_CONDITIONS_PATH = "/api/weather/v1/forecast-sections/road-conditions";
+const ROAD_CONDITIONS_PATH =
+  "/api/weather/v1/forecast-sections/road-conditions";
 
 export interface FintrafficClient {
   readonly source: "fintraffic";

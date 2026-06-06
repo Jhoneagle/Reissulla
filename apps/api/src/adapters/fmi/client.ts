@@ -55,15 +55,13 @@ export function createFmiClient(
         res = await fetch(url, { headers: userAgentHeaders(), signal });
       } catch (err) {
         if (timeoutSignal.aborted) {
-          throw new Error(
-            `FMI WFS timed out after ${FETCH_TIMEOUT_MS}ms`,
-            { cause: err },
-          );
+          throw new Error(`FMI WFS timed out after ${FETCH_TIMEOUT_MS}ms`, {
+            cause: err,
+          });
         }
-        throw new Error(
-          `FMI WFS network error: ${(err as Error).message}`,
-          { cause: err },
-        );
+        throw new Error(`FMI WFS network error: ${(err as Error).message}`, {
+          cause: err,
+        });
       }
 
       if (!res.ok) {
@@ -77,7 +75,13 @@ export function createFmiClient(
       // FMI publishes WMS at openwms.fmi.fi. The {z}/{x}/{y}.png shape is a
       // convention for the tile renderer downstream — the TIME parameter
       // identifies the radar frame and is the load-bearing piece here.
-      const tail = tileQueryTail(layer, timestamp, String(z), String(x), String(y));
+      const tail = tileQueryTail(
+        layer,
+        timestamp,
+        String(z),
+        String(x),
+        String(y),
+      );
       return `${wmsBaseUrl}/${z}/${x}/${y}.png?${tail}`;
     },
 

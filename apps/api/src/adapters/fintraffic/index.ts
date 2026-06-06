@@ -1,8 +1,5 @@
 import type { AdapterContext } from "../types.js";
-import {
-  createFintrafficClient,
-  type FintrafficClient,
-} from "./client.js";
+import { createFintrafficClient, type FintrafficClient } from "./client.js";
 import {
   mapSurfaceState,
   type FintrafficRawSection,

@@ -6,7 +6,8 @@ import {
 import { recordRequest } from "../request-log.js";
 
 const FINTRAFFIC_DEFAULT_BASE = "https://tie.digitraffic.fi";
-const ROAD_CONDITIONS_PATH = "/api/weather/v1/forecast-sections/road-conditions";
+const ROAD_CONDITIONS_PATH =
+  "/api/weather/v1/forecast-sections/road-conditions";
 
 /**
  * Fintraffic's road-conditions endpoint is nationwide and takes no coord

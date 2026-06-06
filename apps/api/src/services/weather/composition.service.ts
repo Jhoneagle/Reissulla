@@ -1,4 +1,8 @@
-import type { CurrentWeather, Persona, WeatherForecast } from "@reissulla/shared";
+import type {
+  CurrentWeather,
+  Persona,
+  WeatherForecast,
+} from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
 import {
@@ -10,9 +14,7 @@ import {
   WEATHER_WARNINGS_TTL,
 } from "../../cache/ttl.js";
 import { tryCache } from "../../utils/resilience.js";
-import {
-  openMeteoForecast,
-} from "../../adapters/open-meteo-forecast/index.js";
+import { openMeteoForecast } from "../../adapters/open-meteo-forecast/index.js";
 import { openMeteoAirQuality } from "../../adapters/open-meteo-air-quality/index.js";
 import type {
   AirQualitySnapshot,
@@ -169,10 +171,16 @@ export async function getWeatherSnapshot(
     },
     meta: {
       current: { cached: currentResult.cached, failed: currentResult.failed },
-      forecast: { cached: forecastResult.cached, failed: forecastResult.failed },
+      forecast: {
+        cached: forecastResult.cached,
+        failed: forecastResult.failed,
+      },
       airQuality: aqMeta,
       pollen: aqMeta,
-      warnings: { cached: warningsResult.cached, failed: warningsResult.failed },
+      warnings: {
+        cached: warningsResult.cached,
+        failed: warningsResult.failed,
+      },
       roadConditions: {
         cached: roadsResult.cached,
         failed: roadsResult.failed,

@@ -9,7 +9,8 @@ import type { AdapterContext } from "../types.js";
 
 const FETCH_TIMEOUT_MS = 10_000;
 
-export const OPEN_METEO_FORECAST_BASE = "https://api.open-meteo.com/v1/forecast";
+export const OPEN_METEO_FORECAST_BASE =
+  "https://api.open-meteo.com/v1/forecast";
 
 export interface OpenMeteoForecastClient {
   readonly source: "open-meteo";
