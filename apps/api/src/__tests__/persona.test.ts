@@ -108,19 +108,36 @@ describe("personaToPlanArgs", () => {
     );
   });
 
-  it("maps noStairs=true to wheelchair routing (same OTP2 preference)", () => {
+  it("maps noStairs=true to wheelchair routing + avoidStairs", () => {
     expect(personaToPlanArgs({ ...DEFAULT_PERSONA, noStairs: true })).toEqual({
       wheelchair: true,
+      avoidStairs: true,
     });
   });
 
-  it("does not surface unrelated flags as routing args", () => {
+  it("maps stroller=true to slower walking + fewer-transfers bias", () => {
+    expect(personaToPlanArgs({ ...DEFAULT_PERSONA, stroller: true })).toEqual({
+      walkSpeedMetresPerSec: 1.1,
+      preferFewerTransfers: true,
+    });
+  });
+
+  it("lets wheelchair override stroller when both are set", () => {
+    const args = personaToPlanArgs({
+      ...DEFAULT_PERSONA,
+      wheelchair: true,
+      stroller: true,
+    });
+    expect(args.wheelchair).toBe(true);
+    expect(args.walkSpeedMetresPerSec).toBeUndefined();
+  });
+
+  it("does not surface UI-only flags as routing args", () => {
     expect(
       personaToPlanArgs({
         ...DEFAULT_PERSONA,
         screenReader: true,
         lowVision: true,
-        stroller: true,
         language: "fi",
       }),
     ).toEqual({});

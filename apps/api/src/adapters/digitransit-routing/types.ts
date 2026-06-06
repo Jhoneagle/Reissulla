@@ -140,8 +140,15 @@ export interface RawPlanLeg {
     lon: number;
     stop?: { gtfsId: string; code: string | null };
   };
-  route?: { shortName: string; longName: string };
+  route?: {
+    shortName: string;
+    longName: string;
+    /** Operator agency — populated when the orchestrator resolves it for TRIP-19. */
+    agency?: { gtfsId: string; name: string } | null;
+  };
   intermediateStops?: { name: string; gtfsId: string }[];
+  /** OTP2 turn-by-turn for WALK legs. Empty array when unavailable. */
+  steps?: { distance: number; relativeDirection: string; streetName: string }[];
 }
 
 export interface RawPlanConnectionEdge {
@@ -158,12 +165,36 @@ export interface RawPlanConnectionData {
   planConnection: { edges: RawPlanConnectionEdge[] } | null;
 }
 
+export type PlanConnectionMode =
+  | "BUS"
+  | "TRAM"
+  | "RAIL"
+  | "SUBWAY"
+  | "FERRY"
+  | "BICYCLE";
+
 export interface PlanConnectionArgs {
   fromLat: number;
   fromLon: number;
   toLat: number;
   toLon: number;
   numItineraries: number;
+  /**
+   * Unix seconds anchor for the plan. When omitted, OTP2 routes from "now".
+   * `arriveBy` flips the meaning from departure to arrival.
+   */
+  dateTime?: number;
+  arriveBy?: boolean;
+  /** Transit modes the planner is allowed to use. Empty / undefined → server default. */
+  transitModes?: PlanConnectionMode[];
+  /** OTP2 walking speed in m/s. */
+  walkSpeedMetresPerSec?: number;
+  /** Cap per leg in metres; OTP2 honours this for transit suggestions. */
+  walkReluctanceBoost?: boolean;
+  /** Caps the number of transfers (TRIP-12: avoidTransfers → 1). */
+  numberOfTransfers?: number;
+  /** Avoid escalators / stairs (TRIP-13 + persona noStairs). */
+  avoidStairs?: boolean;
 }
 
 // ---- Line catalogue (routes / route / pattern / patterns) ------------------

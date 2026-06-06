@@ -42,13 +42,19 @@ export function vehicleModeLabel(mode: string): string {
   return labels[mode] ?? mode;
 }
 
+/**
+ * Mode badge background tones. Every value here clears WCAG 2.2 AA 4.5:1
+ * against white text — `.mode-badge` forces `color: #fff` so this palette
+ * needs to stay dark enough. If a new mode lands, eyeball-check it against
+ * white first and only commit a colour that passes ≥4.5:1.
+ */
 export function vehicleModeColor(mode: string): string {
   const colors: Record<string, string> = {
     BUS: "#2563eb",
-    TRAM: "#059669",
+    TRAM: "#047857",
     RAIL: "#7c3aed",
-    SUBWAY: "#ea580c",
-    FERRY: "#0891b2",
+    SUBWAY: "#c2410c",
+    FERRY: "#0e7490",
     WALK: "#64748b",
   };
   return colors[mode] ?? "#64748b";

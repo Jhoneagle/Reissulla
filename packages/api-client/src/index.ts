@@ -27,6 +27,9 @@ import {
   type FrequencyBand,
   type DayType,
   type DirectionId,
+  type PlanPreferences,
+  type TransitMode,
+  type TripPreference,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -387,6 +390,20 @@ export interface RecentStopResponse {
   lastVisitedAt: string;
 }
 
+export interface PlanRequestInput {
+  query: {
+    from: { lat: number; lon: number };
+    to: { lat: number; lon: number };
+    /** Unix seconds; omit for "now". */
+    dateTime?: number;
+    arriveBy?: boolean;
+    preference?: TripPreference;
+    modes?: TransitMode[];
+    planPreferences?: Partial<PlanPreferences>;
+  };
+  numItineraries?: number;
+}
+
 export const transitApi = {
   nearbyStops(lat: number, lon: number, options?: NearbyStopsOptions) {
     const params = new URLSearchParams({
@@ -457,9 +474,11 @@ export const transitApi = {
       `/transit/departures/first-last?${params}`,
     );
   },
-  plan(fromLat: number, fromLon: number, toLat: number, toLon: number) {
-    return request<ApiResponse<TransitPlanResult>>(
-      `/transit/plan?fromLat=${fromLat}&fromLon=${fromLon}&toLat=${toLat}&toLon=${toLon}`,
+  plan(input: PlanRequestInput) {
+    return mutationRequest<ApiResponse<TransitPlanResult>>(
+      "/transit/plan",
+      "POST",
+      input,
     );
   },
   getTripDetail(tripId: string) {

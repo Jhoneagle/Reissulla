@@ -164,6 +164,11 @@ export interface TransitItineraryLeg {
    * service resolves `route.agency` for cross-region disambiguation.
    */
   operator?: { gtfsId: string; name: string };
+  /**
+   * OTP2 turn-by-turn for WALK legs. Empty / absent when upstream does not
+   * surface step text — the UI renders nothing rather than an error.
+   */
+  steps?: { distance: number; relativeDirection: string; streetName: string }[];
 }
 
 export interface TransitItinerary {
@@ -179,6 +184,16 @@ export interface TransitItinerary {
    * instead of a numeric total.
    */
   farePlaceholders?: boolean;
+  /**
+   * Persona flags that actually drove this plan call — the UI shows badges
+   * only for the ones we honoured upstream. Mirrors persona inputs, not raw
+   * persona state, so we don't claim "Step-free" when the planner ignored it.
+   */
+  appliedPersonaFlags?: {
+    wheelchair?: boolean;
+    lowFloor?: boolean;
+    stroller?: boolean;
+  };
 }
 
 export interface TransitPlanResult {

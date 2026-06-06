@@ -5,6 +5,7 @@ import {
   type DeparturesOptions,
   type NearbyStopsOptions,
   type PinnedLineResponse,
+  type PlanRequestInput,
   type SearchStopsOptions,
 } from "@reissulla/api-client";
 import { useDebounce } from "./useDebounce";
@@ -139,17 +140,11 @@ export function useFirstLast(stopId: string | null, date?: string) {
   });
 }
 
-export function useRoutePlan(
-  fromLat: number | null,
-  fromLon: number | null,
-  toLat: number | null,
-  toLon: number | null,
-) {
+export function useRoutePlan(input: PlanRequestInput | null) {
   return useQuery({
-    queryKey: ["transit-plan", fromLat, fromLon, toLat, toLon],
-    queryFn: () => transitApi.plan(fromLat!, fromLon!, toLat!, toLon!),
-    enabled:
-      fromLat !== null && fromLon !== null && toLat !== null && toLon !== null,
+    queryKey: ["transit-plan", input],
+    queryFn: () => transitApi.plan(input!),
+    enabled: input !== null,
     staleTime: 5 * 60 * 1000, // 5 min
   });
 }

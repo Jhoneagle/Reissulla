@@ -1,13 +1,75 @@
-import { useState, useCallback } from "react";
-import { FormattedMessage } from "react-intl";
-import type { GeocodingResult } from "@reissulla/shared";
+import { useState, useCallback, useMemo } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+import {
+  DEFAULT_PLAN_PREFERENCES,
+  type GeocodingResult,
+  type SavedLocation,
+  type TransitMode,
+} from "@reissulla/shared";
 import { LocationSearch } from "../LocationSearch";
 import { useRoutePlan } from "../../hooks/useTransit";
+import { useSavedLocations } from "../../hooks/useSavedLocations";
 import { ItineraryCard } from "./ItineraryCard";
+import { PlannerControls, type PlannerControlsValue } from "./PlannerControls";
 
-export function RoutePlanner() {
-  const [origin, setOrigin] = useState<GeocodingResult | null>(null);
-  const [destination, setDestination] = useState<GeocodingResult | null>(null);
+const DEFAULT_MODES: TransitMode[] = ["BUS", "TRAM", "RAIL", "SUBWAY", "FERRY"];
+const SWAP_GLYPH = "⇅";
+const HOME_GLYPH = "⌂";
+
+const DEFAULT_CONTROLS: PlannerControlsValue = {
+  dateTime: undefined,
+  arriveBy: false,
+  modes: DEFAULT_MODES,
+  preference: "fastest",
+  planPreferences: DEFAULT_PLAN_PREFERENCES,
+};
+
+interface RoutePlannerProps {
+  initialOrigin?: GeocodingResult | null;
+  initialDestination?: GeocodingResult | null;
+  initialControls?: Partial<PlannerControlsValue>;
+}
+
+function savedLocationToResult(loc: SavedLocation): GeocodingResult {
+  return {
+    placeId: `saved:${loc.id}`,
+    name: loc.name,
+    displayName: loc.name,
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+    type: "saved-location",
+    importance: 1,
+  };
+}
+
+function homeLocation(
+  locations: SavedLocation[] | undefined,
+): SavedLocation | null {
+  if (!locations) return null;
+  return locations.find((l) => l.category === "home") ?? null;
+}
+
+export function RoutePlanner({
+  initialOrigin = null,
+  initialDestination = null,
+  initialControls,
+}: RoutePlannerProps = {}) {
+  const intl = useIntl();
+  const [origin, setOrigin] = useState<GeocodingResult | null>(initialOrigin);
+  const [destination, setDestination] = useState<GeocodingResult | null>(
+    initialDestination,
+  );
+  const [controls, setControls] = useState<PlannerControlsValue>({
+    ...DEFAULT_CONTROLS,
+    ...initialControls,
+    planPreferences: {
+      ...DEFAULT_CONTROLS.planPreferences,
+      ...(initialControls?.planPreferences ?? {}),
+    },
+  });
+
+  const savedLocations = useSavedLocations();
+  const home = homeLocation(savedLocations.data?.data);
 
   const handleOriginSelect = useCallback(
     (result: GeocodingResult) => setOrigin(result),
@@ -18,16 +80,37 @@ export function RoutePlanner() {
     [],
   );
 
-  const plan = useRoutePlan(
-    origin?.latitude ?? null,
-    origin?.longitude ?? null,
-    destination?.latitude ?? null,
-    destination?.longitude ?? null,
-  );
+  const handleSwap = useCallback(() => {
+    setOrigin(destination);
+    setDestination(origin);
+  }, [origin, destination]);
 
+  const handleGetMeHome = useCallback(() => {
+    if (!home) return;
+    setDestination(savedLocationToResult(home));
+  }, [home]);
+
+  const planInput = useMemo(() => {
+    if (!origin || !destination) return null;
+    return {
+      query: {
+        from: { lat: origin.latitude, lon: origin.longitude },
+        to: { lat: destination.latitude, lon: destination.longitude },
+        dateTime: controls.dateTime,
+        arriveBy: controls.arriveBy,
+        preference: controls.preference,
+        modes: controls.modes,
+        planPreferences: controls.planPreferences,
+      },
+      numItineraries: 3,
+    };
+  }, [origin, destination, controls]);
+
+  const plan = useRoutePlan(planInput);
   const result = plan.data?.data;
   const itineraries = result?.itineraries ?? [];
   const message = result?.message;
+  const appliedFlags = itineraries[0]?.appliedPersonaFlags;
 
   return (
     <div className="route-planner">
@@ -38,13 +121,37 @@ export function RoutePlanner() {
           </label>
           <LocationSearch id="transit-from" onSelect={handleOriginSelect} />
         </div>
+        <div className="route-planner__swap">
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm route-planner__swap-button"
+            onClick={handleSwap}
+            disabled={!origin && !destination}
+            aria-label={intl.formatMessage({ id: "transit.plan.swap.aria" })}
+          >
+            <span aria-hidden="true">{SWAP_GLYPH}</span>
+            <FormattedMessage id="transit.plan.swap.label" />
+          </button>
+        </div>
         <div className="route-planner__field">
           <label htmlFor="transit-to" className="route-planner__label">
             <FormattedMessage id="transit.plan.to" />
           </label>
           <LocationSearch id="transit-to" onSelect={handleDestinationSelect} />
         </div>
+        {home && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm route-planner__home-pill"
+            onClick={handleGetMeHome}
+          >
+            <span aria-hidden="true">{HOME_GLYPH}</span>
+            <FormattedMessage id="transit.plan.getMeHome" />
+          </button>
+        )}
       </div>
+
+      <PlannerControls value={controls} onChange={setControls} />
 
       {plan.isLoading && (
         <div className="route-planner__loading">
@@ -125,15 +232,43 @@ export function RoutePlanner() {
       )}
 
       {itineraries.length > 0 && (
-        <div className="route-planner__results">
-          {itineraries.map((it, i) => (
-            <ItineraryCard
-              key={`${it.startTime}-${it.endTime}-${i}`}
-              itinerary={it}
-              index={i}
-            />
-          ))}
-        </div>
+        <>
+          {appliedFlags &&
+            (appliedFlags.wheelchair ||
+              appliedFlags.stroller ||
+              appliedFlags.lowFloor) && (
+              <div
+                className="route-planner__applied-flags"
+                role="status"
+                aria-live="polite"
+              >
+                {appliedFlags.wheelchair && (
+                  <span className="planner-flag-tag planner-flag-tag--wheelchair">
+                    <FormattedMessage id="transit.plan.applied.wheelchair" />
+                  </span>
+                )}
+                {appliedFlags.stroller && (
+                  <span className="planner-flag-tag planner-flag-tag--stroller">
+                    <FormattedMessage id="transit.plan.applied.stroller" />
+                  </span>
+                )}
+                {appliedFlags.lowFloor && (
+                  <span className="planner-flag-tag planner-flag-tag--lowfloor">
+                    <FormattedMessage id="transit.plan.applied.lowFloor" />
+                  </span>
+                )}
+              </div>
+            )}
+          <div className="route-planner__results">
+            {itineraries.map((it, i) => (
+              <ItineraryCard
+                key={`${it.startTime}-${it.endTime}-${i}`}
+                itinerary={it}
+                index={i}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

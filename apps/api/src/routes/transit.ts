@@ -1,5 +1,11 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { TransitSubStop } from "@reissulla/shared";
+import type {
+  PlanPreferences,
+  TransitMode,
+  TripPreference,
+} from "@reissulla/shared";
+import { DEFAULT_PERSONA, DEFAULT_PLAN_PREFERENCES } from "@reissulla/shared";
 import {
   getNearbyStops,
   getAdaptiveNearbyStops,
@@ -7,7 +13,7 @@ import {
   getStopDepartures,
   getMultiStopDepartures,
   getFirstLastOfDay,
-  planRoute,
+  planRouteFull,
   getTripDetail,
   searchLines,
   getLine,
@@ -495,47 +501,57 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
     },
   );
 
-  server.get<{
-    Querystring: {
-      fromLat: string;
-      fromLon: string;
-      toLat: string;
-      toLon: string;
-    };
+  server.post<{
+    Body: PlanRequestBody;
   }>(
     "/api/v1/transit/plan",
     {
+      // The plan endpoint is more expensive than the rest of the transit
+      // surface — per-route rate limit caps every caller at 20/min so a
+      // misbehaving client cannot DOS the upstream graph.
+      config: {
+        rateLimit: { max: 20, timeWindow: "1 minute" },
+      },
       schema: {
-        querystring: {
-          type: "object",
-          required: ["fromLat", "fromLon", "toLat", "toLon"],
-          properties: {
-            fromLat: { type: "string" },
-            fromLon: { type: "string" },
-            toLat: { type: "string" },
-            toLon: { type: "string" },
-          },
-        },
+        body: PLAN_REQUEST_BODY_SCHEMA,
       },
     },
     async (request) => {
-      const from = parseCoordinates({
-        lat: request.query.fromLat,
-        lon: request.query.fromLon,
-      });
-      const to = parseCoordinates({
-        lat: request.query.toLat,
-        lon: request.query.toLon,
-      });
+      const body = request.body;
+      const fromLat = body.query.from.lat;
+      const fromLon = body.query.from.lon;
+      const toLat = body.query.to.lat;
+      const toLon = body.query.to.lon;
+      const err = validatePlanCoordinates(fromLat, fromLon, toLat, toLon);
+      if (err) return badRequest(err);
 
-      const { data, cached } = await planRoute(
-        from.lat,
-        from.lon,
-        to.lat,
-        to.lon,
-        undefined,
-        request.persona,
-      );
+      const modes: TransitMode[] =
+        body.query.modes && body.query.modes.length > 0
+          ? body.query.modes
+          : ["BUS", "RAIL", "TRAM", "SUBWAY", "FERRY"];
+      const preference: TripPreference = body.query.preference ?? "fastest";
+      const planPreferences: PlanPreferences = {
+        ...DEFAULT_PLAN_PREFERENCES,
+        ...(body.query.planPreferences ?? {}),
+      };
+      const numItineraries =
+        typeof body.numItineraries === "number" && body.numItineraries > 0
+          ? Math.min(body.numItineraries, 5)
+          : 3;
+
+      const { data, cached } = await planRouteFull({
+        query: {
+          from: { lat: fromLat, lon: fromLon },
+          to: { lat: toLat, lon: toLon },
+          dateTime: body.query.dateTime,
+          arriveBy: body.query.arriveBy === true,
+          preference,
+          modes,
+          planPreferences,
+          persona: request.persona ?? DEFAULT_PERSONA,
+        },
+        numItineraries,
+      });
       return { data, cached };
     },
   );
@@ -787,6 +803,107 @@ const ALLOWED_ARRIVAL_DEPARTURE = new Set<ArrivalDepartureMode>([
   "arrivals",
   "both",
 ]);
+
+const ALLOWED_PLAN_MODES = [
+  "BUS",
+  "TRAM",
+  "RAIL",
+  "SUBWAY",
+  "FERRY",
+  "WALK",
+  "BICYCLE",
+] as const;
+
+const ALLOWED_PLAN_PREFERENCES = [
+  "fastest",
+  "fewest-transfers",
+  "least-walking",
+] as const;
+
+interface PlanRequestBody {
+  query: {
+    from: { lat: number; lon: number };
+    to: { lat: number; lon: number };
+    dateTime?: number;
+    arriveBy?: boolean;
+    preference?: TripPreference;
+    modes?: TransitMode[];
+    planPreferences?: Partial<PlanPreferences>;
+  };
+  numItineraries?: number;
+}
+
+const PLAN_REQUEST_BODY_SCHEMA = {
+  type: "object",
+  required: ["query"],
+  properties: {
+    query: {
+      type: "object",
+      required: ["from", "to"],
+      properties: {
+        from: {
+          type: "object",
+          required: ["lat", "lon"],
+          properties: {
+            lat: { type: "number" },
+            lon: { type: "number" },
+          },
+        },
+        to: {
+          type: "object",
+          required: ["lat", "lon"],
+          properties: {
+            lat: { type: "number" },
+            lon: { type: "number" },
+          },
+        },
+        dateTime: { type: "integer", minimum: 0 },
+        arriveBy: { type: "boolean" },
+        preference: { type: "string", enum: [...ALLOWED_PLAN_PREFERENCES] },
+        modes: {
+          type: "array",
+          items: { type: "string", enum: [...ALLOWED_PLAN_MODES] },
+          maxItems: ALLOWED_PLAN_MODES.length,
+        },
+        planPreferences: {
+          type: "object",
+          properties: {
+            walkingSpeed: {
+              type: "string",
+              enum: ["slow", "normal", "fast"],
+            },
+            maxWalkDistanceMeters: {
+              type: "integer",
+              minimum: 100,
+              maximum: 10_000,
+            },
+            avoidTransfers: { type: "boolean" },
+            avoidStairs: { type: "boolean" },
+          },
+          additionalProperties: false,
+        },
+      },
+      additionalProperties: false,
+    },
+    numItineraries: { type: "integer", minimum: 1, maximum: 5 },
+  },
+  additionalProperties: false,
+} as const;
+
+function validatePlanCoordinates(
+  fromLat: number,
+  fromLon: number,
+  toLat: number,
+  toLon: number,
+): string | null {
+  if (Math.abs(fromLat) > 90 || Math.abs(toLat) > 90) {
+    return "latitude must be between -90 and 90";
+  }
+  if (Math.abs(fromLon) > 180 || Math.abs(toLon) > 180) {
+    return "longitude must be between -180 and 180";
+  }
+  return null;
+}
 
 /**
  * Parse the at / mode / filter query params for departures. Returns a
