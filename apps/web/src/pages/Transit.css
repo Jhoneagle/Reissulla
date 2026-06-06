@@ -1265,6 +1265,22 @@
   letter-spacing: 0.02em;
 }
 
+/* The mode-badge ships with a coloured background (BUS blue, TRAM green, …)
+   applied inline via vehicleModeColor(). Without an explicit foreground it
+   used to inherit --color-ink, leaving the route number as dark text on a
+   colour where the contrast dropped to ~3.7:1 — below AA. Force white
+   text; the colour palette in vehicleModeColor() is calibrated against it. */
+.mode-badge {
+  color: #ffffff;
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.3rem;
+  font-weight: 600;
+}
+
+.mode-badge--sm {
+  font-size: 0.8125rem;
+}
+
 .leg__steps {
   margin-top: 0.5rem;
   font-size: 0.8125rem;
