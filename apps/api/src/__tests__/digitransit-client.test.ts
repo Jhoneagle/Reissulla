@@ -5,7 +5,7 @@ import type { AdapterContext } from "../adapters/types.js";
 import { SYNTHETIC_ROUTING_BASE } from "../../test/msw/handlers/digitransit-routing.js";
 
 function ctx(): AdapterContext {
-  return { signal: new AbortController().signal };
+  return { signal: new AbortController().signal, locale: "fi" };
 }
 
 /**

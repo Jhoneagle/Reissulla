@@ -36,6 +36,7 @@ export async function fetchAndCacheTrip(
   const client = createGraphQLClient(adapter.name, adapter.graphUrl);
   const ctx: AdapterContext = {
     signal: new AbortController().signal,
+    locale: persona.language,
     persona,
   };
 

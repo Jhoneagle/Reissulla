@@ -17,7 +17,11 @@ import { deriveFrequencyBands } from "./frequency-bands.js";
 import { getLine } from "./lines.service.js";
 
 function makeContext(persona: Persona): AdapterContext {
-  return { signal: new AbortController().signal, persona };
+  return {
+    signal: new AbortController().signal,
+    locale: persona.language,
+    persona,
+  };
 }
 
 /**

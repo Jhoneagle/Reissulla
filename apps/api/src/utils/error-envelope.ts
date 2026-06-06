@@ -9,6 +9,9 @@ export type Source =
   | "digitransit-varely"
   | "digitransit-pelias"
   | "open-meteo"
+  | "open-meteo-air-quality"
+  | "fmi"
+  | "fintraffic"
   | "google-oauth"
   | "redis"
   | "db";

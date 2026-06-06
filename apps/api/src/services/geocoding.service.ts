@@ -16,7 +16,7 @@ interface FocusPoint {
 }
 
 function makeContext(): AdapterContext {
-  return { signal: new AbortController().signal };
+  return { signal: new AbortController().signal, locale: "fi" };
 }
 
 function toResult(f: PeliasFeature): GeocodingResult {

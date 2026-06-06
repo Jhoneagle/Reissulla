@@ -33,7 +33,11 @@ const ADAPTERS: DigitransitAdapter[] = [
 const WHEELCHAIR_PERSONA: Persona = { ...DEFAULT_PERSONA, wheelchair: true };
 
 function ctxWith(persona: Persona) {
-  return { signal: new AbortController().signal, persona };
+  return {
+    signal: new AbortController().signal,
+    locale: persona.language,
+    persona,
+  };
 }
 
 const PLAN_ARGS = {

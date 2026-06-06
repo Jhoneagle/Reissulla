@@ -30,7 +30,11 @@ import { NotFoundError } from "../../utils/error-envelope.js";
 import { adapterRouter } from "./adapter-router.js";
 
 function makeContext(persona: Persona): AdapterContext {
-  return { signal: new AbortController().signal, persona };
+  return {
+    signal: new AbortController().signal,
+    locale: persona.language,
+    persona,
+  };
 }
 
 /**

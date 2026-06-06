@@ -51,7 +51,10 @@ async function downloadSdl(): Promise<string> {
 
 async function main(): Promise<void> {
   const sdl = await downloadSdl();
-  const ctx: AdapterContext = { signal: new AbortController().signal };
+  const ctx: AdapterContext = {
+    signal: new AbortController().signal,
+    locale: "fi",
+  };
 
   for (const adapter of ALL) {
     const adapterDir = join(ADAPTERS_DIR, adapter.name);

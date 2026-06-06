@@ -60,7 +60,11 @@ export interface DeparturesOptions {
 }
 
 function makeContext(persona: Persona): AdapterContext {
-  return { signal: new AbortController().signal, persona };
+  return {
+    signal: new AbortController().signal,
+    locale: persona.language,
+    persona,
+  };
 }
 
 function mapStoptimes(stoptimes: RawStoptime[]): TransitDeparture[] {

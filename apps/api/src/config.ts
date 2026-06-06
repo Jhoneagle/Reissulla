@@ -40,6 +40,13 @@ export const config = {
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   digitransitApiKey: process.env.DIGITRANSIT_API_KEY ?? "",
+  // FMI's fair-use policy expects a contactable User-Agent on every WFS/WMS
+  // hit; a generic default keeps dev unblocked but production should set this.
+  fmiUserAgent:
+    process.env.FMI_USER_AGENT ?? "reissulla-dev <dev@reissulla.local>",
+  // Fintraffic publishes traffic + road-condition feeds. Empty string means
+  // "use the adapter default"; the adapter holds the canonical public URL.
+  fintrafficApiBase: process.env.FINTRAFFIC_API_BASE ?? "",
   feedFinlandEnabled: process.env.FEED_FINLAND_ENABLED !== "false",
   feedHslEnabled: process.env.FEED_HSL_ENABLED !== "false",
   feedWalttiEnabled: process.env.FEED_WALTTI_ENABLED !== "false",
