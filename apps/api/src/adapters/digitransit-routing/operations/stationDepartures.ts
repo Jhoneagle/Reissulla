@@ -46,6 +46,7 @@ function buildQuery(args: StationDeparturesArgs): string {
           trip {
             gtfsId
             wheelchairAccessible
+            directionId
             route {
               gtfsId
               shortName
