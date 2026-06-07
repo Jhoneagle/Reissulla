@@ -227,6 +227,7 @@ function HourlyGraph({ hours }: { hours: Hour[] }) {
             y={projectY(h.temperature) - 6}
             textAnchor="middle"
           >
+            {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
             {Math.round(h.temperature)}°
           </text>
         </g>

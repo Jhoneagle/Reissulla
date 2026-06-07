@@ -72,7 +72,11 @@ export function AirQualityChip({ airQuality, pollen }: AirQualityChipProps) {
       </div>
       {taxa.length > 0 && (
         <p className="aq-chip__pollen">
-          <FormattedMessage id="weather.aq.pollen.heading" />{" "}
+          {/* The heading message carries its trailing space so screen
+              readers hear the boundary between heading and taxa list,
+              without needing a JSX whitespace literal that prettier
+              would re-collapse onto the disable directive line. */}
+          <FormattedMessage id="weather.aq.pollen.heading" />
           {taxa.map((t, i) => (
             <span key={t.taxon}>
               <FormattedMessage id={`weather.aq.pollen.${t.taxon}`} />

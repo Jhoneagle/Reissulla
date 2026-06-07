@@ -79,6 +79,20 @@ export default tseslint.config(
       "apps/web/src/components/LocationListView.tsx",
       "apps/web/src/components/weather/CurrentWeatherCard.tsx",
       "apps/web/src/components/weather/ForecastStrip.tsx",
+      // Phase 3 surfaces — once a component is clean of bare strings it
+      // joins the strict tier so future drift fails the build rather
+      // than degrading silently to a warn.
+      "apps/web/src/components/weather/AirQualityChip.tsx",
+      "apps/web/src/components/weather/HourlyForecast.tsx",
+      "apps/web/src/components/weather/RainNowcast.tsx",
+      "apps/web/src/components/weather/RoadConditionChip.tsx",
+      "apps/web/src/components/weather/SunWindowCard.tsx",
+      "apps/web/src/components/weather/WarningBanner.tsx",
+      "apps/web/src/components/map/FollowMeToggle.tsx",
+      "apps/web/src/components/map/LayerControl.tsx",
+      "apps/web/src/components/map/RadarControls.tsx",
+      "apps/web/src/components/map/RainRadarOverlay.tsx",
+      "apps/web/src/components/map/WarningOverlay.tsx",
     ],
     plugins: { formatjs },
     rules: {

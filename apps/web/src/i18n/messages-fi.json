@@ -524,7 +524,7 @@
   "weather.aq.bucket.moderate": "Kohtalainen ilma",
   "weather.aq.bucket.poor": "Huono ilma",
   "weather.aq.bucket.very-poor": "Erittäin huono ilma",
-  "weather.aq.pollen.heading": "Siitepölyä koholla:",
+  "weather.aq.pollen.heading": "Siitepölyä koholla: ",
   "weather.aq.pollen.tree": "puut",
   "weather.aq.pollen.grass": "heinä",
   "weather.aq.pollen.mugwort": "pujo",
