@@ -33,6 +33,48 @@
   letter-spacing: 0.01em;
 }
 
+/* --- Follow-me toggle (bottom-right overlay) ---------------
+   Mirrors the LayerControl trigger across the map. Sits clear
+   of Leaflet's zoom controls (top-right). */
+.map-panel .follow-me-toggle {
+  position: absolute;
+  bottom: 1.25rem;
+  right: 1rem;
+  z-index: 1000;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+.map-panel .follow-me-toggle:hover:not([aria-disabled="true"]) {
+  background: var(--color-surface-sunk);
+  color: var(--color-ink);
+}
+
+.map-panel .follow-me-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.map-panel .follow-me-toggle[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+}
+
+.map-panel .follow-me-toggle[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* --- Layer control trigger (bottom-left overlay) -----------
    Free corner — search lives top-centre, weather panel
    top-right, view-toggle bottom-centre. Leaflet's zoom control

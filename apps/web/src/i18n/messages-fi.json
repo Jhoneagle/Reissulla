@@ -225,6 +225,10 @@
   "map.layer.toast.baseChanged": "Pohjataso: {name}",
   "map.layer.toast.overlayOn": "{name}-taso päällä",
   "map.layer.toast.overlayOff": "{name}-taso pois päältä",
+  "map.aria.label": "Kartta. Selaa nuolinäppäimillä, lähennä +/-, palaa alkuun Home-näppäimellä.",
+  "map.followMe.label.on": "Lopeta sijainnin seuraaminen",
+  "map.followMe.label.off": "Seuraa sijaintiani",
+  "map.followMe.disabled": "Sijainti ei käytettävissä",
 
   "transit.heading": "Joukkoliikenne",
   "transit.sections.label": "Joukkoliikenne-osiot",

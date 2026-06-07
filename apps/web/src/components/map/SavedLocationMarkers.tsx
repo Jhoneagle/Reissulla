@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Marker, Tooltip } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import type { SavedLocation } from "@reissulla/shared";
 
@@ -52,15 +53,26 @@ function SavedMarker({ location, onSelect }: SavedMarkerProps) {
   );
 }
 
+/**
+ * MAP-5: bucket markers at low zoom via react-leaflet-cluster so a user
+ * with many saved places doesn't see overlapping pins. `chunkedLoading`
+ * keeps the main thread responsive when the saved-locations list grows
+ * past ~50; `spiderfyOnMaxZoom` lets the user fan out a tight cluster.
+ */
 export function SavedLocationMarkers({
   locations,
   onSelect,
 }: SavedLocationMarkersProps) {
   return (
-    <>
+    <MarkerClusterGroup
+      chunkedLoading
+      spiderfyOnMaxZoom
+      showCoverageOnHover={false}
+      maxClusterRadius={45}
+    >
       {locations.map((loc) => (
         <SavedMarker key={loc.id} location={loc} onSelect={onSelect} />
       ))}
-    </>
+    </MarkerClusterGroup>
   );
 }

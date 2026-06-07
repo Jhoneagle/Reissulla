@@ -1,8 +1,9 @@
 import { Circle, MapContainer, TileLayer } from "react-leaflet";
 import type { ReactNode } from "react";
-import type { LatLngExpression } from "leaflet";
+import type { LatLngExpression, LatLngTuple } from "leaflet";
 import { useMapStore } from "../../stores/map";
 import { LAYERS } from "./layers";
+import { MapKeyboardHandler } from "./MapKeyboardHandler";
 
 interface LeafletMapProps {
   center: LatLngExpression;
@@ -33,6 +34,13 @@ export function LeafletMap({
   const attribution = layer?.attribution ?? LAYERS["tile-streets"].attribution;
   const maxZoom = layer?.maxZoom ?? 19;
 
+  const homeCenter: LatLngTuple = Array.isArray(center)
+    ? (center as LatLngTuple)
+    : [
+        (center as { lat: number; lng: number }).lat,
+        (center as { lat: number; lng: number }).lng,
+      ];
+
   return (
     <MapContainer
       center={center}
@@ -52,6 +60,7 @@ export function LeafletMap({
         }
         maxZoom={maxZoom}
       />
+      <MapKeyboardHandler homeCenter={homeCenter} homeZoom={zoom} />
       {typeof searchRadiusMeters === "number" && searchRadiusMeters > 0 && (
         <Circle
           center={center}

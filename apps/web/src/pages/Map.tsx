@@ -1,11 +1,14 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useQuery } from "@tanstack/react-query";
 import { geocodingApi } from "@reissulla/api-client";
 import type { GeocodingResult, SavedLocation } from "@reissulla/shared";
+import { FollowMeToggle } from "../components/map/FollowMeToggle";
 import { LayerControl } from "../components/map/LayerControl";
 import { LeafletMap } from "../components/map/LeafletMap";
 import { MapFlyTo } from "../components/map/MapFlyTo";
+import { MapFollowMe } from "../components/map/MapFollowMe";
+import { MapShareUrl } from "../components/map/MapShareUrl";
 import { UserLocationMarker } from "../components/map/UserLocationMarker";
 import { MapClickHandler } from "../components/map/MapClickHandler";
 import { MapMoveHandler } from "../components/map/MapMoveHandler";
@@ -26,16 +29,16 @@ import "./Map.css";
 
 const EMPTY_LOCATIONS: import("@reissulla/shared").SavedLocation[] = [];
 
-type ViewMode = "map" | "list";
-
 export function MapPage() {
   const intl = useIntl();
-  const [view, setView] = useState<ViewMode>("map");
+  const view = useMapStore((s) => s.view);
+  const setView = useMapStore((s) => s.setView);
   const geoPosition = useGeolocationStore((s) => s.position);
   const geoDenied = useGeolocationStore((s) => s.denied);
 
   const selectedLocation = useMapStore((s) => s.selectedLocation);
   const searchResults = useMapStore((s) => s.searchResults);
+  const followMe = useMapStore((s) => s.followMe);
   const selectLocation = useMapStore((s) => s.selectLocation);
   const clearSelection = useMapStore((s) => s.clearSelection);
   const setSearchResults = useMapStore((s) => s.setSearchResults);
@@ -221,11 +224,14 @@ export function MapPage() {
         )}
 
         <LayerControl />
+        <FollowMeToggle />
 
         <LeafletMap center={defaultCenter} zoom={defaultZoom}>
           <MapResizeHandler visible={view === "map"} />
           <MapMoveHandler />
-          {selectedLocation && (
+          <MapShareUrl />
+          <MapFollowMe />
+          {selectedLocation && !followMe && (
             <MapFlyTo lat={selectedLocation.lat} lon={selectedLocation.lon} />
           )}
           {geoPosition && (
