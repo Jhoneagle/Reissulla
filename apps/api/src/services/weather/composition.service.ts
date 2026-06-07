@@ -9,7 +9,7 @@ import {
   WEATHER_AQ_TTL,
   WEATHER_CURRENT_TTL,
   WEATHER_FORECAST_TTL,
-  WEATHER_POLLEN_TTL,
+  WEATHER_NOWCAST_TTL,
   WEATHER_ROADS_TTL,
   WEATHER_WARNINGS_TTL,
 } from "../../cache/ttl.js";
@@ -147,11 +147,8 @@ export async function getWeatherSnapshot(
     ),
     withCache(
       cacheKey("weather", "nowcast", 1, latKey, lonKey),
-      // Pollen cache TTL is not used by the nowcast itself; the cache key
-      // for the nowcast is its own slot per ttl.ts. The stub returns null
-      // until the radar chunk lands; cached miss → null on every call.
-      WEATHER_POLLEN_TTL,
-      () => getRainNowcast(lat, lon),
+      WEATHER_NOWCAST_TTL,
+      () => getRainNowcast(lat, lon, ctx),
     ),
   ]);
 

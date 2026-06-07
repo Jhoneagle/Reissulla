@@ -5,9 +5,19 @@ import {
 } from "../services/weather.service.js";
 import { getWeatherSnapshot } from "../services/weather/composition.service.js";
 import { getWarningPolygons } from "../services/weather/warning-polygons.service.js";
+import { getRainNowcast } from "../services/weather/nowcast.service.js";
+import {
+  getRadarTileBytes,
+  getRadarTimeline,
+} from "../services/weather/radar-tiles.service.js";
+import { cacheGet, cacheSet } from "../cache/cache.js";
+import { cacheKey } from "../cache/key.js";
+import { WEATHER_NOWCAST_TTL } from "../cache/ttl.js";
+import { tryCache } from "../utils/resilience.js";
 import { parseCoordinates } from "../utils/validation.js";
 import { UpstreamError } from "../utils/error-envelope.js";
-import type { AdapterLocale } from "../adapters/types.js";
+import type { AdapterContext, AdapterLocale } from "../adapters/types.js";
+import type { RainNowcast } from "@reissulla/shared";
 
 interface CoordinateQuery {
   lat: string;
@@ -114,6 +124,141 @@ export const weatherRoutes: FastifyPluginAsync = async (server) => {
         coordinates: { latitude: lat, longitude: lon },
         locale,
       };
+    },
+  );
+
+  // Rain / snow nowcast — separate clock from the snapshot so the
+  // dashboard live region polls once a minute without dragging in a 14-day
+  // hourly fan-out.
+  server.get(
+    "/api/v1/weather/nowcast",
+    routeOpts,
+    async (request: FastifyRequest<{ Querystring: CoordinateQuery }>) => {
+      const { lat, lon } = parseCoordinates(request.query);
+      const locale = resolveLocale(request);
+      const key = cacheKey(
+        "weather",
+        "nowcast",
+        1,
+        lat.toFixed(2),
+        lon.toFixed(2),
+      );
+
+      const hit = await tryCache(() => cacheGet<RainNowcast | null>(key));
+      if (hit !== undefined && hit !== null) {
+        return { data: hit, meta: { cached: true, locale } };
+      }
+
+      const ctx: AdapterContext = {
+        signal: new AbortController().signal,
+        locale,
+        persona: request.persona,
+      };
+      try {
+        const data = await getRainNowcast(lat, lon, ctx);
+        await tryCache(() => cacheSet(key, data, WEATHER_NOWCAST_TTL));
+        return { data, meta: { cached: false, locale } };
+      } catch (err) {
+        request.log.error(err, "Failed to compute rain nowcast");
+        throw new UpstreamError(
+          "WEATHER_UNAVAILABLE",
+          "Rain nowcast temporarily unavailable — please try again shortly",
+          "open-meteo",
+        );
+      }
+    },
+  );
+
+  // Sliding radar frame list for the map overlay. `minutesBack` is clamped
+  // server-side so a hostile caller can't ask for hours of frames.
+  server.get<{ Querystring: { minutesBack?: string } }>(
+    "/api/v1/weather/radar/timeline",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: { minutesBack: { type: "string" } },
+        },
+      },
+    },
+    async (request) => {
+      const raw = Number.parseInt(request.query.minutesBack ?? "60", 10);
+      const minutesBack = Number.isFinite(raw)
+        ? Math.min(120, Math.max(5, raw))
+        : 60;
+      const locale = resolveLocale(request);
+      const ctx: AdapterContext = {
+        signal: new AbortController().signal,
+        locale,
+        persona: request.persona,
+      };
+      const { frames, cached } = await getRadarTimeline({ minutesBack, ctx });
+      return {
+        data: { frames },
+        meta: { cached, minutesBack },
+      };
+    },
+  );
+
+  // Radar tile passthrough. Params come straight from the FE's TileLayer
+  // URL template, e.g. `/weather/radar/1780834800/9/293/146.png`. The
+  // service caches both the upstream request and the bytes themselves.
+  interface RadarTileParams {
+    ts: string;
+    z: string;
+    x: string;
+    y: string;
+  }
+  server.get<{ Params: RadarTileParams }>(
+    "/api/v1/weather/radar/:ts/:z/:x/:y.png",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["ts", "z", "x", "y"],
+          properties: {
+            ts: { type: "string" },
+            z: { type: "string" },
+            x: { type: "string" },
+            y: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const timestamp = Number.parseInt(request.params.ts, 10);
+      const z = Number.parseInt(request.params.z, 10);
+      const x = Number.parseInt(request.params.x, 10);
+      const y = Number.parseInt(request.params.y, 10);
+      if (
+        !Number.isFinite(timestamp) ||
+        !Number.isFinite(z) ||
+        !Number.isFinite(x) ||
+        !Number.isFinite(y)
+      ) {
+        reply.code(400);
+        return { error: { code: "INVALID_RADAR_TILE_COORD" } };
+      }
+      try {
+        const { bytes, contentType } = await getRadarTileBytes({
+          timestamp,
+          z,
+          x,
+          y,
+          signal: request.raw.aborted ? undefined : undefined,
+        });
+        reply
+          .header("Content-Type", contentType)
+          .header("Cache-Control", `public, max-age=${WEATHER_NOWCAST_TTL}`);
+        return reply.send(Buffer.from(bytes));
+      } catch (err) {
+        request.log.error(err, "Failed to proxy FMI radar tile");
+        throw new UpstreamError(
+          "WEATHER_UNAVAILABLE",
+          "Radar tiles temporarily unavailable",
+          "fmi",
+        );
+      }
     },
   );
 };

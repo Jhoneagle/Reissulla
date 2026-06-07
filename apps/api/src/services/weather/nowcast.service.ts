@@ -183,15 +183,47 @@ export function computeRainNowcast(inputs: NowcastInputs): RainNowcast | null {
   return { ...base, textFi, textEn };
 }
 
+import { openMeteoForecast } from "../../adapters/open-meteo-forecast/index.js";
+import type { AdapterContext } from "../../adapters/types.js";
+
 /**
- * Request-scoped wrapper. Stub until the endpoint commit wires the FMI
- * radar timeline + Open-Meteo hourly fan-out; until then the snapshot
- * exposes `nowcast: null` and the composition meta carries `cached: false,
- * failed: false`.
+ * Request-scoped wrapper. Fetches the next-day Open-Meteo hourly slice and
+ * folds it through the pure state machine. The 14-day snapshot cache and
+ * this 1-day call live in separate slots on purpose — the radar / nowcast
+ * surface polls once a minute and a 14-day payload would be 80× the bytes
+ * needed. Output is cached for 60 s by the endpoint and composition
+ * call-sites independently; this function deliberately stays cache-free
+ * so callers can compose their own TTL.
  */
 export async function getRainNowcast(
-  _lat: number,
-  _lon: number,
+  lat: number,
+  lon: number,
+  ctx: AdapterContext,
 ): Promise<RainNowcast | null> {
-  return null;
+  const forecast = await openMeteoForecast.getForecast(lat, lon, ctx, {
+    forecastDays: 1,
+  });
+  const hourly = forecast.hourly;
+  if (hourly.length === 0) return null;
+
+  // Pick the first future hour as "now" — Open-Meteo's local-zoned times
+  // mean the first entry can already be in the past on a fresh request.
+  const nowHourPrefix = new Date().toISOString().slice(0, 13);
+  let nowIdx = 0;
+  for (let i = 0; i < hourly.length; i++) {
+    if ((hourly[i]?.time ?? "").slice(0, 13) >= nowHourPrefix) {
+      nowIdx = i;
+      break;
+    }
+  }
+
+  const currentHour = hourly[nowIdx];
+  if (!currentHour) return null;
+  const lookahead = hourly.slice(nowIdx, nowIdx + 3);
+
+  return computeRainNowcast({
+    intensitiesMmh: [currentHour.precipitation ?? 0],
+    hourlyPrecipProb: lookahead.map((h) => h.precipitationProbability ?? 0),
+    currentWeatherCode: currentHour.weatherCode,
+  });
 }

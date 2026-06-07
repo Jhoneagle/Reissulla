@@ -50,7 +50,10 @@ describe("GET /api/v1/weather/snapshot", () => {
     expect(body.data.airQuality.europeanAqi).toBe(32);
     expect(body.data.pollen.birch).toBe(2.1);
     expect(body.data.roadConditions.sectionName).toBe("Helsinki keskusta");
-    expect(body.data.nowcast).toBeNull();
+    // The Open-Meteo fixture's hourly (clear-sky code 2, low precip probs)
+    // resolves to no-rain via the radar-chunk nowcast.
+    expect(body.data.nowcast).not.toBeNull();
+    expect(body.data.nowcast.state).toBe("no-rain");
     expect(body.locale).toBe("fi");
   });
 
