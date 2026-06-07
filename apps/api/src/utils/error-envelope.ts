@@ -8,13 +8,16 @@ export type Source =
   | "digitransit-waltti"
   | "digitransit-varely"
   | "digitransit-pelias"
+  | "digitransit-mqtt"
   | "open-meteo"
   | "open-meteo-air-quality"
   | "fmi"
   | "fintraffic"
   | "google-oauth"
   | "redis"
-  | "db";
+  | "db"
+  | "realtime"
+  | "alerts";
 
 export interface ErrorBody {
   code: string;

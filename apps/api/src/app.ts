@@ -15,6 +15,7 @@ import { geocodingRoutes } from "./routes/geocoding.js";
 import { locationRoutes } from "./routes/locations.js";
 import { recentPlacesRoutes } from "./routes/recent-places.js";
 import { transitRoutes } from "./routes/transit.js";
+import { realtimeRoutes } from "./routes/realtime.js";
 import {
   AppError,
   UpstreamError,
@@ -139,6 +140,7 @@ export async function buildServer() {
   await server.register(locationRoutes);
   await server.register(recentPlacesRoutes);
   await server.register(transitRoutes);
+  await server.register(realtimeRoutes);
 
   return server;
 }
