@@ -16,6 +16,8 @@ import { MapResizeHandler } from "../components/map/MapResizeHandler";
 import { LocationPopup } from "../components/map/LocationPopup";
 import { SavedLocationMarkers } from "../components/map/SavedLocationMarkers";
 import { WarningOverlay } from "../components/map/WarningOverlay";
+import { RainRadarOverlay } from "../components/map/RainRadarOverlay";
+import { RadarControls } from "../components/map/RadarControls";
 import { LocationSearch } from "../components/LocationSearch";
 import { LocationListView } from "../components/LocationListView";
 import { CurrentWeatherCard } from "../components/weather/CurrentWeatherCard";
@@ -281,6 +283,7 @@ export function MapPage() {
 
         <LayerControl />
         <FollowMeToggle />
+        <RadarControls />
 
         <LeafletMap center={defaultCenter} zoom={defaultZoom}>
           <MapResizeHandler visible={view === "map"} />
@@ -288,6 +291,7 @@ export function MapPage() {
           <MapShareUrl />
           <MapFollowMe />
           <WarningOverlay />
+          <RainRadarOverlay />
           {selectedLocation && !followMe && (
             <MapFlyTo lat={selectedLocation.lat} lon={selectedLocation.lon} />
           )}

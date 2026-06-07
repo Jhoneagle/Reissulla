@@ -21,7 +21,7 @@ import "./LayerControl.css";
  */
 
 const BASE_LAYER_OPTIONS: LayerId[] = ["tile-streets", "tile-dark", "tile-hc"];
-const OVERLAY_OPTIONS: LayerId[] = ["overlay-warnings"];
+const OVERLAY_OPTIONS: LayerId[] = ["overlay-warnings", "overlay-rain-radar"];
 
 export function LayerControl() {
   const intl = useIntl();
