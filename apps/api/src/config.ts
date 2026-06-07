@@ -67,6 +67,11 @@ export const config = {
   mqttPassword: process.env.MQTT_PASSWORD ?? "",
   // Shared poller cadence for alerts.service.streamActive — Chunk 4 consumer.
   alertsPollIntervalSec: positiveIntEnv("ALERTS_POLL_INTERVAL_SEC", 60),
+  // Per-stop live-departures poll cadence. 5 s gives an upper-bound latency
+  // budget for the "live ETA updates land ≤ 5 s after upstream realtime
+  // change" acceptance gate; tests set it to a few ms via the env var to
+  // observe two ticks deterministically inside an it() block.
+  realtimeStopPollMs: positiveIntEnv("REALTIME_STOP_POLL_MS", 5000),
   // Default trip-log retention window for the Chunk 7 nightly prune cron.
   historyRetentionDaysDefault: positiveIntEnv(
     "HISTORY_RETENTION_DAYS_DEFAULT",

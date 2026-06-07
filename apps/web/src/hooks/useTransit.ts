@@ -102,6 +102,13 @@ export function useDepartures(
   isStation = false,
   stationId?: string,
   options?: DeparturesOptions,
+  /**
+   * Override the React-Query refetch cadence. Caller-provided `false`
+   * disables the auto-refetch (off mode); a number sets the interval in ms.
+   * Defaults to 30 s, dropping to `false` when `options.at` is set (future
+   * time queries don't need to keep re-fetching tomorrow's 17:30).
+   */
+  refetchIntervalOverride?: number | false,
 ) {
   const ids = subStops.map((s) => s.gtfsId).sort();
   const isMulti = ids.length > 1;
@@ -114,9 +121,12 @@ export function useDepartures(
     options?.directionFilter ?? "",
     options?.lowFloorOnly ? "1" : "",
   ].join("|");
-  // Future-time queries stay static — no point polling tomorrow's 17:30
-  // every 30 s. The refetch interval drops to 0 when `at` is set.
-  const refetchInterval = options?.at ? false : 30_000;
+  const refetchInterval =
+    refetchIntervalOverride !== undefined
+      ? refetchIntervalOverride
+      : options?.at
+        ? false
+        : 30_000;
 
   return useQuery({
     queryKey: ["transit-departures", ...ids, optionsKey],
