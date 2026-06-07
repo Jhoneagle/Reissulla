@@ -358,12 +358,26 @@ export const preferencesApi = {
   },
 };
 
+export interface FeatureFlagsResponse {
+  feature: {
+    realtimeSse: boolean;
+  };
+}
+
 export const meApi = {
   /** Update the authenticated user's profile name (ID-7). */
   updateName(name: string) {
     return mutationRequest<{
       user: { id: string; email: string; name: string; emailVerified: boolean };
     }>("/me", "PATCH", { name });
+  },
+  /**
+   * FE-facing subset of the typed feature-flag accessor. Used by the
+   * realtime hook layer to decide between SSE and polling without
+   * round-tripping a heavier `/api/v1/me` payload.
+   */
+  featureFlags() {
+    return request<FeatureFlagsResponse>("/me/feature-flags");
   },
 };
 
