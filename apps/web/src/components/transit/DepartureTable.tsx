@@ -18,11 +18,9 @@ import type {
   ArrivalDepartureMode,
   DeparturesOptions,
 } from "@reissulla/api-client";
-import {
-  useDepartures,
-  useFirstLast,
-  useRecordRecentStop,
-} from "../../hooks/useTransit";
+import { useFirstLast, useRecordRecentStop } from "../../hooks/useTransit";
+import { useLiveDepartures } from "../../hooks/useLiveDepartures";
+import { useRefreshChoice } from "../../hooks/useRefreshChoice";
 import {
   vehicleModeLabel,
   vehicleModeToken,
@@ -37,6 +35,8 @@ import { TimePickerDialog } from "./TimePickerDialog";
 import { DepartureFilters, type AdvancedFilterState } from "./DepartureFilters";
 import { StopAccessibilityDisclosure } from "./StopAccessibilityDisclosure";
 import { DepartureDirectionSplit } from "./DepartureDirectionSplit";
+import { LiveIndicator } from "./LiveIndicator";
+import { RefreshTicker } from "./RefreshTicker";
 
 interface DepartureTableProps {
   /** GTFS id (stop or station) — drives pin and recent-stops tracking. */
@@ -200,12 +200,32 @@ export function DepartureTable({
     [at, mode, advanced],
   );
 
-  const { data, isLoading, isError, dataUpdatedAt, refetch } = useDepartures(
+  const { choice: refreshChoice, setChoice: setRefreshChoice } =
+    useRefreshChoice();
+
+  const {
+    data,
+    isLoading,
+    isError,
+    dataUpdatedAt,
+    refetch,
+    indicator: liveIndicator,
+    sseStatus,
+    sseAttempted,
+  } = useLiveDepartures(
     subStops,
     isStation,
     stationId,
     departureOptions,
+    refreshChoice,
   );
+
+  // "Live updates unavailable here — falling back to 30 s" inline notice:
+  // user picked Live, the SSE pipe was attempted, but the connection is
+  // currently closed (most often the realtimeSse env flag is off, but
+  // also when SSE has fully disconnected mid-session).
+  const showLiveUnavailable =
+    refreshChoice === "live" && sseAttempted && sseStatus === "closed";
   const firstLast = useFirstLast(stopId);
 
   useEffect(() => {
@@ -310,6 +330,7 @@ export function DepartureTable({
               {vehicleModeLabel(effectiveVehicleMode)}
             </span>
           )}
+          <LiveIndicator state={liveIndicator} />
           <div className="departure-masthead__title-spacer" />
           <PinButton
             stop={{
@@ -318,6 +339,11 @@ export function DepartureTable({
               vehicleMode: effectiveVehicleMode,
               isStation: isStation ?? false,
             }}
+          />
+          <RefreshTicker
+            choice={refreshChoice}
+            onChoiceChange={setRefreshChoice}
+            showLiveUnavailable={showLiveUnavailable}
           />
         </div>
 
@@ -549,7 +575,7 @@ export function DepartureTable({
             stopName={displayName}
           />
           {dataUpdatedAt > 0 && (
-            <p className="departure-list__timestamp">
+            <p className="departure-list__timestamp" aria-live="off">
               <FormattedMessage
                 id="transit.depart.updatedAgo"
                 values={{ seconds: updatedAgo }}

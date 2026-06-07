@@ -198,6 +198,12 @@
 
 /* --- Masthead ---------------------------------------------- */
 .departure-masthead {
+  /* Override the global `header { display: flex }` rule in global.css —
+     that one is for the app-level top nav header, not content-area
+     mastheads. Without this override the title-row collapses to its
+     children's natural width and the new LiveIndicator + cog wrap to
+     extra lines on widths above 40rem. */
+  display: block;
   margin-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-rule-soft);
   padding-bottom: var(--space-3);
