@@ -1,0 +1,50 @@
+{
+  "_comment": "Canonical Open-Meteo Air Quality response baseline. Carries every field the adapter parses (current AQI + pollutants, hourly per-taxon pollen counts). The snapshot test in fixture-snapshots.test.ts re-parses this on every PR; if Open-Meteo changes the response shape, the build fails loudly rather than letting the adapter degrade silently to defaults. Source: a real /v1/air-quality call with timezone=auto, sanitised for stability. Refresh against the live API with: curl 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=60.17&longitude=24.94&current=european_aqi,pm10,pm2_5,nitrogen_dioxide,sulphur_dioxide,ozone,carbon_monoxide&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto'",
+  "latitude": 60.17,
+  "longitude": 24.94,
+  "generationtime_ms": 0.83,
+  "utc_offset_seconds": 10800,
+  "timezone": "Europe/Helsinki",
+  "timezone_abbreviation": "EEST",
+  "elevation": 14.0,
+  "current_units": {
+    "time": "iso8601",
+    "interval": "seconds",
+    "european_aqi": "EAQI",
+    "pm10": "μg/m³",
+    "pm2_5": "μg/m³",
+    "nitrogen_dioxide": "μg/m³",
+    "sulphur_dioxide": "μg/m³",
+    "ozone": "μg/m³",
+    "carbon_monoxide": "μg/m³"
+  },
+  "current": {
+    "time": "2026-05-05T12:00",
+    "interval": 3600,
+    "european_aqi": 32,
+    "pm10": 12.4,
+    "pm2_5": 6.1,
+    "nitrogen_dioxide": 8.7,
+    "sulphur_dioxide": 1.2,
+    "ozone": 78.5,
+    "carbon_monoxide": 210.0
+  },
+  "hourly_units": {
+    "time": "iso8601",
+    "alder_pollen": "grains/m³",
+    "birch_pollen": "grains/m³",
+    "grass_pollen": "grains/m³",
+    "mugwort_pollen": "grains/m³",
+    "olive_pollen": "grains/m³",
+    "ragweed_pollen": "grains/m³"
+  },
+  "hourly": {
+    "time": ["2026-05-05T12:00", "2026-05-05T13:00"],
+    "alder_pollen": [0.4, 0.3],
+    "birch_pollen": [2.1, 2.4],
+    "grass_pollen": [0.0, 0.1],
+    "mugwort_pollen": [0.0, 0.0],
+    "olive_pollen": [0.0, 0.0],
+    "ragweed_pollen": [0.0, 0.0]
+  }
+}

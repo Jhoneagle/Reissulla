@@ -106,3 +106,76 @@ test("LayerControl dialog is axe-core clean (critical/serious)", async ({
   await expect(page.getByRole("dialog")).toBeVisible();
   await expectNoSeriousA11yViolations(page);
 });
+
+test("toggling an overlay writes the ?overlays= URL param", async ({
+  page,
+}) => {
+  // Stub the polygon feed so warnings overlay doesn't depend on FMI being
+  // live during the test run; the URL write is what we're asserting.
+  await page.route(/\/api\/v1\/weather\/warning-polygons/, (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: { polygons: [] },
+        meta: { cached: false, region: "", locale: "en" },
+      }),
+    }),
+  );
+
+  await page.goto("/map");
+  await page.getByRole("button", { name: /choose map layers/i }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("checkbox", { name: "Weather warnings" }).check();
+  await dialog.getByRole("button", { name: /^Done$/ }).click();
+
+  // The default overlay set already carries `overlay-stops`; assert the
+  // new entry joins the comma-separated list rather than matching a
+  // single-entry pattern.
+  await expect(page).toHaveURL(/[?&]overlays=[^&]*overlay-warnings/);
+});
+
+test("?overlays=overlay-warnings deep link boots with the overlay enabled", async ({
+  page,
+}) => {
+  // Stub a non-empty polygon list so the deep-link state actually paints.
+  await page.route(/\/api\/v1\/weather\/warning-polygons/, (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: {
+          polygons: [
+            {
+              id: "deeplink-fixture",
+              severity: "moderate",
+              type: "wind",
+              startTime: Date.now() - 60_000,
+              endTime: Date.now() + 60 * 60_000,
+              region: "Uusimaa",
+              description: "Deep-link share fixture.",
+              bounds: {
+                type: "Polygon",
+                coordinates: [
+                  [
+                    [24.0, 60.0],
+                    [25.5, 60.0],
+                    [25.5, 60.5],
+                    [24.0, 60.5],
+                    [24.0, 60.0],
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+        meta: { cached: false, region: "", locale: "en" },
+      }),
+    }),
+  );
+
+  await page.goto("/map?overlays=overlay-warnings&lat=60.2&lon=24.9&z=8");
+  await expect
+    .poll(() => page.locator(".leaflet-overlay-pane path").count(), {
+      timeout: 3000,
+    })
+    .toBeGreaterThan(0);
+});

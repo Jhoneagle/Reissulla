@@ -9,10 +9,20 @@ import { expect, type Page } from "@playwright/test";
  * Non-critical impacts (minor / moderate) are surfaced via attached
  * results but don't fail the build.
  */
-export async function expectNoSeriousA11yViolations(page: Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .analyze();
+export async function expectNoSeriousA11yViolations(
+  page: Page,
+  options: { include?: string } = {},
+) {
+  let builder = new AxeBuilder({ page }).withTags([
+    "wcag2a",
+    "wcag2aa",
+    "wcag21a",
+    "wcag21aa",
+  ]);
+  if (options.include) {
+    builder = builder.include(options.include);
+  }
+  const results = await builder.analyze();
 
   const serious = results.violations.filter(
     (v) => v.impact === "critical" || v.impact === "serious",

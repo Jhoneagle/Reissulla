@@ -160,6 +160,7 @@ function WarningBannerItem({
         onClick={handleDismiss}
         aria-label={intl.formatMessage({ id: "weather.warning.dismiss" })}
       >
+        {/* eslint-disable-next-line formatjs/no-literal-string-in-jsx */}
         <span aria-hidden="true">×</span>
       </button>
     </article>

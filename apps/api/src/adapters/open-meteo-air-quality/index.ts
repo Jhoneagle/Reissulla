@@ -80,10 +80,11 @@ function buildAdapter(
         timestamp: c.time,
       };
 
-      // TODO: pick the next hour ≥ now once the composition service threads
-      // a clock through AdapterContext. For now we surface index 0 — the
-      // earliest hour Open-Meteo returns for the requested day — which is
-      // the conservative default for a snapshot consumed at boot.
+      // Surface the day's earliest hour. The adapter has no clock injected
+      // (timezone=auto means hourly[i].time is local without a TZ offset,
+      // so comparing against Date.now() would require host-TZ assumptions),
+      // and the snapshot consumes pollen as a "today's exposure" figure
+      // rather than a per-hour series — index 0 is the conservative default.
       const h = raw.hourly;
       const idx = 0;
       const pollen: PollenSnapshot = {
