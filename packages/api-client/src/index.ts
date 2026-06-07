@@ -4,6 +4,7 @@ import {
   serializePersona,
   type CurrentWeather,
   type WeatherForecast,
+  type RainNowcast,
   type WeatherSnapshot,
   type WeatherSnapshotMeta,
   type WeatherWarning,
@@ -169,6 +170,37 @@ export const weatherApi = {
       data: { polygons: WeatherWarning[] };
       meta: { cached: boolean; region: string; locale: string };
     }>(`/weather/warning-polygons${qs}`);
+  },
+  /**
+   * Rain / snow nowcast — polled on the dashboard live region's 60 s
+   * clock. Response is `data: null` when neither rain nor snow is
+   * expected within the next 3 hours.
+   */
+  getNowcast(lat: number, lon: number) {
+    return request<{
+      data: RainNowcast | null;
+      meta: { cached: boolean; locale: "fi" | "en" };
+    }>(`/weather/nowcast?lat=${lat}&lon=${lon}`);
+  },
+  /**
+   * Sliding radar frame list for the map overlay. Each entry carries the
+   * frame timestamp + the FMI WMS tile URL template; the FE rewrites the
+   * template to point at the API's `/weather/radar/:ts/:z/:x/:y.png`
+   * proxy so the upstream user-agent stays under our control.
+   */
+  getRadarTimeline(minutesBack: number = 60) {
+    return request<{
+      data: { frames: Array<{ timestamp: number; tileUrlTemplate: string }> };
+      meta: { cached: boolean; minutesBack: number };
+    }>(`/weather/radar/timeline?minutesBack=${minutesBack}`);
+  },
+  /**
+   * Build the radar tile proxy URL the FE's TileLayer plugs into its
+   * `url` prop. Browser HTTP-caches the tile bytes per the server's
+   * `Cache-Control: max-age=60` header.
+   */
+  radarTileUrl(timestamp: number) {
+    return `${BASE_URL}/weather/radar/${timestamp}/{z}/{x}/{y}.png`;
   },
 };
 

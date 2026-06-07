@@ -14,3 +14,4 @@ export * from "./persona/wire.js";
 export * from "./persona/to-digitransit.js";
 export * from "./data/finland-bounds.js";
 export * from "./utils/service-day.js";
+export * from "./utils/nowcast-format.js";

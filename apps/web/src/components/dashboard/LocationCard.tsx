@@ -10,6 +10,7 @@ import { AirQualityChip } from "../weather/AirQualityChip";
 import { SunWindowCard } from "../weather/SunWindowCard";
 import { WarningBanner } from "../weather/WarningBanner";
 import { RoadConditionChip } from "../weather/RoadConditionChip";
+import { RainNowcast } from "../weather/RainNowcast";
 import {
   buildWeatherLede,
   type CardinalDirection,
@@ -225,6 +226,7 @@ export function LocationCard({
 
       {isPrimary && (
         <div className="dashboard-card__weather-depth">
+          <RainNowcast lat={lat} lon={lon} />
           <HourlyForecast
             hours={forecast?.hourly}
             isLoading={snapshot.isLoading}

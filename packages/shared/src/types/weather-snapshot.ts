@@ -85,10 +85,37 @@ export interface RoadConditionSnapshot {
   observedAt: string;
 }
 
+export type RainNowcastState =
+  | "no-rain"
+  | "rain-incoming"
+  | "raining"
+  | "rain-ending";
+
+export type NowcastFlavor = "rain" | "snow";
+
 /**
- * Placeholder for the rain nowcast — concrete shape firms up in Chunk 5.
+ * Accessible rain nowcast — combines FMI radar intensity with Open-Meteo
+ * hourly precipitation probability into a small state machine. `flavor`
+ * is decided from the latest hourly WMO code so the snow ramp + copy can
+ * fork without a second round-trip. `textFi` / `textEn` are pre-rendered
+ * via `nowcast-format.ts` and consumed by the dashboard live region.
  */
-export type RainNowcastSnapshot = Record<string, unknown>;
+export interface RainNowcast {
+  state: RainNowcastState;
+  flavor: NowcastFlavor;
+  /** Required when `state === "rain-incoming"`. */
+  minutesUntilStart?: number;
+  /**
+   * For `raining`, the elapsed duration of the band so far (minutes).
+   * For `rain-ending`, the expected forward minutes before it stops.
+   */
+  estimatedDurationMin?: number;
+  textFi: string;
+  textEn: string;
+}
+
+/** @deprecated retained for Chunk 1 callers; use `RainNowcast` directly. */
+export type RainNowcastSnapshot = RainNowcast;
 
 export interface WeatherSnapshot {
   current: CurrentWeather | null;
@@ -97,7 +124,7 @@ export interface WeatherSnapshot {
   pollen: PollenSnapshot | null;
   warnings: WeatherWarning[];
   roadConditions: RoadConditionSnapshot | null;
-  nowcast: RainNowcastSnapshot | null;
+  nowcast: RainNowcast | null;
 }
 
 export interface WeatherSnapshotSourceMeta {
