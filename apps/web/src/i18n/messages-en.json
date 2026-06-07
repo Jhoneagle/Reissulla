@@ -229,6 +229,9 @@
   "map.followMe.label.on": "Stop following my location",
   "map.followMe.label.off": "Follow my location",
   "map.followMe.disabled": "Location not available",
+  "map.weather.forecastTabs.label": "Forecast horizon",
+  "map.weather.forecastTab.days": "14 days",
+  "map.weather.forecastTab.hourly": "Hourly",
 
   "transit.heading": "Transit",
   "transit.sections.label": "Transit sections",

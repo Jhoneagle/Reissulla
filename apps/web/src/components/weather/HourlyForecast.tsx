@@ -6,6 +6,13 @@ interface HourlyForecastProps {
   hours: Hour[] | undefined;
   isLoading: boolean;
   isError: boolean;
+  /**
+   * Render the table form only; hide the graph/table toggle. Used by the
+   * map weather panel where the floating overlay is too narrow for the
+   * graph to be legible (the dashboard card has enough width to keep the
+   * graph as the default).
+   */
+  tableOnly?: boolean;
 }
 
 /**
@@ -52,14 +59,19 @@ export function HourlyForecast({
   hours,
   isLoading,
   isError,
+  tableOnly = false,
 }: HourlyForecastProps) {
   const intl = useIntl();
   const reduceMotion = useReduceMotion();
   const headingId = useId();
   // reduce-motion drives first paint; the manual toggle takes over once
-  // the user expresses a preference within the session.
+  // the user expresses a preference within the session. `tableOnly`
+  // overrides both — callers that know their container is too narrow
+  // for the graph (e.g. the map weather panel) opt out entirely.
   const [mode, setMode] = useState<DisplayMode | null>(null);
-  const effectiveMode: DisplayMode = mode ?? (reduceMotion ? "table" : "graph");
+  const effectiveMode: DisplayMode = tableOnly
+    ? "table"
+    : (mode ?? (reduceMotion ? "table" : "graph"));
 
   const { graphHours, tableHours } = useMemo(() => {
     if (!hours?.length) return { graphHours: [], tableHours: [] };
@@ -89,20 +101,24 @@ export function HourlyForecast({
         <h3 id={headingId} className="hourly__heading">
           <FormattedMessage id="weather.hourly.heading" />
         </h3>
-        <button
-          type="button"
-          className="hourly__toggle"
-          aria-pressed={effectiveMode === "table"}
-          onClick={() => setMode(effectiveMode === "graph" ? "table" : "graph")}
-        >
-          <FormattedMessage
-            id={
-              effectiveMode === "graph"
-                ? "weather.hourly.toggle.toTable"
-                : "weather.hourly.toggle.toGraph"
+        {!tableOnly && (
+          <button
+            type="button"
+            className="hourly__toggle"
+            aria-pressed={effectiveMode === "table"}
+            onClick={() =>
+              setMode(effectiveMode === "graph" ? "table" : "graph")
             }
-          />
-        </button>
+          >
+            <FormattedMessage
+              id={
+                effectiveMode === "graph"
+                  ? "weather.hourly.toggle.toTable"
+                  : "weather.hourly.toggle.toGraph"
+              }
+            />
+          </button>
+        )}
       </header>
       {effectiveMode === "graph" ? (
         <HourlyGraph hours={graphHours} />

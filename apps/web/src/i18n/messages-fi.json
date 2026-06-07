@@ -229,6 +229,9 @@
   "map.followMe.label.on": "Lopeta sijainnin seuraaminen",
   "map.followMe.label.off": "Seuraa sijaintiani",
   "map.followMe.disabled": "Sijainti ei käytettävissä",
+  "map.weather.forecastTabs.label": "Ennustealue",
+  "map.weather.forecastTab.days": "14 vrk",
+  "map.weather.forecastTab.hourly": "Tunneittain",
 
   "transit.heading": "Joukkoliikenne",
   "transit.sections.label": "Joukkoliikenne-osiot",

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useQuery } from "@tanstack/react-query";
 import { geocodingApi } from "@reissulla/api-client";
@@ -31,8 +31,11 @@ import "./Map.css";
 
 const EMPTY_LOCATIONS: import("@reissulla/shared").SavedLocation[] = [];
 
+type ForecastTab = "days" | "hourly";
+
 export function MapPage() {
   const intl = useIntl();
+  const [forecastTab, setForecastTab] = useState<ForecastTab>("days");
   const view = useMapStore((s) => s.view);
   const setView = useMapStore((s) => s.setView);
   const geoPosition = useGeolocationStore((s) => s.position);
@@ -218,16 +221,61 @@ export function MapPage() {
               dataUpdatedAt={snapshot.dataUpdatedAt}
               onRetry={snapshot.refetch}
             />
-            <ForecastStrip
-              days={daily}
-              isLoading={snapshot.isLoading}
-              isError={snapshot.isError && !daily}
-            />
-            <HourlyForecast
-              hours={hourly}
-              isLoading={snapshot.isLoading}
-              isError={snapshot.isError && !hourly}
-            />
+            <div
+              role="tablist"
+              aria-label={intl.formatMessage({
+                id: "map.weather.forecastTabs.label",
+              })}
+              className="weather-panel__forecast-tabs"
+            >
+              <button
+                id="tab-forecast-days"
+                role="tab"
+                type="button"
+                aria-selected={forecastTab === "days"}
+                aria-controls="panel-forecast-days"
+                tabIndex={forecastTab === "days" ? 0 : -1}
+                onClick={() => setForecastTab("days")}
+              >
+                <FormattedMessage id="map.weather.forecastTab.days" />
+              </button>
+              <button
+                id="tab-forecast-hourly"
+                role="tab"
+                type="button"
+                aria-selected={forecastTab === "hourly"}
+                aria-controls="panel-forecast-hourly"
+                tabIndex={forecastTab === "hourly" ? 0 : -1}
+                onClick={() => setForecastTab("hourly")}
+              >
+                <FormattedMessage id="map.weather.forecastTab.hourly" />
+              </button>
+            </div>
+            <div
+              id="panel-forecast-days"
+              role="tabpanel"
+              aria-labelledby="tab-forecast-days"
+              hidden={forecastTab !== "days"}
+            >
+              <ForecastStrip
+                days={daily}
+                isLoading={snapshot.isLoading}
+                isError={snapshot.isError && !daily}
+              />
+            </div>
+            <div
+              id="panel-forecast-hourly"
+              role="tabpanel"
+              aria-labelledby="tab-forecast-hourly"
+              hidden={forecastTab !== "hourly"}
+            >
+              <HourlyForecast
+                hours={hourly}
+                isLoading={snapshot.isLoading}
+                isError={snapshot.isError && !hourly}
+                tableOnly
+              />
+            </div>
           </div>
         )}
 
