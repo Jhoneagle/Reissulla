@@ -135,6 +135,17 @@ test("under prefers-reduced-motion the controls swap to step buttons", async ({
     page.getByRole("button", { name: /Play radar animation/i }),
   ).toHaveCount(0);
 
+  // Reduce-motion gate: the visible frame must NOT cycle on its own.
+  // Sample twice across a window longer than the in-app frame interval
+  // (~700 ms in normal mode) and assert the active frame is unchanged.
+  await expect
+    .poll(() => radarTileTimestamps(page), { timeout: 2000 })
+    .not.toEqual([]);
+  const before = await radarTileTimestamps(page);
+  await page.waitForTimeout(1500);
+  const after = await radarTileTimestamps(page);
+  expect(after).toEqual(before);
+
   await context.close();
 });
 
