@@ -783,7 +783,14 @@
 }
 
 .warning-banner--severe .warning-banner__text,
-.warning-banner--extreme .warning-banner__text {
+.warning-banner--extreme .warning-banner__text,
+.warning-banner--severe .warning-banner__severity,
+.warning-banner--extreme .warning-banner__severity {
+  /* The small uppercase severity label antialiases into the warm error
+     tone (#ab5858 once rendered at 12px) and falls below the WCAG AA
+     contrast cut on the pale error background. Switching to ink keeps
+     the label legible — severity is already signalled by the banner
+     border + background colour, so we don't lose the visual reading. */
   color: var(--color-ink);
 }
 
