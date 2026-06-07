@@ -7,6 +7,7 @@ import {
   formatWalkDistance,
 } from "../../lib/transit-utils";
 import { ItineraryLeg } from "./ItineraryLeg";
+import { ItineraryWeatherStrip } from "./ItineraryWeatherStrip";
 
 const RIGHT_ARROW = "→";
 
@@ -118,6 +119,7 @@ export function ItineraryCard({ itinerary, index }: ItineraryCardProps) {
           <ItineraryLeg key={`${leg.mode}-${leg.startTime}-${i}`} leg={leg} />
         ))}
       </div>
+      <ItineraryWeatherStrip itinerary={itinerary} />
       {sharePath && (
         <div className="itinerary-card__actions">
           <button
