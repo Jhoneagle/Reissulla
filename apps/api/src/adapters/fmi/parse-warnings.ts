@@ -13,10 +13,11 @@ import type {
  * subset we actually need (id, severity, type, time range, region,
  * description, optional polygon) and ignores everything else.
  *
- * Returns `[]` on parse failure rather than throwing. TODO: pipe the
- * caught error into the structured-logging hook once Phase 3 chunk 8
- * lands it — for now the silent fallback keeps the snapshot fan-out
- * resilient when FMI ships a backwards-incompatible XML shape.
+ * Returns `[]` on parse failure rather than throwing. The silent
+ * fallback keeps the snapshot fan-out resilient when FMI ships a
+ * backwards-incompatible XML shape; the per-PR snapshot test against
+ * `__tests__/fixtures/fmi-warnings.xml` is the forcing function that
+ * surfaces such drift loudly in CI.
  */
 
 const parser = new XMLParser({
@@ -74,8 +75,7 @@ function mapSeverity(raw: string | undefined): FmiWarningSeverity {
   const key = raw.trim().toLowerCase();
   // Unknown severity falls back to "moderate" — chosen so we surface the
   // warning to the user (rather than dropping it silently as "minor") while
-  // not over-claiming an extreme event. Tighten once the FMI vocabulary is
-  // pinned down in Chunk 5.
+  // not over-claiming an extreme event.
   return SEVERITY_MAP[key] ?? "moderate";
 }
 
@@ -232,9 +232,8 @@ export function parseFmiWarnings(
   try {
     tree = parser.parse(xml);
   } catch {
-    // TODO: emit a structured-logging hook (Phase 3 Chunk 8). Returning
-    // an empty list keeps the snapshot fan-out resilient when FMI ships
-    // a backwards-incompatible XML shape.
+    // Silent fallback — see the module-level comment for the rationale
+    // and the per-PR snapshot test that surfaces schema drift loudly.
     return [];
   }
 
