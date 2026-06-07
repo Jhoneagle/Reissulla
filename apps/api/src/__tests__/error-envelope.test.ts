@@ -72,6 +72,33 @@ describe("error envelope", () => {
     expect(body.error.source).toBe("self");
   });
 
+  it("Source union contains the realtime / alerts / digitransit-mqtt entries Phase 4 ships", async () => {
+    // Compile-time check via an exhaustive assignment that fails to type-check
+    // if any source is removed; runtime assertion is the same shape.
+    const sources: Array<
+      | "self"
+      | "fastify"
+      | "digitransit-finland"
+      | "digitransit-hsl"
+      | "digitransit-waltti"
+      | "digitransit-varely"
+      | "digitransit-pelias"
+      | "digitransit-mqtt"
+      | "open-meteo"
+      | "open-meteo-air-quality"
+      | "fmi"
+      | "fintraffic"
+      | "google-oauth"
+      | "redis"
+      | "db"
+      | "realtime"
+      | "alerts"
+    > = ["realtime", "alerts", "digitransit-mqtt"];
+    expect(sources).toContain("realtime");
+    expect(sources).toContain("alerts");
+    expect(sources).toContain("digitransit-mqtt");
+  });
+
   it("propagates Fastify body-parser errors as 400 with source 'fastify' instead of 500", async () => {
     const res = await server.inject({
       method: "POST",

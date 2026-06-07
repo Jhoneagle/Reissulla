@@ -5,6 +5,7 @@ import { adapterRouter } from "../services/transit/adapter-router.js";
 function enableAll() {
   vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
     feed: { finland: true, hsl: true, waltti: true, varely: true },
+    feature: { realtimeSse: false },
   });
 }
 
@@ -49,6 +50,7 @@ describe("adapterRouter", () => {
   it("forCoordinate falls through to HSL when Finland is disabled", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: false, hsl: true, waltti: false, varely: false },
+      feature: { realtimeSse: false },
     });
     expect(adapterRouter.forCoordinate(60.17, 24.94).name).toBe(
       "digitransit-hsl",

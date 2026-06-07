@@ -51,6 +51,27 @@ export const config = {
   feedHslEnabled: process.env.FEED_HSL_ENABLED !== "false",
   feedWalttiEnabled: process.env.FEED_WALTTI_ENABLED !== "false",
   feedVarelyEnabled: process.env.FEED_VARELY_ENABLED !== "false",
+  // Master kill-switch for the SSE pipeline (channels, bus, registry, /live
+  // routes). Off by default — Chunk 2 flips it on in dev once the first
+  // consumer ships; production stays off until the closeout E2E sweep passes.
+  realtimeSseEnabled: process.env.REALTIME_SSE_ENABLED === "true",
+  // Selects the RealtimeBus implementation. "memory" is the default
+  // (single-instance Hetzner box); "redis-pubsub" reuses the existing
+  // cache/redis.ts client so a second API instance is a config flip.
+  realtimeBus:
+    process.env.REALTIME_BUS === "redis-pubsub" ? "redis-pubsub" : "memory",
+  // Digitransit MQTT broker — Chunk 3 connects; left blank in dev so the
+  // adapter stays in stub mode and tests don't reach the network.
+  mqttBrokerUrl: process.env.MQTT_BROKER_URL ?? "",
+  mqttUsername: process.env.MQTT_USERNAME ?? "",
+  mqttPassword: process.env.MQTT_PASSWORD ?? "",
+  // Shared poller cadence for alerts.service.streamActive — Chunk 4 consumer.
+  alertsPollIntervalSec: positiveIntEnv("ALERTS_POLL_INTERVAL_SEC", 60),
+  // Default trip-log retention window for the Chunk 7 nightly prune cron.
+  historyRetentionDaysDefault: positiveIntEnv(
+    "HISTORY_RETENTION_DAYS_DEFAULT",
+    90,
+  ),
   rateLimitMax: positiveIntEnv("RATE_LIMIT_MAX", 200),
   recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY ?? "",
   recaptchaSecretKey: process.env.RECAPTCHA_SECRET_KEY ?? "",

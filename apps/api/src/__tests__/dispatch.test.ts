@@ -23,6 +23,7 @@ describe("adapter dispatch", () => {
   it("routes an HSL-prefixed gtfsId to the HSL adapter when enabled", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: true, hsl: true, waltti: true, varely: true },
+      feature: { realtimeSse: false },
     });
 
     const adapter = adapterForGtfsId("HSL:1040602");
@@ -32,6 +33,7 @@ describe("adapter dispatch", () => {
   it("falls back to Finland when HSL is disabled but the id is HSL-prefixed", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: true, hsl: false, waltti: true, varely: true },
+      feature: { realtimeSse: false },
     });
 
     const adapter = adapterForGtfsId("HSL:1040602");
@@ -41,6 +43,7 @@ describe("adapter dispatch", () => {
   it("uses Finland for unknown-prefix gtfsIds", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: true, hsl: true, waltti: true, varely: true },
+      feature: { realtimeSse: false },
     });
 
     const adapter = adapterForGtfsId("VR:S_1234");
@@ -50,6 +53,7 @@ describe("adapter dispatch", () => {
   it("throws 503 TRANSIT_DISABLED when every feed is disabled (id-bound)", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: false, hsl: false, waltti: false, varely: false },
+      feature: { realtimeSse: false },
     });
 
     expect(() => adapterForGtfsId("HSL:1040602")).toThrow(AppError);
@@ -66,6 +70,7 @@ describe("adapter dispatch", () => {
   it("throws 503 TRANSIT_DISABLED when every feed is disabled (default)", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: false, hsl: false, waltti: false, varely: false },
+      feature: { realtimeSse: false },
     });
 
     expect(() => defaultAdapter()).toThrow(AppError);
@@ -81,6 +86,7 @@ describe("adapter dispatch", () => {
   it("defaultAdapter falls through to HSL when Finland is disabled but HSL is enabled", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: false, hsl: true, waltti: false, varely: false },
+      feature: { realtimeSse: false },
     });
 
     const adapter = defaultAdapter();
@@ -117,6 +123,7 @@ describe("adapter dispatch", () => {
   it("falls back to Finland when a Waltti prefix is disabled", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: true, hsl: true, waltti: false, varely: true },
+      feature: { realtimeSse: false },
     });
     expect(adapterForGtfsId("tampere:123").name).toBe("digitransit-finland");
   });
@@ -124,6 +131,7 @@ describe("adapter dispatch", () => {
   it("falls back to Finland when a Varely prefix is disabled", () => {
     vi.spyOn(featureFlagService, "getFeatureFlags").mockReturnValue({
       feed: { finland: true, hsl: true, waltti: true, varely: false },
+      feature: { realtimeSse: false },
     });
     expect(adapterForGtfsId("VARELY:123").name).toBe("digitransit-finland");
   });

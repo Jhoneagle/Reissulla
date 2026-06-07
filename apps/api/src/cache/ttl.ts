@@ -64,3 +64,27 @@ export const WEATHER_ROADS_TTL = 600; // 10 min
 export const WEATHER_RADAR_TILES_TTL = 60; // 1 min
 /** Rain nowcast state derived from radar + Open-Meteo probability. */
 export const WEATHER_NOWCAST_TTL = 60; // 1 min
+
+// ---- Phase 4 entries -------------------------------------------------------
+// SSE / alerts / vehicle-position caches. Reserved here so consuming chunks
+// don't need to touch this file. Architecture.md §8 already pre-declares
+// `alerts:active:v1` (line 665); `live:vehicle:v1` is new in Phase 4.
+
+/**
+ * Sliding last-known-good vehicle position per (route, vehicle). 5 s TTL so a
+ * subscriber reconnecting between MQTT messages gets the freshest dot
+ * immediately. Key shape: `live:vehicle:v1:<routeId>:<vehicleId>`.
+ */
+export const LIVE_VEHICLE_TTL = 5; // 5 s sliding
+
+/**
+ * Composed active-alert set keyed by scope (region / route / stop selector).
+ * 60 s matches the alerts-service shared-poller cadence so an SSE client
+ * connecting mid-poll gets the active set without forcing a fresh upstream.
+ */
+export const ALERTS_ACTIVE_TTL = 60; // 1 min
+
+/** Per-source alerts cache — Digitransit `alerts(...)` GraphQL slice. */
+export const ALERTS_DIGITRANSIT_TTL = 60; // 1 min
+/** Per-source alerts cache — Fintraffic incidents slice. */
+export const ALERTS_FINTRAFFIC_TTL = 60; // 1 min
