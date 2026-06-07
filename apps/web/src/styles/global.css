@@ -105,6 +105,24 @@ html[data-theme="dark"] {
   --color-success-bg: #0d2419;
 }
 
+/* ── Radar tint filters ──
+   FMI publishes one radar-imagery layer regardless of precipitation
+   type. The snow ramp is a local CSS filter that desaturates and
+   shifts the hue toward cool blues / white so a winter event reads
+   distinctly from a summer rain band on the map overlay. Design-system
+   §9 owns the colour matrix; these tokens are the radar row. */
+:root {
+  --mode-radar-rain: saturate(1) hue-rotate(0deg) brightness(1);
+  --mode-radar-snow: saturate(0.45) hue-rotate(190deg) brightness(1.15);
+}
+
+.radar-tile {
+  filter: var(--mode-radar-rain);
+}
+.radar-tile--snow {
+  filter: var(--mode-radar-snow);
+}
+
 /* ── High-contrast tokens ──
    Triggered by the OS preference OR the explicit toggle in settings
    (body[data-high-contrast="true"]). Roadmap A11Y-2. */

@@ -2,15 +2,18 @@ import { useEffect, useState } from "react";
 import { usePreferences } from "./usePreferences";
 
 /**
- * Unified high-contrast gate. ORs the OS-level `prefers-contrast: more`
- * query with the app-level `preferences.highContrast` boolean so a
- * component only has to import one hook to decide whether to disable a
- * decorative overlay. CSS-level rules in `global.css` already handle
- * `body[data-high-contrast]` + the media query for the theme switch;
- * this hook is the JS-side mirror for components (e.g. RainRadarOverlay)
- * that need to skip rendering entirely under HC rather than just restyle.
+ * Unified high-contrast gate. ORs three signals:
  *
- * SSR-safe: `window` is checked before subscribing.
+ *   - OS-level `prefers-contrast: more` query
+ *   - app-level `preferences.highContrast` boolean (signed-in users)
+ *   - `body[data-high-contrast="true"]` attribute (the live attribute
+ *     `Settings.tsx` writes; covers the moment between toggle and
+ *     prefs-query revalidation, plus anonymous toggles for QA harnesses)
+ *
+ * Subscribes to all three so a component (e.g. `RainRadarOverlay`) that
+ * needs to short-circuit rendering under HC reacts within a frame.
+ *
+ * SSR-safe: `window` / `document` are checked before subscribing.
  */
 export function useHighContrast(): boolean {
   const prefs = usePreferences().data;
@@ -21,6 +24,11 @@ export function useHighContrast(): boolean {
     return window.matchMedia("(prefers-contrast: more)").matches;
   });
 
+  const [bodyAttr, setBodyAttr] = useState(() => {
+    if (typeof document === "undefined") return false;
+    return document.body.dataset.highContrast === "true";
+  });
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mql = window.matchMedia("(prefers-contrast: more)");
@@ -29,5 +37,18 @@ export function useHighContrast(): boolean {
     return () => mql.removeEventListener("change", handler);
   }, []);
 
-  return app || os;
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const target = document.body;
+    const observer = new MutationObserver(() => {
+      setBodyAttr(target.dataset.highContrast === "true");
+    });
+    observer.observe(target, {
+      attributes: true,
+      attributeFilter: ["data-high-contrast"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  return app || os || bodyAttr;
 }

@@ -1,4 +1,5 @@
 import { TileLayer } from "react-leaflet";
+import type { NowcastFlavor } from "@reissulla/shared";
 import { useMapStore } from "../../stores/map";
 import { useHighContrast } from "../../hooks/useHighContrast";
 import { useRadarTimeline } from "../../hooks/useRadarTimeline";
@@ -20,7 +21,16 @@ function proxiedTileUrl(timestamp: number): string {
   return `${API_BASE}/weather/radar/${timestamp}/{z}/{x}/{y}.png`;
 }
 
-export function RainRadarOverlay() {
+interface RainRadarOverlayProps {
+  /**
+   * Drives the rain-vs-snow tint via CSS filter tokens. Omitting it
+   * falls back to the rain ramp — fine when the upstream snapshot
+   * hasn't loaded yet.
+   */
+  flavor?: NowcastFlavor;
+}
+
+export function RainRadarOverlay({ flavor }: RainRadarOverlayProps) {
   const visible = useMapStore((s) => s.overlays.has("overlay-rain-radar"));
   const highContrast = useHighContrast();
   const { frames, currentIdx } = useRadarTimeline(visible && !highContrast);
@@ -31,10 +41,14 @@ export function RainRadarOverlay() {
   const frame = frames[currentIdx] ?? frames[frames.length - 1];
   if (!frame) return null;
 
+  const className =
+    flavor === "snow" ? "radar-tile radar-tile--snow" : "radar-tile";
+
   return (
     <TileLayer
       url={proxiedTileUrl(frame.timestamp)}
       opacity={0.65}
+      className={className}
       attribution="&copy; FMI"
     />
   );

@@ -63,6 +63,7 @@ export function MapPage() {
   const current = snapshot.data?.data.current ?? undefined;
   const daily = snapshot.data?.data.forecast?.daily;
   const hourly = snapshot.data?.data.forecast?.hourly;
+  const nowcast = snapshot.data?.data.nowcast ?? null;
 
   const reverseQuery = useQuery({
     queryKey: [
@@ -291,7 +292,7 @@ export function MapPage() {
           <MapShareUrl />
           <MapFollowMe />
           <WarningOverlay />
-          <RainRadarOverlay />
+          <RainRadarOverlay flavor={nowcast?.flavor} />
           {selectedLocation && !followMe && (
             <MapFlyTo lat={selectedLocation.lat} lon={selectedLocation.lon} />
           )}

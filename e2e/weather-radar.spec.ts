@@ -148,3 +148,23 @@ test("map with the radar overlay on is axe-core clean (critical/serious)", async
   ).toBeVisible();
   await expectNoSeriousA11yViolations(page);
 });
+
+test("under high-contrast theme the radar overlay and its controls are hidden", async ({
+  page,
+}) => {
+  await page.goto("/map");
+  // Mirror the app-level high-contrast toggle the Settings page sets when
+  // the user opts in. The hook ORs this with the OS query, so flipping
+  // either is enough to gate the overlay off.
+  await page.evaluate(() => {
+    document.body.dataset.highContrast = "true";
+  });
+  await enableRadarOverlay(page);
+
+  // Controls don't mount under HC — the dashboard text nowcast is the
+  // modality for these users.
+  await expect(
+    page.getByRole("group", { name: /Radar playback/i }),
+  ).toHaveCount(0);
+  expect(await radarTileTimestamps(page)).toEqual([]);
+});
