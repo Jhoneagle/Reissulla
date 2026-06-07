@@ -1708,6 +1708,7 @@ html[data-theme="dark"] .form-field select {
   .dashboard-card--primary {
     display: grid;
     grid-template-areas:
+      "warnings warnings"
       "heading heading"
       "hero body"
       "depth depth"
@@ -1715,6 +1716,9 @@ html[data-theme="dark"] .form-field select {
     grid-template-columns: minmax(8rem, auto) 1fr;
     column-gap: var(--space-6);
     row-gap: var(--space-4);
+  }
+  .dashboard-card--primary > .warning-stack {
+    grid-area: warnings;
   }
   .dashboard-card--primary .dashboard-card__header {
     grid-area: heading;

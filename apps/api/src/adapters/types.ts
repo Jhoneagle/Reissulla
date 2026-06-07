@@ -14,7 +14,7 @@ export type AdapterLocale = "fi" | "en";
  * `locale` is the resolved request language. Resolution order at the route
  * boundary is: authenticated session → persona.language; anonymous →
  * Accept-Language → "fi". FMI returns localized warning text, so locale-keyed
- * cache entries (`weather:warnings:v1:<region>:<lang>`) start using this field
+ * cache entries (`weather:warnings:v2:<region>:<lang>`) start using this field
  * in Phase 3 Chunk 3. Other adapters can ignore it; the field stays required
  * on the contract so locale-dependent upstream calls can never silently
  * forget to thread it.

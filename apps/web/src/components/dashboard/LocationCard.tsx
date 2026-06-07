@@ -8,6 +8,8 @@ import { HourlyForecast } from "../weather/HourlyForecast";
 import { ForecastStrip } from "../weather/ForecastStrip";
 import { AirQualityChip } from "../weather/AirQualityChip";
 import { SunWindowCard } from "../weather/SunWindowCard";
+import { WarningBanner } from "../weather/WarningBanner";
+import { RoadConditionChip } from "../weather/RoadConditionChip";
 import {
   buildWeatherLede,
   type CardinalDirection,
@@ -61,6 +63,8 @@ export function LocationCard({
   const forecast = snapshot.data?.data.forecast ?? null;
   const airQuality = snapshot.data?.data.airQuality ?? null;
   const pollen = snapshot.data?.data.pollen ?? null;
+  const warnings = snapshot.data?.data.warnings ?? [];
+  const roadConditions = snapshot.data?.data.roadConditions ?? null;
 
   // Only the primary card drives the page-level ambient theme — having
   // every secondary card overwrite the body attribute would race. The
@@ -118,6 +122,10 @@ export function LocationCard({
       className={`dashboard-card${isPrimary ? " dashboard-card--primary" : ""}`}
       aria-labelledby={`card-${lat}-${lon}-heading`}
     >
+      {isPrimary && warnings.length > 0 && (
+        <WarningBanner warnings={warnings} restoreFocusToId="main-content" />
+      )}
+
       <header className="dashboard-card__header">
         <h3 id={`card-${lat}-${lon}-heading`}>{name}</h3>
         {isPrimary && (
@@ -231,6 +239,7 @@ export function LocationCard({
             <AirQualityChip airQuality={airQuality} pollen={pollen} />
             <SunWindowCard daily={forecast?.daily} />
           </div>
+          <RoadConditionChip variant="dashboard" condition={roadConditions} />
         </div>
       )}
 

@@ -165,11 +165,37 @@ export interface TransitDepartureByDirection {
   other: TransitDeparture[];
 }
 
+/**
+ * Walking-leg road-surface impact. Populated when Fintraffic reports a
+ * non-dry surface at the leg's origin; the planner has already applied
+ * the multiplier to `duration` and preserved the un-penalised seconds in
+ * `baseDuration` on the leg, so the FE just renders the reason + delta.
+ */
+export type RoadImpactReason =
+  | "ice"
+  | "partly-ice"
+  | "slush"
+  | "snow"
+  | "frost"
+  | "wet";
+
+export interface LegRoadImpact {
+  reason: RoadImpactReason;
+  multiplier: number;
+}
+
 export interface TransitItineraryLeg {
   mode: string;
   startTime: number;
   endTime: number;
   duration: number;
+  /**
+   * Walking-leg duration before any road-surface penalty (seconds). Equal
+   * to `duration` when no `roadImpact` is attached. The UI renders the
+   * delta `duration - baseDuration` as "+N min ice" when `roadImpact` is
+   * present.
+   */
+  baseDuration?: number;
   distance: number;
   from: {
     name: string;
@@ -195,6 +221,12 @@ export interface TransitItineraryLeg {
    * surface step text — the UI renders nothing rather than an error.
    */
   steps?: { distance: number; relativeDirection: string; streetName: string }[];
+  /**
+   * Road-surface penalty applied to this WALK leg, when Fintraffic reports
+   * a non-dry surface near the leg origin. Absent for non-WALK legs and
+   * for WALK legs over dry / unknown surfaces.
+   */
+  roadImpact?: LegRoadImpact;
 }
 
 export interface TransitItinerary {

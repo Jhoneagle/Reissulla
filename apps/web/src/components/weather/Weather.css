@@ -723,3 +723,104 @@
 .dashboard-card__weather-depth {
   margin-top: 0.75rem;
 }
+
+/* ----- Warning banner ----------------------------------------------------
+   Severity map: minor/moderate ride on --color-warning tokens; severe and
+   extreme switch to --color-error. No new tokens introduced.
+*/
+
+.warning-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.warning-banner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-surface);
+}
+
+.warning-banner--minor,
+.warning-banner--moderate {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.warning-banner--severe,
+.warning-banner--extreme {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.warning-banner__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.warning-banner__severity {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.warning-banner__text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.warning-banner--severe .warning-banner__text,
+.warning-banner--extreme .warning-banner__text {
+  color: var(--color-ink);
+}
+
+.warning-banner__dismiss {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.25rem 0.375rem;
+  border-radius: 4px;
+}
+
+.warning-banner__dismiss:hover,
+.warning-banner__dismiss:focus-visible {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* ----- Road condition chip ----------------------------------------------- */
+
+.road-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-warning);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.road-chip[data-variant="dashboard"] {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.road-chip__icon {
+  flex-shrink: 0;
+}
