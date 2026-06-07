@@ -2,6 +2,7 @@ import { useIntl } from "react-intl";
 import type { DailyForecast } from "@reissulla/shared";
 import { WeatherIcon } from "./WeatherIcon";
 import { shortDay, isToday } from "../../lib/weather-utils";
+import { formatWeatherCode } from "../../lib/weather-i18n";
 
 interface ForecastStripProps {
   days: DailyForecast[] | undefined;
@@ -50,7 +51,7 @@ export function ForecastStrip({
           { id: "weather.forecast.dayLabel" },
           {
             day: today ? todayLabel : dayName,
-            description: day.weatherDescription,
+            description: formatWeatherCode(intl, day.weatherCode),
             high: Math.round(day.temperatureMax),
             low: Math.round(day.temperatureMin),
             precip: day.precipitationProbability > 0 ? "true" : "false",

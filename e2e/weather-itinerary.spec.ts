@@ -106,9 +106,46 @@ const PLAN_FIXTURE = {
   cached: false,
 };
 
+const GEOCODE_FIXTURE = {
+  data: [
+    {
+      placeId: "way/123",
+      name: "Mannerheimintie",
+      displayName: "Mannerheimintie, Helsinki",
+      latitude: 60.1699,
+      longitude: 24.9384,
+      type: "street",
+      importance: 0.9,
+      locality: "Helsinki",
+      neighbourhood: "Etu-Töölö",
+    },
+    {
+      placeId: "way/456",
+      name: "Mannerheimintie",
+      displayName: "Mannerheimintie, Tampere",
+      latitude: 61.4978,
+      longitude: 23.761,
+      type: "street",
+      importance: 0.7,
+      locality: "Tampere",
+    },
+  ],
+  cached: false,
+};
+
 test.use({ locale: "en-US" });
 
 test.beforeEach(async ({ page }) => {
+  // Pin the geocoding response so the spec runs identically against the
+  // MSW-backed dev:e2e server and a real-API `pnpm dev`. Without this,
+  // Digitransit Pelias swamps the autocomplete with Helsinki street
+  // numbers and the Tampere option falls off the visible list.
+  await page.route(/\/api\/v1\/geocoding\/search(\?.*)?$/, (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(GEOCODE_FIXTURE),
+    }),
+  );
   await page.route(/\/api\/v1\/transit\/plan(\?.*)?$/, async (route) => {
     if (route.request().method() !== "POST") return route.continue();
     const body = route.request().postDataJSON() as { weather?: boolean };
@@ -143,26 +180,26 @@ async function submitMannerheimintiePlan(
 ) {
   await page.goto("/transit?tab=planner");
 
-  // Fill From with Helsinki Mannerheimintie — the MSW fixture surfaces
-  // both Helsinki + Tampere as autocomplete results. Pelias renders the
-  // primary name and secondary (neighbourhood/locality) in separate spans
-  // so the option's accessible name has no comma — match leniently.
+  // Each LocationSearch owns its own listbox (id=`${inputId}-listbox`).
+  // Scoping the option queries to those listboxes avoids the trap where
+  // From's still-open dropdown's options bleed into the To selection.
   const fromInput = page.locator("#transit-from");
   await fromInput.fill("Mannerheimintie");
-  // The dropdown debounces 300 ms before opening.
-  const helsinkiOption = page
+  await page
+    .locator("#transit-from-listbox")
     .getByRole("option")
     .filter({ hasText: /Helsinki/ })
-    .first();
-  await helsinkiOption.click();
+    .first()
+    .click();
 
   const toInput = page.locator("#transit-to");
   await toInput.fill("Mannerheimintie");
-  const tampereOption = page
+  await page
+    .locator("#transit-to-listbox")
     .getByRole("option")
     .filter({ hasText: /Tampere/ })
-    .first();
-  await tampereOption.click();
+    .first()
+    .click();
 
   // The planner fires `useRoutePlan(planInput)` as soon as both ends
   // are set — no submit button. Wait for the itinerary card to mount.

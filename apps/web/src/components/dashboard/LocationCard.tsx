@@ -4,6 +4,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { useWeatherSnapshot } from "../../hooks/useWeather";
 import { useNearbyStops } from "../../hooks/useTransit";
 import { WeatherIcon } from "../weather/WeatherIcon";
+import { formatWeatherCode } from "../../lib/weather-i18n";
 import { HourlyForecast } from "../weather/HourlyForecast";
 import { ForecastStrip } from "../weather/ForecastStrip";
 import { AirQualityChip } from "../weather/AirQualityChip";
@@ -109,11 +110,7 @@ export function LocationCard({
   const lede = current
     ? buildWeatherLede({
         weather: current,
-        formatWeatherCode: (code) =>
-          intl.formatMessage({
-            id: `weather.code.${code}`,
-            defaultMessage: current.weatherDescription,
-          }),
+        formatWeatherCode: (code) => formatWeatherCode(intl, code),
         ...ledeFormatters,
       })
     : null;

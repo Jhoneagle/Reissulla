@@ -102,14 +102,11 @@ describe("ItineraryWeatherStrip", () => {
 
   it("defaults to collapsed and exposes the lede in the summary", () => {
     const it = itinerary({
-      originWeather: hour({
-        temperature: 17,
-        weatherDescription: "Partly cloudy",
-      }),
-      destinationWeather: hour({
-        temperature: 14,
-        weatherDescription: "Light rain",
-      }),
+      // Code 2 → "Partly cloudy" / Code 61 → "Slight rain" via the existing
+      // weather.code.* i18n catalogue. The component reads weatherCode, not
+      // the wire's weatherDescription.
+      originWeather: hour({ temperature: 17, weatherCode: 2 }),
+      destinationWeather: hour({ temperature: 14, weatherCode: 61 }),
       legOutdoorWaits: [],
     });
     renderWithProviders(<ItineraryWeatherStrip itinerary={it} />);
@@ -120,7 +117,7 @@ describe("ItineraryWeatherStrip", () => {
     // Both origin and destination summary parts are present in the lede.
     expect(
       screen.getByText(
-        /17° Partly cloudy at depart · 14° Light rain at arrival/,
+        /17° Partly cloudy at depart · 14° Slight rain at arrival/,
       ),
     ).toBeInTheDocument();
   });

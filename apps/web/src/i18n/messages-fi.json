@@ -366,6 +366,8 @@
   "transit.itinerary.weather.outdoorWaitLabel": "Ulkona pysäkillä {place}",
   "transit.itinerary.weather.outdoorWaitChip": "+{minutes} min",
   "transit.itinerary.weather.temperatureValue": "{temperature}°",
+  "weather.loading": "Ladataan…",
+  "weather.unavailable": "Säätietoja ei saatavilla",
   "transit.leg.walk": "Kävely",
   "transit.leg.walkDetail": "{duration} ({distance})",
   "transit.leg.stopsCount": " · {count, plural, one {# pysäkki} other {# pysäkkiä}}",

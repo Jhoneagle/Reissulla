@@ -1,6 +1,7 @@
 import { FormattedMessage, useIntl } from "react-intl";
 import type { TransitItinerary } from "@reissulla/shared";
 import { formatDepartureTime } from "../../lib/transit-utils";
+import { formatWeatherCode } from "../../lib/weather-i18n";
 import { WeatherIcon } from "../weather/WeatherIcon";
 
 interface ItineraryWeatherStripProps {
@@ -47,7 +48,7 @@ export function ItineraryWeatherStrip({
         { id: "transit.itinerary.weather.summaryOrigin" },
         {
           temperature: Math.round(origin.temperature),
-          weather: origin.weatherDescription,
+          weather: formatWeatherCode(intl, origin.weatherCode),
         },
       ),
     );
@@ -58,7 +59,7 @@ export function ItineraryWeatherStrip({
         { id: "transit.itinerary.weather.summaryDestination" },
         {
           temperature: Math.round(destination.temperature),
-          weather: destination.weatherDescription,
+          weather: formatWeatherCode(intl, destination.weatherCode),
         },
       ),
     );
@@ -99,7 +100,7 @@ export function ItineraryWeatherStrip({
                 />
               </span>
               <span className="itinerary-weather__description">
-                {origin.weatherDescription}
+                {formatWeatherCode(intl, origin.weatherCode)}
               </span>
             </dd>
           </div>
@@ -126,7 +127,7 @@ export function ItineraryWeatherStrip({
                 />
               </span>
               <span className="itinerary-weather__description">
-                {destination.weatherDescription}
+                {formatWeatherCode(intl, destination.weatherCode)}
               </span>
             </dd>
           </div>
@@ -151,7 +152,7 @@ export function ItineraryWeatherStrip({
               </span>
               {wait.weather && (
                 <span className="itinerary-weather__description">
-                  {wait.weather.weatherDescription}
+                  {formatWeatherCode(intl, wait.weather.weatherCode)}
                 </span>
               )}
             </dd>

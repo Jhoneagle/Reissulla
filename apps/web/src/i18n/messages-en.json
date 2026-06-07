@@ -366,6 +366,8 @@
   "transit.itinerary.weather.outdoorWaitLabel": "Outdoor wait at {place}",
   "transit.itinerary.weather.outdoorWaitChip": "+{minutes} min",
   "transit.itinerary.weather.temperatureValue": "{temperature}°",
+  "weather.loading": "Loading…",
+  "weather.unavailable": "Weather unavailable",
   "transit.leg.walk": "Walk",
   "transit.leg.walkDetail": "{duration} ({distance})",
   "transit.leg.stopsCount": " · {count, plural, one {# stop} other {# stops}}",
