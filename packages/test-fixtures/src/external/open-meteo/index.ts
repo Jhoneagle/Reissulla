@@ -18,4 +18,28 @@ export function isErrorMarker(value: unknown): value is OpenMeteoErrorMarker {
   );
 }
 
-export { currentByCoord, forecastByCoord } from "./helsinki.js";
+import {
+  currentByCoord as helsinkiCurrentByCoord,
+  forecastByCoord as helsinkiForecastByCoord,
+} from "./helsinki.js";
+import { pasilaCurrentByCoord, pasilaForecastByCoord } from "./pasila.js";
+import { tampereCurrentByCoord, tampereForecastByCoord } from "./tampere.js";
+
+/**
+ * Combined coord registry — each region contributes one (or more) coord
+ * bucket. Adding a new city is "drop a file, merge the spread into both
+ * exports". The MSW handler keys lookup by `${lat.toFixed(2)},${lon.toFixed(2)}`
+ * and throws on a miss, so any new coord that production code can hit
+ * needs an entry here.
+ */
+export const currentByCoord = {
+  ...helsinkiCurrentByCoord,
+  ...pasilaCurrentByCoord,
+  ...tampereCurrentByCoord,
+};
+
+export const forecastByCoord = {
+  ...helsinkiForecastByCoord,
+  ...pasilaForecastByCoord,
+  ...tampereForecastByCoord,
+};

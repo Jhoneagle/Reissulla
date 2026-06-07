@@ -1,4 +1,5 @@
 import type { ServiceDay } from "../utils/service-day.js";
+import type { HourlyForecast } from "./weather.js";
 
 /** GTFS wheelchair-boarding status surfaced to the FE. */
 export type WheelchairBoarding = "POSSIBLE" | "NOT_POSSIBLE" | "NO_INFORMATION";
@@ -252,6 +253,47 @@ export interface TransitItinerary {
     lowFloor?: boolean;
     stroller?: boolean;
   };
+  /**
+   * Itinerary-level weather composite. Populated only when the caller
+   * opted in via `weather: true` on the plan request; absent on legacy
+   * calls and on share-link reads so the wire stays small for consumers
+   * that don't render the strip.
+   */
+  weather?: ItineraryWeather;
+}
+
+/**
+ * Outdoor wait between two consecutive legs. The wait happens at the
+ * boarding location of leg `legIndex` — the user has alighted from leg
+ * `legIndex - 1` and is standing on a platform / curb until leg
+ * `legIndex` departs. Surfaced only when the gap exceeds five minutes,
+ * mirroring the visual-rule from plan §14.2 Chunk 6.
+ */
+export interface LegOutdoorWait {
+  /** Index into `TransitItinerary.legs` for the leg being boarded. */
+  legIndex: number;
+  /** Wait minutes between the previous leg's endTime and this leg's startTime. */
+  outdoorWaitMin: number;
+  /**
+   * Weather at the boarding location at the start of the wait. `null`
+   * when the depart hour is past the forecast horizon (Open-Meteo
+   * returns 7 days of hourly data); UI renders nothing for the slot
+   * rather than guessing.
+   */
+  weather: HourlyForecast | null;
+}
+
+/**
+ * Pre-trip + per-leg weather summary attached to an itinerary when the
+ * planner caller opts in. `originWeather` is the hourly forecast at the
+ * first leg's `from` at the itinerary's `startTime`; `destinationWeather`
+ * is the symmetric pair at `endTime`. Both fall back to `null` past the
+ * forecast horizon.
+ */
+export interface ItineraryWeather {
+  originWeather: HourlyForecast | null;
+  destinationWeather: HourlyForecast | null;
+  legOutdoorWaits: LegOutdoorWait[];
 }
 
 export interface TransitPlanResult {

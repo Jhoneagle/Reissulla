@@ -103,6 +103,9 @@ export function RoutePlanner({
         planPreferences: controls.planPreferences,
       },
       numItineraries: 3,
+      // The planner card surfaces the weather strip; share links opt out
+      // so the read endpoint stays light.
+      weather: true,
     };
   }, [origin, destination, controls]);
 

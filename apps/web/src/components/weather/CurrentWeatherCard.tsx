@@ -2,6 +2,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import type { CurrentWeather } from "@reissulla/shared";
 import { WeatherIcon } from "./WeatherIcon";
 import { windDirectionLabel, timeAgo } from "../../lib/weather-utils";
+import { formatWeatherCode } from "../../lib/weather-i18n";
 
 interface CurrentWeatherCardProps {
   data: CurrentWeather | undefined;
@@ -138,7 +139,7 @@ export function CurrentWeatherCard({
           isDay={data.isDay}
           size={40}
           className="weather-current__icon"
-          label={data.weatherDescription}
+          label={formatWeatherCode(intl, data.weatherCode)}
         />
         <div className="weather-current__main">
           <span className="weather-current__temp">
@@ -146,7 +147,7 @@ export function CurrentWeatherCard({
             {Math.round(data.temperature)}°
           </span>
           <span className="weather-current__desc">
-            {data.weatherDescription}
+            {formatWeatherCode(intl, data.weatherCode)}
           </span>
         </div>
       </div>

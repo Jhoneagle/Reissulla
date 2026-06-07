@@ -2206,3 +2206,113 @@
 .stop-a11y__value--not_possible {
   color: var(--color-danger, var(--color-ink-muted));
 }
+
+/* ── Itinerary weather strip (Phase 3 Chunk 6) ─────────────────────── */
+/* Collapsed-by-default disclosure under the legs list. Matches the
+   stop-a11y disclosure pattern so the planner card has one consistent
+   "drawer" idiom. */
+.itinerary-weather {
+  margin-top: var(--space-3);
+  border: 1px solid var(--color-rule);
+  border-left: 3px solid var(--color-info, var(--color-primary));
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+}
+
+.itinerary-weather__summary {
+  cursor: pointer;
+  list-style: none;
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.itinerary-weather__summary::-webkit-details-marker {
+  display: none;
+}
+.itinerary-weather__summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.itinerary-weather__kicker {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+}
+
+.itinerary-weather__lede {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+}
+
+.itinerary-weather__list {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-3);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.itinerary-weather__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-rule);
+}
+
+.itinerary-weather__label {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.itinerary-weather__value {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+
+.itinerary-weather__icon {
+  flex-shrink: 0;
+}
+
+.itinerary-weather__temperature {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  letter-spacing: 0.02em;
+  color: var(--color-ink);
+}
+
+.itinerary-weather__description {
+  color: var(--color-ink-muted);
+}
+
+/* Outdoor-wait rows lean on the warning palette — the chip mirrors the
+   road-condition chip's visual weight so both surfaces feel paired. */
+.itinerary-weather__row--wait .itinerary-weather__value {
+  color: var(--color-warning);
+}
+
+.itinerary-weather__wait-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px var(--space-1);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--color-warning);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+  background: transparent;
+}

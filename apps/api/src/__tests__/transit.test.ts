@@ -324,9 +324,10 @@ describe("POST /api/v1/transit/plan", () => {
   }
 
   beforeEach(async () => {
-    // v3 cache keys include an options hash + persona fingerprint — flush by
-    // prefix instead of recomputing every variant by hand.
-    const keys = await redis.keys("transit:plan:v3:*");
+    // Plan cache keys include an options hash + persona fingerprint + a
+    // weather opt-in flag — flush by namespace prefix so we don't have to
+    // chase every version bump.
+    const keys = await redis.keys("transit:plan:*");
     if (keys.length > 0) {
       await Promise.all(keys.map((k) => cacheDel(k)));
     }

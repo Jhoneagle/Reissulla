@@ -36,6 +36,26 @@ export const HELSINKI_COORD = {
 } as const;
 
 /**
+ * Pasila platform — the canonical HEL → TPE transfer point. Lives in its
+ * own 0.01° bucket distinct from HELSINKI_COORD so the trip-weather
+ * composer's per-bucket fan-out is exercised by the cross-region plan
+ * fixture.
+ */
+export const PASILA_COORD = {
+  lat: 60.2,
+  lon: 24.93,
+} as const;
+
+/**
+ * Tampere (Hervanta-side) coordinate used by the cross-region open-meteo
+ * fixture and the HEL → TPE planConnection fixture.
+ */
+export const TAMPERE_COORD = {
+  lat: 61.5,
+  lon: 23.79,
+} as const;
+
+/**
  * Synthetic coordinates that the MSW handler maps to HTTP error responses.
  * The real Open-Meteo API never returns these as valid request inputs, so
  * tests can use them to drive deterministic error paths.

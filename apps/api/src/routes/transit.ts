@@ -551,6 +551,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           persona: request.persona ?? DEFAULT_PERSONA,
         },
         numItineraries,
+        includeWeather: body.weather === true,
       });
       return { data, cached };
     },
@@ -831,6 +832,12 @@ interface PlanRequestBody {
     planPreferences?: Partial<PlanPreferences>;
   };
   numItineraries?: number;
+  /**
+   * Opt-in to pre-trip + per-leg weather composition (Phase 3 Chunk 6).
+   * Defaults to false — share-link consumers and legacy planner clients
+   * keep the lean payload.
+   */
+  weather?: boolean;
 }
 
 const PLAN_REQUEST_BODY_SCHEMA = {
@@ -886,6 +893,7 @@ const PLAN_REQUEST_BODY_SCHEMA = {
       additionalProperties: false,
     },
     numItineraries: { type: "integer", minimum: 1, maximum: 5 },
+    weather: { type: "boolean" },
   },
   additionalProperties: false,
 } as const;

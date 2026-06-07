@@ -1,6 +1,9 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import type { HourlyForecast as Hour } from "@reissulla/shared";
+import {
+  helsinkiHourStamp,
+  type HourlyForecast as Hour,
+} from "@reissulla/shared";
 
 interface HourlyForecastProps {
   hours: Hour[] | undefined;
@@ -42,11 +45,22 @@ function useReduceMotion(): boolean {
   return reduce;
 }
 
-/** Pick the first hour at-or-after now from upstream's local-zoned list. */
+/**
+ * Pick the first hour at-or-after now from upstream's local-zoned list.
+ *
+ * `hours[i].time` is Helsinki-local "YYYY-MM-DDTHH:00" (Open-Meteo with
+ * `timezone: "auto"`, no Z suffix). The previous implementation compared
+ * against `new Date().toISOString().slice(0, 13)` which is the UTC
+ * prefix — off by the Finland UTC offset, so the dashboard either
+ * dropped the first 2-3 future hours or showed the last 2-3 stale ones
+ * depending on summer/winter. The shared `helsinkiHourStamp` helper
+ * produces a Helsinki-anchored prefix that round-trips correctly with
+ * upstream's clock.
+ */
 function firstFutureIndex(hours: Hour[]): number {
-  const nowIso = new Date().toISOString().slice(0, 13); // "YYYY-MM-DDTHH"
+  const nowStamp = helsinkiHourStamp(Date.now());
   for (let i = 0; i < hours.length; i++) {
-    if (hours[i]!.time.slice(0, 13) >= nowIso) return i;
+    if (hours[i]!.time.slice(0, 13) >= nowStamp) return i;
   }
   return 0;
 }

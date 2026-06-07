@@ -40,8 +40,9 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  // Plan cache is v3 with options-hash slots — flush by prefix.
-  const planKeys = await redis.keys("transit:plan:v3:*");
+  // Plan cache uses an options-hash + persona + weather-flag tail — flush
+  // by namespace prefix so future cache-key bumps don't silently rot.
+  const planKeys = await redis.keys("transit:plan:*");
   if (planKeys.length > 0) {
     await Promise.all(planKeys.map((k) => cacheDel(k)));
   }

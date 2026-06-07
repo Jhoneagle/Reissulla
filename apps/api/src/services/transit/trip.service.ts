@@ -24,6 +24,7 @@ import {
   getCachedRoadCondition,
 } from "../weather/road-impact.service.js";
 import type { RoadCondition } from "../../adapters/fintraffic/types.js";
+import { attachItineraryWeather } from "./trip-weather.service.js";
 
 function makeContext(persona: Persona): AdapterContext {
   return {
@@ -105,14 +106,16 @@ export async function planRoute(
 export async function planRouteFull({
   query,
   numItineraries,
+  includeWeather = false,
 }: PlanRouteOptions): Promise<{ data: TransitPlanResult; cached: boolean }> {
   const persona = query.persona ?? DEFAULT_PERSONA;
-  // v3: cache key now embeds an options hash so the planner depth controls
-  // produce per-config slots without colliding with the default plan call.
+  // v4: cache key tail gains a `w0` / `w1` flag so a cached weatherless
+  // plan doesn't satisfy a weather=true reader and vice versa. Old v3
+  // keys time out naturally per the cache-key version-segment policy.
   const key = cacheKey(
     "transit",
     "plan",
-    3,
+    4,
     query.from.lat.toFixed(3),
     query.from.lon.toFixed(3),
     query.to.lat.toFixed(3),
@@ -128,6 +131,7 @@ export async function planRouteFull({
       numItineraries,
     ),
     serializePersona(persona),
+    includeWeather ? "w1" : "w0",
   );
   const cached = await tryCache(() => cacheGet<TransitPlanResult>(key));
   if (cached) return { data: cached, cached: true };
@@ -232,6 +236,12 @@ export async function planRouteFull({
   });
 
   await applyWalkRoadImpact(itineraries, makeContext(persona));
+
+  // Weather composition is the last step so a partial-failure forecast
+  // doesn't block the road-impact penalty from landing on WALK legs.
+  if (includeWeather) {
+    await attachItineraryWeather(itineraries, makeContext(persona));
+  }
 
   const data: TransitPlanResult = { itineraries };
   await tryCache(() => cacheSet(key, data, PLAN_TTL));
