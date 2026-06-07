@@ -1,10 +1,11 @@
-import type {
-  HourlyForecast,
-  ItineraryWeather,
-  LegOutdoorWait,
-  TransitItinerary,
-  TransitItineraryLeg,
-  WeatherForecast,
+import {
+  helsinkiHourStamp,
+  type HourlyForecast,
+  type ItineraryWeather,
+  type LegOutdoorWait,
+  type TransitItinerary,
+  type TransitItineraryLeg,
+  type WeatherForecast,
 } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
@@ -36,33 +37,6 @@ import type { AdapterContext } from "../../adapters/types.js";
  */
 
 const OUTDOOR_WAIT_MIN_THRESHOLD = 5;
-
-/**
- * Open-Meteo returns hourly time strings without a timezone designator
- * (`"2026-05-05T12:00"`) when called with `timezone: "auto"`, so
- * `Date.parse` interprets them as local time on the server — wrong
- * outside Finland. Build the Helsinki-local hour string explicitly via
- * `Intl.DateTimeFormat` and string-match against the upstream `time`
- * field so the lookup is timezone-correct regardless of where the API
- * process runs.
- */
-const HELSINKI_HOUR_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
-  timeZone: "Europe/Helsinki",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  hourCycle: "h23",
-});
-
-function helsinkiHourStamp(unixMs: number): string {
-  // Swedish locale formats as `YYYY-MM-DD HH` already — turn it into the
-  // ISO-like prefix `YYYY-MM-DDTHH` to match open-meteo's `time.slice(0, 13)`.
-  const parts = HELSINKI_HOUR_FORMATTER.formatToParts(new Date(unixMs));
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}`;
-}
 
 function bucketKey(lat: number, lon: number): string {
   return `${lat.toFixed(2)}:${lon.toFixed(2)}`;

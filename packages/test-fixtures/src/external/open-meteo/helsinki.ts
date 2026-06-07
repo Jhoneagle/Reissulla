@@ -7,8 +7,11 @@ import type { OpenMeteoFixture } from "./index.js";
 
 /** Open-Meteo /v1/forecast current-weather response, scheduled fields only. */
 const helsinkiCurrent = {
-  latitude: HELSINKI_COORD.lat,
-  longitude: HELSINKI_COORD.lon,
+  // Widen the latitude/longitude literal types so the suburb fixture below
+  // (a different coord bucket) can sit in the same record without TS
+  // demanding it match the HELSINKI_COORD literal exactly.
+  latitude: HELSINKI_COORD.lat as number,
+  longitude: HELSINKI_COORD.lon as number,
   current: {
     time: "2026-05-05T12:00",
     temperature_2m: 15.2,
@@ -22,8 +25,8 @@ const helsinkiCurrent = {
 };
 
 const helsinkiForecast = {
-  latitude: HELSINKI_COORD.lat,
-  longitude: HELSINKI_COORD.lon,
+  latitude: HELSINKI_COORD.lat as number,
+  longitude: HELSINKI_COORD.lon as number,
   hourly: {
     // Span 09:00–16:00 Helsinki-local so the trip-weather composer can pick
     // every leg's hour from a single planned itinerary; the planner fixture
