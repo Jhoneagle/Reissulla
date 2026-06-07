@@ -59,11 +59,54 @@ describe("parseExtra", () => {
     expect(extra.persona?.noStairs).toBe(false);
   });
 
-  it("preserves layerDefaults when it's an object", () => {
+  it("parses a well-formed layerDefaults", () => {
     const extra = parseExtra({
-      layerDefaults: { transit: true, rain: false },
+      layerDefaults: {
+        baseLayer: "tile-dark",
+        overlays: ["overlay-stops", "overlay-warnings"],
+      },
     });
-    expect(extra.layerDefaults).toEqual({ transit: true, rain: false });
+    expect(extra.layerDefaults).toEqual({
+      baseLayer: "tile-dark",
+      overlays: ["overlay-stops", "overlay-warnings"],
+    });
+  });
+
+  it("drops unknown LayerId values from overlays — forward compat", () => {
+    const extra = parseExtra({
+      layerDefaults: {
+        baseLayer: "tile-streets",
+        overlays: [
+          "overlay-stops",
+          "overlay-removed-in-future",
+          "overlay-warnings",
+        ],
+      },
+    });
+    expect(extra.layerDefaults).toEqual({
+      baseLayer: "tile-streets",
+      overlays: ["overlay-stops", "overlay-warnings"],
+    });
+  });
+
+  it("deduplicates repeated overlay entries", () => {
+    const extra = parseExtra({
+      layerDefaults: {
+        baseLayer: "tile-streets",
+        overlays: ["overlay-stops", "overlay-stops"],
+      },
+    });
+    expect(extra.layerDefaults?.overlays).toEqual(["overlay-stops"]);
+  });
+
+  it("drops layerDefaults when baseLayer is missing or unknown", () => {
+    expect(
+      parseExtra({ layerDefaults: { overlays: [] } }).layerDefaults,
+    ).toBeUndefined();
+    expect(
+      parseExtra({ layerDefaults: { baseLayer: "tile-removed", overlays: [] } })
+        .layerDefaults,
+    ).toBeUndefined();
   });
 
   it("drops layerDefaults when it's not an object", () => {
@@ -71,14 +114,27 @@ describe("parseExtra", () => {
     expect(extra.layerDefaults).toBeUndefined();
   });
 
+  it("falls back to empty overlays when array is malformed", () => {
+    const extra = parseExtra({
+      layerDefaults: { baseLayer: "tile-streets", overlays: "nope" },
+    });
+    expect(extra.layerDefaults).toEqual({
+      baseLayer: "tile-streets",
+      overlays: [],
+    });
+  });
+
   it("preserves persona and layerDefaults together", () => {
     const extra = parseExtra({
       persona: { wheelchair: true, language: "fi" },
-      layerDefaults: { transit: true },
+      layerDefaults: { baseLayer: "tile-hc", overlays: ["overlay-warnings"] },
     });
     expect(extra.persona?.wheelchair).toBe(true);
     expect(extra.persona?.language).toBe("fi");
-    expect(extra.layerDefaults).toEqual({ transit: true });
+    expect(extra.layerDefaults).toEqual({
+      baseLayer: "tile-hc",
+      overlays: ["overlay-warnings"],
+    });
   });
 
   it("ignores unknown top-level keys — forward-compat", () => {

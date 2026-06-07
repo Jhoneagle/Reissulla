@@ -1,4 +1,5 @@
 import type { Persona } from "./persona.js";
+import type { LayerId } from "./map-layers.js";
 
 export type TemperatureUnit = "celsius" | "fahrenheit";
 export type DistanceUnit = "metric" | "imperial";
@@ -7,9 +8,19 @@ export type Language = "fi" | "en";
 export type Theme = "light" | "dark" | "system";
 export type ReduceMotion = "on" | "off" | "system";
 
+export interface LayerDefaults {
+  baseLayer: LayerId;
+  overlays: LayerId[];
+}
+
 export interface PreferencesExtra {
   persona?: Persona;
-  layerDefaults?: Record<string, unknown>;
+  /**
+   * Map base layer + overlay set the user picked last. Narrowed to known
+   * `LayerId` values; the server-side parser drops unknown strings rather
+   * than throwing so an old client that wrote a now-removed ID still loads.
+   */
+  layerDefaults?: LayerDefaults;
   /**
    * Set to true when the user dismisses the Settings persona-setup
    * banner. Suppresses re-display on subsequent visits. Cleared

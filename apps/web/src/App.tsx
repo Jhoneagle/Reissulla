@@ -6,6 +6,7 @@ import { routes } from "./routes";
 import { useAuthStore } from "./stores/auth";
 import { useGeolocationStore } from "./stores/geolocation";
 import { useAuthLocaleSync } from "./hooks/useAuthLocaleSync";
+import { useAuthMapLayerSync } from "./hooks/useAuthMapLayerSync";
 import { useAuthCacheCleanup } from "./hooks/useAuthCacheCleanup";
 import { useRecordSelectedVisit } from "./hooks/useRecordSelectedVisit";
 import { useTheme } from "./hooks/useTheme";
@@ -45,6 +46,7 @@ export function App() {
  */
 function AppShell() {
   useAuthLocaleSync();
+  useAuthMapLayerSync();
   useAuthCacheCleanup();
   useRecordSelectedVisit();
   useTheme();
