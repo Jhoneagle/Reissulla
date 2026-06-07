@@ -15,10 +15,12 @@ import { MapMoveHandler } from "../components/map/MapMoveHandler";
 import { MapResizeHandler } from "../components/map/MapResizeHandler";
 import { LocationPopup } from "../components/map/LocationPopup";
 import { SavedLocationMarkers } from "../components/map/SavedLocationMarkers";
+import { WarningOverlay } from "../components/map/WarningOverlay";
 import { LocationSearch } from "../components/LocationSearch";
 import { LocationListView } from "../components/LocationListView";
 import { CurrentWeatherCard } from "../components/weather/CurrentWeatherCard";
 import { ForecastStrip } from "../components/weather/ForecastStrip";
+import { HourlyForecast } from "../components/weather/HourlyForecast";
 import { useWeatherSnapshot } from "../hooks/useWeather";
 import { useSavedLocations } from "../hooks/useSavedLocations";
 import { useDefaultCenter } from "../hooks/useDefaultCenter";
@@ -55,6 +57,7 @@ export function MapPage() {
   );
   const current = snapshot.data?.data.current ?? undefined;
   const daily = snapshot.data?.data.forecast?.daily;
+  const hourly = snapshot.data?.data.forecast?.hourly;
 
   const reverseQuery = useQuery({
     queryKey: [
@@ -220,6 +223,11 @@ export function MapPage() {
               isLoading={snapshot.isLoading}
               isError={snapshot.isError && !daily}
             />
+            <HourlyForecast
+              hours={hourly}
+              isLoading={snapshot.isLoading}
+              isError={snapshot.isError && !hourly}
+            />
           </div>
         )}
 
@@ -231,6 +239,7 @@ export function MapPage() {
           <MapMoveHandler />
           <MapShareUrl />
           <MapFollowMe />
+          <WarningOverlay />
           {selectedLocation && !followMe && (
             <MapFlyTo lat={selectedLocation.lat} lon={selectedLocation.lon} />
           )}
