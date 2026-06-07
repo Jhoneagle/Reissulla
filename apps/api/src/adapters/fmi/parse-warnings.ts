@@ -95,11 +95,11 @@ function mapType(...candidates: Array<string | undefined>): FmiWarningType {
   return "wind";
 }
 
-function toUnixSeconds(value: string | undefined): number | undefined {
+function toUnixMs(value: string | undefined): number | undefined {
   if (value === undefined) return undefined;
   const ms = Date.parse(value);
   if (Number.isNaN(ms)) return undefined;
-  return Math.floor(ms / 1000);
+  return ms;
 }
 
 function parsePolygon(node: unknown): GeoJsonPolygon | undefined {
@@ -203,8 +203,8 @@ function extractWarningFields(
   startRaw ??= readText((warning as { startTime?: unknown }).startTime);
   endRaw ??= readText((warning as { endTime?: unknown }).endTime);
 
-  const startTime = toUnixSeconds(startRaw);
-  const endTime = toUnixSeconds(endRaw);
+  const startTime = toUnixMs(startRaw);
+  const endTime = toUnixMs(endRaw);
   if (startTime === undefined || endTime === undefined) return undefined;
 
   const bounds = parsePolygon(

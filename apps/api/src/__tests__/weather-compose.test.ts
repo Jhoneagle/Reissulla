@@ -24,8 +24,8 @@ async function clearAllSnapshotCaches(lat: number, lon: number): Promise<void> {
     cacheDel(`weather:aq:v1:${latKey}:${lonKey}`),
     cacheDel(`weather:roads:v1:${latKey}:${lonKey}`),
     cacheDel(`weather:nowcast:v1:${latKey}:${lonKey}`),
-    cacheDel(`weather:warnings:v1::fi`),
-    cacheDel(`weather:warnings:v1::en`),
+    cacheDel(`weather:warnings:v2::fi`),
+    cacheDel(`weather:warnings:v2::en`),
   ]);
 }
 

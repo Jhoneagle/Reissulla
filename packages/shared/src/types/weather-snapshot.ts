@@ -21,14 +21,73 @@ export interface PollenSnapshot {
   timestamp: string;
 }
 
+export type WeatherWarningSeverity =
+  | "minor"
+  | "moderate"
+  | "severe"
+  | "extreme";
+
+export type WeatherWarningType =
+  | "wind"
+  | "rain"
+  | "snow"
+  | "ice"
+  | "cold"
+  | "heat"
+  | "thunder"
+  | "fog";
+
+/** GeoJSON polygon mirror — kept generic so the FE doesn't import API types. */
+export interface WarningGeoJsonPolygon {
+  type: "Polygon";
+  coordinates: number[][][];
+}
+
+export interface WeatherWarning {
+  id: string;
+  severity: WeatherWarningSeverity;
+  type: WeatherWarningType;
+  /** Unix ms — when the warning becomes / became active. */
+  startTime: number;
+  /** Unix ms — when the warning auto-expires. Banner dismissal honours this. */
+  endTime: number;
+  region: string;
+  /** Locale-resolved human text. fi or en depending on persona / Accept-Language. */
+  description: string;
+  /**
+   * Polygon bounds used by the API to intersect against the requested
+   * coord; carried through to the FE so the Chunk 4 map overlay can
+   * draw the polygon without a second round trip.
+   */
+  bounds?: WarningGeoJsonPolygon;
+}
+
+export type RoadSurfaceStateSnapshot =
+  | "dry"
+  | "wet"
+  | "moist-salty"
+  | "frosty"
+  | "snowy"
+  | "icy"
+  | "partly-icy";
+
+export interface RoadConditionSnapshot {
+  sectionId: number;
+  sectionName: string;
+  surfaceState: RoadSurfaceStateSnapshot | null;
+  /** Free-form upstream weather text, locale-neutral. */
+  weather: string | null;
+  /** °C, null when not measured. */
+  roadTemperature: number | null;
+  /** Distance from the requested coord to the section centroid, km. */
+  distanceKm: number;
+  /** ISO-8601 timestamp from upstream. */
+  observedAt: string;
+}
+
 /**
- * Placeholder shapes — the warning, road-condition, and nowcast wire
- * contracts firm up in Chunks 3 and 5. The snapshot payload already
- * carries these fields from Chunk 1, so the FE accepts them as opaque
- * until their consumers land.
+ * Placeholder for the rain nowcast — concrete shape firms up in Chunk 5.
  */
-export type WeatherWarning = Record<string, unknown>;
-export type RoadConditionSnapshot = Record<string, unknown>;
 export type RainNowcastSnapshot = Record<string, unknown>;
 
 export interface WeatherSnapshot {

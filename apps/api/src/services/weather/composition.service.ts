@@ -135,7 +135,8 @@ export async function getWeatherSnapshot(
       () => openMeteoAirQuality.getCurrent(lat, lon, ctx),
     ),
     withCache(
-      cacheKey("weather", "warnings", 1, region, opts.locale),
+      // v2: startTime/endTime emitted in ms to match Date.now() on the FE.
+      cacheKey("weather", "warnings", 2, region, opts.locale),
       WEATHER_WARNINGS_TTL,
       () => fmiAdapter.getWarnings({ region }, ctx),
     ),

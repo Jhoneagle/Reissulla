@@ -6,6 +6,7 @@ import {
   vehicleModeLabel,
   vehicleModeColor,
 } from "../../lib/transit-utils";
+import { RoadConditionChip } from "../weather/RoadConditionChip";
 
 const RIGHT_ARROW = "→";
 
@@ -74,6 +75,14 @@ export function ItineraryLeg({ leg }: ItineraryLegProps) {
                   }}
                 />
               </span>
+              {leg.roadImpact && leg.baseDuration !== undefined && (
+                <RoadConditionChip
+                  variant="leg"
+                  impact={leg.roadImpact}
+                  baseDurationSeconds={leg.baseDuration}
+                  adjustedDurationSeconds={leg.duration}
+                />
+              )}
             </p>
             {stepsCount > 0 && (
               <details className="leg__steps">

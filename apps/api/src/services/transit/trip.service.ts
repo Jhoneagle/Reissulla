@@ -19,6 +19,11 @@ import { tryCache } from "../../utils/resilience.js";
 import type { AdapterContext } from "../../adapters/types.js";
 import type { PlanConnectionMode } from "../../adapters/digitransit-routing/types.js";
 import { adapterRouter } from "./adapter-router.js";
+import {
+  adjustWalkDuration,
+  getCachedRoadCondition,
+} from "../weather/road-impact.service.js";
+import type { RoadCondition } from "../../adapters/fintraffic/types.js";
 
 function makeContext(persona: Persona): AdapterContext {
   return {
@@ -226,7 +231,56 @@ export async function planRouteFull({
     };
   });
 
+  await applyWalkRoadImpact(itineraries, makeContext(persona));
+
   const data: TransitPlanResult = { itineraries };
   await tryCache(() => cacheSet(key, data, PLAN_TTL));
   return { data, cached: false };
+}
+
+/**
+ * Mutates each WALK leg in place when Fintraffic reports a non-dry surface
+ * near the leg's origin: preserves the un-penalised seconds in
+ * `baseDuration`, multiplies `duration` by the road-impact factor, and
+ * attaches the `roadImpact` envelope the FE turns into a chip. Itinerary-
+ * level `startTime`/`endTime`/`duration` stay as OTP2 computed them — the
+ * upstream timing is the authoritative arrival; the per-leg label warns
+ * the user that real-world walking may take longer.
+ *
+ * Coalesces upstream calls by coarse-precision (2-decimal) coord key so a
+ * multi-walking-leg itinerary doesn't fan out to Fintraffic more than
+ * once per ~1 km region.
+ */
+async function applyWalkRoadImpact(
+  itineraries: TransitItinerary[],
+  ctx: AdapterContext,
+): Promise<void> {
+  const walkLegs = itineraries.flatMap((it) =>
+    it.legs.filter((l) => l.mode === "WALK"),
+  );
+  if (walkLegs.length === 0) return;
+
+  const conditionFor = new Map<string, Promise<RoadCondition | null>>();
+  const lookup = (lat: number, lon: number): Promise<RoadCondition | null> => {
+    const key = `${lat.toFixed(2)}:${lon.toFixed(2)}`;
+    const existing = conditionFor.get(key);
+    if (existing) return existing;
+    const fresh = getCachedRoadCondition(lat, lon, ctx);
+    conditionFor.set(key, fresh);
+    return fresh;
+  };
+
+  await Promise.all(
+    walkLegs.map(async (leg) => {
+      const condition = await lookup(leg.from.lat, leg.from.lon);
+      const adjusted = adjustWalkDuration(leg.duration, condition);
+      if (adjusted === null) return;
+      leg.baseDuration = adjusted.baseDuration;
+      leg.duration = adjusted.duration;
+      leg.roadImpact = {
+        reason: adjusted.impact.reason,
+        multiplier: adjusted.impact.multiplier,
+      };
+    }),
+  );
 }
