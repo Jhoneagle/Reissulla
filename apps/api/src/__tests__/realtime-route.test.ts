@@ -114,10 +114,7 @@ describe("SSE attached stream", () => {
     expect(accumulated).toContain(":\n\n");
     controller.abort();
     await reader.cancel().catch(() => {});
-    await waitFor(
-      () => registry.refCount("stop:HSL:headers-test") === 0,
-      2000,
-    );
+    await waitFor(() => registry.refCount("stop:HSL:headers-test") === 0, 2000);
   });
 
   it("refcounts subscribers — last disconnect drops the registry entry", async () => {
