@@ -28,23 +28,6 @@ export interface OpenMeteoAirQualityResponse {
   };
 }
 
-export interface AirQualitySnapshot {
-  europeanAqi: number;
-  pm10: number;
-  pm2_5: number;
-  nitrogenDioxide: number;
-  sulphurDioxide: number;
-  ozone: number;
-  carbonMonoxide: number;
-  timestamp: string;
-}
-
-export interface PollenSnapshot {
-  alder?: number;
-  birch?: number;
-  grass?: number;
-  mugwort?: number;
-  olive?: number;
-  ragweed?: number;
-  timestamp: string;
-}
+// The public adapter output types are the canonical wire contract — they
+// live in @reissulla/shared so both server and FE consume one definition.
+export type { AirQualitySnapshot, PollenSnapshot } from "@reissulla/shared";

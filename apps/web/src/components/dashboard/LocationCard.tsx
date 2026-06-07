@@ -1,9 +1,13 @@
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useCurrentWeather } from "../../hooks/useWeather";
+import { useWeatherSnapshot } from "../../hooks/useWeather";
 import { useNearbyStops } from "../../hooks/useTransit";
 import { WeatherIcon } from "../weather/WeatherIcon";
+import { HourlyForecast } from "../weather/HourlyForecast";
+import { ForecastStrip } from "../weather/ForecastStrip";
+import { AirQualityChip } from "../weather/AirQualityChip";
+import { SunWindowCard } from "../weather/SunWindowCard";
 import {
   buildWeatherLede,
   type CardinalDirection,
@@ -49,21 +53,24 @@ export function LocationCard({
   region,
   isPrimary,
 }: LocationCardProps) {
-  const weather = useCurrentWeather(lat, lon);
+  const snapshot = useWeatherSnapshot(lat, lon);
   const stops = useNearbyStops(lat, lon, { radius: NEARBY_RADIUS_M });
   const intl = useIntl();
+
+  const current = snapshot.data?.data.current ?? null;
+  const forecast = snapshot.data?.data.forecast ?? null;
+  const airQuality = snapshot.data?.data.airQuality ?? null;
+  const pollen = snapshot.data?.data.pollen ?? null;
 
   // Only the primary card drives the page-level ambient theme — having
   // every secondary card overwrite the body attribute would race. The
   // primary card is also the one whose weather the user is reading.
   useWeatherTheme(
-    isPrimary ? weather.data?.data.weatherCode : undefined,
-    isPrimary ? weather.data?.data.isDay : undefined,
+    isPrimary ? current?.weatherCode : undefined,
+    isPrimary ? current?.isDay : undefined,
   );
 
-  const tempRounded = weather.data
-    ? Math.round(weather.data.data.temperature)
-    : null;
+  const tempRounded = current ? Math.round(current.temperature) : null;
 
   // Memoise the formatters object: useMemo keyed on intl.locale so we
   // don't rebuild on every parent re-render, but do swap catalogues
@@ -94,13 +101,13 @@ export function LocationCard({
     [intl],
   );
 
-  const lede = weather.data
+  const lede = current
     ? buildWeatherLede({
-        weather: weather.data.data,
+        weather: current,
         formatWeatherCode: (code) =>
           intl.formatMessage({
             id: `weather.code.${code}`,
-            defaultMessage: weather.data!.data.weatherDescription,
+            defaultMessage: current.weatherDescription,
           }),
         ...ledeFormatters,
       })
@@ -121,7 +128,7 @@ export function LocationCard({
         {region && <span className="dashboard-card__region">{region}</span>}
       </header>
 
-      {tempRounded !== null && (
+      {tempRounded !== null && current && (
         <div className="dashboard-card__hero">
           <span className="dashboard-card__temp">
             <span aria-hidden="true">{tempRounded}</span>
@@ -139,8 +146,8 @@ export function LocationCard({
             </span>
           </span>
           <WeatherIcon
-            code={weather.data!.data.weatherCode}
-            isDay={weather.data!.data.isDay}
+            code={current.weatherCode}
+            isDay={current.isDay}
             size={48}
           />
         </div>
@@ -157,7 +164,7 @@ export function LocationCard({
           </p>
         )}
 
-        {weather.isError && tempRounded === null && (
+        {snapshot.isError && tempRounded === null && (
           <p className="dashboard-card__weather-empty">
             <FormattedMessage id="dashboard.card.weatherUnavailable" />
           </p>
@@ -207,6 +214,25 @@ export function LocationCard({
           ) : null}
         </div>
       </div>
+
+      {isPrimary && (
+        <div className="dashboard-card__weather-depth">
+          <HourlyForecast
+            hours={forecast?.hourly}
+            isLoading={snapshot.isLoading}
+            isError={snapshot.isError && !forecast}
+          />
+          <ForecastStrip
+            days={forecast?.daily}
+            isLoading={snapshot.isLoading}
+            isError={snapshot.isError && !forecast}
+          />
+          <div className="dashboard-card__ambient">
+            <AirQualityChip airQuality={airQuality} pollen={pollen} />
+            <SunWindowCard daily={forecast?.daily} />
+          </div>
+        </div>
+      )}
 
       <div className="dashboard-card__actions">
         <Link

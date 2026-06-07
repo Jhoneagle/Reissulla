@@ -4,6 +4,8 @@ import {
   serializePersona,
   type CurrentWeather,
   type WeatherForecast,
+  type WeatherSnapshot,
+  type WeatherSnapshotMeta,
   type GeocodingResult,
   type ReverseGeocodingResult,
   type SavedLocation,
@@ -62,6 +64,13 @@ export interface ApiResponse<T> {
 
 export interface WeatherApiResponse<T> extends ApiResponse<T> {
   coordinates: { latitude: number; longitude: number };
+}
+
+export interface WeatherSnapshotResponse {
+  data: WeatherSnapshot;
+  meta: WeatherSnapshotMeta;
+  coordinates: { latitude: number; longitude: number };
+  locale: "fi" | "en";
 }
 
 export class ApiError extends Error {
@@ -133,6 +142,19 @@ export const weatherApi = {
   getForecast(lat: number, lon: number) {
     return request<WeatherApiResponse<WeatherForecast>>(
       `/weather/forecast?lat=${lat}&lon=${lon}`,
+    );
+  },
+  /**
+   * Composition endpoint — single round-trip for the dashboard primary
+   * card and the map weather panel. Per-piece TTLs live behind the
+   * server; the FE just reads each slot and renders what's present.
+   * `ListRowWeather` / `ListRowForecast` keep the lightweight per-piece
+   * endpoints above so a 20-row nearby-stops list doesn't fan out 80
+   * upstream calls.
+   */
+  getSnapshot(lat: number, lon: number) {
+    return request<WeatherSnapshotResponse>(
+      `/weather/snapshot?lat=${lat}&lon=${lon}`,
     );
   },
 };
