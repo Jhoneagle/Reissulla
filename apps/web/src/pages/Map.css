@@ -33,6 +33,18 @@
   letter-spacing: 0.01em;
 }
 
+/* --- Layer control trigger (bottom-left overlay) -----------
+   Free corner — search lives top-centre, weather panel
+   top-right, view-toggle bottom-centre. Leaflet's zoom control
+   stays top-right; this avoids the collision. */
+.map-panel .layer-control__trigger {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 1rem;
+  z-index: 1000;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
 /* --- View toggle (segmented pill) -------------------------- */
 .view-toggle {
   position: absolute;

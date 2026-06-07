@@ -3,6 +3,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { useQuery } from "@tanstack/react-query";
 import { geocodingApi } from "@reissulla/api-client";
 import type { GeocodingResult, SavedLocation } from "@reissulla/shared";
+import { LayerControl } from "../components/map/LayerControl";
 import { LeafletMap } from "../components/map/LeafletMap";
 import { MapFlyTo } from "../components/map/MapFlyTo";
 import { UserLocationMarker } from "../components/map/UserLocationMarker";
@@ -218,6 +219,8 @@ export function MapPage() {
             />
           </div>
         )}
+
+        <LayerControl />
 
         <LeafletMap center={defaultCenter} zoom={defaultZoom}>
           <MapResizeHandler visible={view === "map"} />
