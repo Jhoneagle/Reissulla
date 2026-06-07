@@ -31,7 +31,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  const keys = await redis.keys("transit:plan:v3:*");
+  const keys = await redis.keys("transit:plan:*");
   if (keys.length > 0) await Promise.all(keys.map((k) => cacheDel(k)));
   await cacheDel(
     cacheKey("weather", "roads", 1, FROM.lat.toFixed(2), FROM.lon.toFixed(2)),

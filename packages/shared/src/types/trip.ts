@@ -62,4 +62,11 @@ export interface TripQuery {
 export interface PlanRouteOptions {
   query: TripQuery;
   numItineraries: number;
+  /**
+   * When `true`, the planner composes itinerary weather (origin + destination
+   * forecast plus per-leg outdoor-wait notes) and attaches it to every
+   * returned `TransitItinerary.weather`. Defaults to `false` so legacy and
+   * share-link callers keep the lean payload.
+   */
+  includeWeather?: boolean;
 }

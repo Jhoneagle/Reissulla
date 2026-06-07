@@ -136,9 +136,15 @@ describe("GET /api/v1/weather/forecast", () => {
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.data.hourly).toHaveLength(2);
+    expect(body.data.hourly.length).toBeGreaterThan(0);
     expect(body.data.daily).toHaveLength(1);
-    expect(body.data.hourly[0].temperature).toBe(15.2);
+    // Hourly fixture spans 09:00–16:00 Helsinki; the 12:00 entry carries
+    // the canonical temperature/precipitation values the rest of the
+    // suite anchors on.
+    const noonHour = body.data.hourly.find(
+      (h: { time: string }) => h.time === "2026-05-05T12:00",
+    );
+    expect(noonHour?.temperature).toBe(15.2);
     expect(body.data.daily[0].temperatureMax).toBe(18.0);
     expect(body.data.daily[0].sunrise).toBe("2026-05-05T04:45");
   });

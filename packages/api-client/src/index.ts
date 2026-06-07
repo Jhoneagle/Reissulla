@@ -469,6 +469,12 @@ export interface PlanRequestInput {
     planPreferences?: Partial<PlanPreferences>;
   };
   numItineraries?: number;
+  /**
+   * Opt-in to pre-trip + per-leg weather composition. Planner UI sets
+   * this to `true`; share-link consumers leave it `false` so the wire
+   * payload stays small.
+   */
+  weather?: boolean;
 }
 
 export const transitApi = {

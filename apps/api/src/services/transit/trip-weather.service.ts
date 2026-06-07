@@ -244,4 +244,9 @@ export async function attachItineraryWeather(
 // observable through the top-level entry point (hour bucketing tolerance,
 // candidate dedup) without forcing the test to drive a full itinerary
 // fixture through the cache layer.
-export const __test = { bucketKey, pickHour, gatherCandidates };
+export const __test = {
+  bucketKey,
+  pickHour,
+  gatherCandidates,
+  helsinkiHourStamp,
+};

@@ -35,7 +35,7 @@ export function isPlanErrorMarker(v: PlanRegistryEntry): v is PlanErrorMarker {
  * so the dashboard fixture's hourly forecast (which starts at 09:00
  * Helsinki) covers every leg.
  */
-const HEL_TPE_START_MS = 1778166000000; // 2026-05-04T07:00:00Z
+const HEL_TPE_START_MS = Date.UTC(2026, 4, 5, 9, 0, 0); // 12:00 Helsinki summer
 
 const helsinkiToTampereePlan: PlanFixture = {
   data: {
@@ -138,21 +138,29 @@ const helsinkiToTampereePlan: PlanFixture = {
   },
 };
 
+/**
+ * Anchor every plan-fixture timestamp on the same wall-clock moment so the
+ * weather composer can match it against the dashboard's `2026-05-05`
+ * forecast fixture. Constructed via Date.UTC so the calendar date is
+ * obvious at the call site instead of being a hand-rolled Unix-ms guess.
+ */
+const HELSINKI_PLAN_START_MS = Date.UTC(2026, 4, 5, 9, 0, 0); // 12:00 Helsinki summer
+
 const helsinkiPlan: PlanFixture = {
   data: {
     planConnection: {
       edges: [
         {
           node: {
-            startTime: 1778166000000,
-            endTime: 1778167800000,
+            startTime: HELSINKI_PLAN_START_MS,
+            endTime: HELSINKI_PLAN_START_MS + 30 * 60_000,
             numberOfTransfers: 0,
             walkDistance: 450,
             legs: [
               {
                 mode: "WALK",
-                startTime: 1778166000000,
-                endTime: 1778166300000,
+                startTime: HELSINKI_PLAN_START_MS,
+                endTime: HELSINKI_PLAN_START_MS + 5 * 60_000,
                 duration: 300,
                 distance: 250,
                 from: { name: "Origin", lat: 60.17, lon: 24.94, stop: null },
@@ -167,8 +175,8 @@ const helsinkiPlan: PlanFixture = {
               },
               {
                 mode: "BUS",
-                startTime: 1778166300000,
-                endTime: 1778167500000,
+                startTime: HELSINKI_PLAN_START_MS + 5 * 60_000,
+                endTime: HELSINKI_PLAN_START_MS + 25 * 60_000,
                 duration: 1200,
                 distance: 5000,
                 from: {
