@@ -824,3 +824,29 @@
 .road-chip__icon {
   flex-shrink: 0;
 }
+
+/* --- Rain / Snow Nowcast ------------------------------------ */
+.rain-nowcast {
+  border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--color-primary);
+  background: var(--color-surface);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  border-radius: var(--radius-xs);
+}
+
+.rain-nowcast--snow {
+  border-left-color: var(--color-ink-muted);
+}
+
+.rain-nowcast__text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.rain-nowcast[data-state="raining"] .rain-nowcast__text,
+.rain-nowcast[data-state="rain-incoming"] .rain-nowcast__text {
+  font-weight: 500;
+}

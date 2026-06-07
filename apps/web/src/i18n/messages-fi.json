@@ -514,6 +514,8 @@
   "weather.forecast.today": "Tänään",
   "weather.forecast.dayLabel": "{day}: {description}, ylin {high}°, alin {low}°{precip, select, true {, sateen todennäköisyys {precipChance} %} other {}}",
 
+  "weather.nowcast.heading": "Sadeennuste",
+
   "weather.warning.region.label": "Sään varoitukset",
   "weather.warning.severity.minor": "Vähäinen varoitus",
   "weather.warning.severity.moderate": "Varoitus",

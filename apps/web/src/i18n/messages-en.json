@@ -514,6 +514,8 @@
   "weather.forecast.today": "Today",
   "weather.forecast.dayLabel": "{day}: {description}, high {high}°, low {low}°{precip, select, true {, {precipChance}% chance of precipitation} other {}}",
 
+  "weather.nowcast.heading": "Rain forecast",
+
   "weather.warning.region.label": "Weather warnings",
   "weather.warning.severity.minor": "Minor weather advisory",
   "weather.warning.severity.moderate": "Weather warning",
