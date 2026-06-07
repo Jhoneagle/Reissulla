@@ -7,6 +7,10 @@ import type {
 } from "@reissulla/shared";
 import { useFeatureFlags } from "./useFeatureFlags";
 import { useDepartures } from "./useTransit";
+import {
+  refreshChoiceToRestInterval,
+  type RefreshChoice,
+} from "./useRefreshChoice";
 import { useSseSubscription, type SseStatus } from "../lib/sse";
 
 /**
@@ -95,15 +99,29 @@ export function useLiveDepartures(
   isStation = false,
   stationId?: string,
   options?: DeparturesOptions,
+  /**
+   * User-selected refresh cadence (DEP-14). When omitted, defaults to the
+   * "live" path — SSE on, 30 s REST fallback. Other choices override the
+   * REST cadence and / or gate SSE off entirely.
+   */
+  refreshChoice: RefreshChoice = "live",
 ): UseLiveDeparturesResult {
-  const rest = useDepartures(subStops, isStation, stationId, options);
+  const restInterval = refreshChoiceToRestInterval(refreshChoice);
+  const rest = useDepartures(
+    subStops,
+    isStation,
+    stationId,
+    options,
+    restInterval,
+  );
   const flags = useFeatureFlags();
 
   // SSE only engages for single-stop, non-station deep-links with no
-  // future-time anchor — matches the channel implementation in
-  // apps/api/src/services/realtime/channels/stop-departures.channel.ts
-  // (which always calls getStopDepartures(gtfsId, 20, false)).
+  // future-time anchor — and only when the user has chosen "live". Other
+  // refresh choices opt the user out of the push stream entirely so the
+  // RefreshTicker UI behaves the way users expect ("60 s" stays 60 s).
   const sseEligible =
+    refreshChoice === "live" &&
     flags.feature.realtimeSse &&
     !isStation &&
     subStops.length === 1 &&

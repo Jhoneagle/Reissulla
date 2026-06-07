@@ -2316,3 +2316,147 @@
   color: var(--color-warning);
   background: transparent;
 }
+
+/* --- Live indicator pill (Chunk 2) -------------------------------
+   Three-state pill rendered in the departure-board masthead. Dot
+   shape + text label always change together — color is reinforcement,
+   not signalling (WCAG 1.4.1). The `live` dot pulses via the shared
+   skel-pulse keyframe; the OS + app reduce-motion gates pause it. */
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+  white-space: nowrap;
+  border: 1px solid var(--color-rule);
+  background: var(--color-surface-sunk);
+  color: var(--color-ink);
+}
+
+.live-indicator__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-rule);
+  flex: 0 0 auto;
+}
+
+.live-indicator--live {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.live-indicator--live .live-indicator__dot {
+  background: var(--color-success);
+  animation: skel-pulse 1.6s ease-in-out infinite;
+}
+
+.live-indicator--polling {
+  border-color: var(--color-rule);
+  color: var(--color-ink-muted);
+}
+.live-indicator--polling .live-indicator__dot {
+  background: var(--color-rule);
+}
+
+.live-indicator--error {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+.live-indicator--error .live-indicator__dot {
+  background: var(--color-warning);
+}
+
+/* Dual-gate reduce-motion: pause the live-dot pulse under either the
+   OS preference or the app-level data attribute. The dot stays the
+   live colour so the meaning of the state is preserved. */
+@media (prefers-reduced-motion: reduce) {
+  body:not([data-reduce-motion="false"]) .live-indicator__dot {
+    animation: none;
+  }
+}
+body[data-reduce-motion="true"] .live-indicator__dot {
+  animation: none;
+}
+
+/* --- Refresh ticker (DEP-14, cog → details) ---------------------- */
+.refresh-ticker {
+  position: relative;
+  /* The disclosure is its own positioning context so the panel can
+     anchor to the cog without wrapping the rest of the masthead. */
+}
+
+.refresh-ticker > summary {
+  list-style: none;
+  cursor: pointer;
+  /* WCAG 2.5.8 — 44×44 hit area around the visible 18px icon. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.refresh-ticker > summary::-webkit-details-marker {
+  display: none;
+}
+
+.refresh-ticker__cog-icon {
+  display: block;
+}
+
+.refresh-ticker__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 5;
+  min-width: 14rem;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.18);
+}
+
+.refresh-ticker__title {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+}
+
+.refresh-ticker__radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.refresh-ticker__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.refresh-ticker__notice {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2);
+  border-left: 4px solid var(--color-warning);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
