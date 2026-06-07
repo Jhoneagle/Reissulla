@@ -1,27 +1,34 @@
 /**
  * Map base-layer + overlay registry. Single source of truth for tile URLs,
- * attribution, and zoom envelopes. The UI consumer (LayerControl) ships in
- * a later chunk; this file is the placeholder that gives the OSM swap a
- * one-line lever (`VITE_MAP_TILE_BASE_URL` overrides `tile-streets`) and
- * locks in the LayerId union the rest of the system will reference.
+ * attribution, zoom envelopes, and subdomain pools. The wire-shape `LayerId`
+ * union lives in `@reissulla/shared` because IDs are persisted in
+ * `preferences.extra.layerDefaults` and round-trip through share URLs.
+ *
+ * VITE_MAP_TILE_BASE_URL overrides `tile-streets` only — keeps the OSM swap a
+ * one-line lever for self-hosted / paid providers. The remaining streets
+ * stubs (`tile-satellite`, `tile-terrain`, `tile-transit`) need a paid
+ * provider; until one is wired they render the streets template so the
+ * LayerControl UI stays operable.
  */
 
-export type LayerId =
-  | "tile-streets"
-  | "tile-satellite"
-  | "tile-terrain"
-  | "tile-dark"
-  | "tile-hc"
-  | "tile-transit"
-  | "overlay-stops"
-  | "overlay-lines"
-  | "overlay-rain-radar"
-  | "overlay-warnings";
+import type { LayerId } from "@reissulla/shared";
+
+export type { LayerId };
+export {
+  LAYER_IDS,
+  BASE_LAYER_IDS,
+  isLayerId,
+  isBaseLayerId,
+} from "@reissulla/shared";
 
 export type LayerKind = "base" | "overlay";
 
 export type LayerSource =
-  | { type: "url"; template: string }
+  | {
+      type: "url";
+      template: string;
+      subdomains?: string;
+    }
   | { type: "wms"; baseUrl: string; layer: string }
   | { type: "internal" };
 
@@ -38,10 +45,16 @@ const OSM_DEFAULT = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const OSM_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
 
-// Escape hatch — point at any `{z}/{x}/{y}.png` provider (MapTiler, Stadia,
-// self-hosted) without code changes. Empty / unset = stay on OSM.
-const envTileBase = (import.meta.env.VITE_MAP_TILE_BASE_URL ?? "").trim();
+const CARTO_DARK =
+  "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
+const CARTO_SUBDOMAINS = "abcd";
+const CARTO_ATTRIBUTION = `${OSM_ATTRIBUTION}, &copy; <a href="https://carto.com/attributions">CARTO</a>`;
 
+const OSM_HOT = "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png";
+const OSM_HOT_SUBDOMAINS = "abc";
+const OSM_HOT_ATTRIBUTION = `${OSM_ATTRIBUTION}, tiles courtesy of <a href="https://www.openstreetmap.fr/">Humanitarian OSM</a>`;
+
+const envTileBase = (import.meta.env.VITE_MAP_TILE_BASE_URL ?? "").trim();
 const streetsTemplate = envTileBase !== "" ? envTileBase : OSM_DEFAULT;
 
 export const LAYERS: Record<LayerId, LayerConfig> = {
@@ -69,15 +82,15 @@ export const LAYERS: Record<LayerId, LayerConfig> = {
   "tile-dark": {
     id: "tile-dark",
     kind: "base",
-    source: { type: "url", template: streetsTemplate },
-    attribution: OSM_ATTRIBUTION,
+    source: { type: "url", template: CARTO_DARK, subdomains: CARTO_SUBDOMAINS },
+    attribution: CARTO_ATTRIBUTION,
     maxZoom: 19,
   },
   "tile-hc": {
     id: "tile-hc",
     kind: "base",
-    source: { type: "url", template: streetsTemplate },
-    attribution: OSM_ATTRIBUTION,
+    source: { type: "url", template: OSM_HOT, subdomains: OSM_HOT_SUBDOMAINS },
+    attribution: OSM_HOT_ATTRIBUTION,
     maxZoom: 19,
   },
   "tile-transit": {

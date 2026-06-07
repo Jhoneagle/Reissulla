@@ -1,20 +1,26 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useQuery } from "@tanstack/react-query";
 import { geocodingApi } from "@reissulla/api-client";
 import type { GeocodingResult, SavedLocation } from "@reissulla/shared";
+import { FollowMeToggle } from "../components/map/FollowMeToggle";
+import { LayerControl } from "../components/map/LayerControl";
 import { LeafletMap } from "../components/map/LeafletMap";
 import { MapFlyTo } from "../components/map/MapFlyTo";
+import { MapFollowMe } from "../components/map/MapFollowMe";
+import { MapShareUrl } from "../components/map/MapShareUrl";
 import { UserLocationMarker } from "../components/map/UserLocationMarker";
 import { MapClickHandler } from "../components/map/MapClickHandler";
 import { MapMoveHandler } from "../components/map/MapMoveHandler";
 import { MapResizeHandler } from "../components/map/MapResizeHandler";
 import { LocationPopup } from "../components/map/LocationPopup";
 import { SavedLocationMarkers } from "../components/map/SavedLocationMarkers";
+import { WarningOverlay } from "../components/map/WarningOverlay";
 import { LocationSearch } from "../components/LocationSearch";
 import { LocationListView } from "../components/LocationListView";
 import { CurrentWeatherCard } from "../components/weather/CurrentWeatherCard";
 import { ForecastStrip } from "../components/weather/ForecastStrip";
+import { HourlyForecast } from "../components/weather/HourlyForecast";
 import { useWeatherSnapshot } from "../hooks/useWeather";
 import { useSavedLocations } from "../hooks/useSavedLocations";
 import { useDefaultCenter } from "../hooks/useDefaultCenter";
@@ -25,16 +31,19 @@ import "./Map.css";
 
 const EMPTY_LOCATIONS: import("@reissulla/shared").SavedLocation[] = [];
 
-type ViewMode = "map" | "list";
+type ForecastTab = "days" | "hourly";
 
 export function MapPage() {
   const intl = useIntl();
-  const [view, setView] = useState<ViewMode>("map");
+  const [forecastTab, setForecastTab] = useState<ForecastTab>("days");
+  const view = useMapStore((s) => s.view);
+  const setView = useMapStore((s) => s.setView);
   const geoPosition = useGeolocationStore((s) => s.position);
   const geoDenied = useGeolocationStore((s) => s.denied);
 
   const selectedLocation = useMapStore((s) => s.selectedLocation);
   const searchResults = useMapStore((s) => s.searchResults);
+  const followMe = useMapStore((s) => s.followMe);
   const selectLocation = useMapStore((s) => s.selectLocation);
   const clearSelection = useMapStore((s) => s.clearSelection);
   const setSearchResults = useMapStore((s) => s.setSearchResults);
@@ -51,6 +60,7 @@ export function MapPage() {
   );
   const current = snapshot.data?.data.current ?? undefined;
   const daily = snapshot.data?.data.forecast?.daily;
+  const hourly = snapshot.data?.data.forecast?.hourly;
 
   const reverseQuery = useQuery({
     queryKey: [
@@ -211,18 +221,74 @@ export function MapPage() {
               dataUpdatedAt={snapshot.dataUpdatedAt}
               onRetry={snapshot.refetch}
             />
-            <ForecastStrip
-              days={daily}
-              isLoading={snapshot.isLoading}
-              isError={snapshot.isError && !daily}
-            />
+            <div
+              role="tablist"
+              aria-label={intl.formatMessage({
+                id: "map.weather.forecastTabs.label",
+              })}
+              className="weather-panel__forecast-tabs"
+            >
+              <button
+                id="tab-forecast-days"
+                role="tab"
+                type="button"
+                aria-selected={forecastTab === "days"}
+                aria-controls="panel-forecast-days"
+                tabIndex={forecastTab === "days" ? 0 : -1}
+                onClick={() => setForecastTab("days")}
+              >
+                <FormattedMessage id="map.weather.forecastTab.days" />
+              </button>
+              <button
+                id="tab-forecast-hourly"
+                role="tab"
+                type="button"
+                aria-selected={forecastTab === "hourly"}
+                aria-controls="panel-forecast-hourly"
+                tabIndex={forecastTab === "hourly" ? 0 : -1}
+                onClick={() => setForecastTab("hourly")}
+              >
+                <FormattedMessage id="map.weather.forecastTab.hourly" />
+              </button>
+            </div>
+            <div
+              id="panel-forecast-days"
+              role="tabpanel"
+              aria-labelledby="tab-forecast-days"
+              hidden={forecastTab !== "days"}
+            >
+              <ForecastStrip
+                days={daily}
+                isLoading={snapshot.isLoading}
+                isError={snapshot.isError && !daily}
+              />
+            </div>
+            <div
+              id="panel-forecast-hourly"
+              role="tabpanel"
+              aria-labelledby="tab-forecast-hourly"
+              hidden={forecastTab !== "hourly"}
+            >
+              <HourlyForecast
+                hours={hourly}
+                isLoading={snapshot.isLoading}
+                isError={snapshot.isError && !hourly}
+                tableOnly
+              />
+            </div>
           </div>
         )}
+
+        <LayerControl />
+        <FollowMeToggle />
 
         <LeafletMap center={defaultCenter} zoom={defaultZoom}>
           <MapResizeHandler visible={view === "map"} />
           <MapMoveHandler />
-          {selectedLocation && (
+          <MapShareUrl />
+          <MapFollowMe />
+          <WarningOverlay />
+          {selectedLocation && !followMe && (
             <MapFlyTo lat={selectedLocation.lat} lon={selectedLocation.lon} />
           )}
           {geoPosition && (

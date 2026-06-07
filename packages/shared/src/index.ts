@@ -9,6 +9,7 @@ export * from "./types/trip-detail.js";
 export * from "./types/pinned.js";
 export * from "./types/persona.js";
 export * from "./types/preferences.js";
+export * from "./types/map-layers.js";
 export * from "./persona/wire.js";
 export * from "./persona/to-digitransit.js";
 export * from "./data/finland-bounds.js";

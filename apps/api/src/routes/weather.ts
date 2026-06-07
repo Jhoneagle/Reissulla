@@ -4,6 +4,7 @@ import {
   getWeatherForecast,
 } from "../services/weather.service.js";
 import { getWeatherSnapshot } from "../services/weather/composition.service.js";
+import { getWarningPolygons } from "../services/weather/warning-polygons.service.js";
 import { parseCoordinates } from "../utils/validation.js";
 import { UpstreamError } from "../utils/error-envelope.js";
 import type { AdapterLocale } from "../adapters/types.js";
@@ -72,6 +73,31 @@ export const weatherRoutes: FastifyPluginAsync = async (server) => {
     routeOpts,
     createWeatherHandler(getWeatherForecast),
   );
+  server.get<{ Querystring: { region?: string } }>(
+    "/api/v1/weather/warning-polygons",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: { region: { type: "string" } },
+        },
+      },
+    },
+    async (request) => {
+      const locale = resolveLocale(request);
+      const region = request.query.region ?? "";
+      const { data, cached } = await getWarningPolygons({
+        region,
+        locale,
+        signal: request.raw.aborted ? undefined : new AbortController().signal,
+      });
+      return {
+        data: { polygons: data },
+        meta: { cached, region, locale },
+      };
+    },
+  );
+
   server.get(
     "/api/v1/weather/snapshot",
     routeOpts,

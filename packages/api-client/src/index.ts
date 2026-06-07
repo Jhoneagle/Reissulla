@@ -6,6 +6,7 @@ import {
   type WeatherForecast,
   type WeatherSnapshot,
   type WeatherSnapshotMeta,
+  type WeatherWarning,
   type GeocodingResult,
   type ReverseGeocodingResult,
   type SavedLocation,
@@ -156,6 +157,18 @@ export const weatherApi = {
     return request<WeatherSnapshotResponse>(
       `/weather/snapshot?lat=${lat}&lon=${lon}`,
     );
+  },
+  /**
+   * Full active-warning polygon set for the map overlay. Reuses the
+   * same backend cache slot as the snapshot's warnings piece so opening
+   * the overlay never doubles the upstream fetch.
+   */
+  getWarningPolygons(region: string = "") {
+    const qs = region ? `?region=${encodeURIComponent(region)}` : "";
+    return request<{
+      data: { polygons: WeatherWarning[] };
+      meta: { cached: boolean; region: string; locale: string };
+    }>(`/weather/warning-polygons${qs}`);
   },
 };
 
