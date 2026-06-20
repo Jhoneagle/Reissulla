@@ -6,8 +6,13 @@ import * as pinnedLinesRepo from "../db/repositories/pinned-lines.repo.js";
 import * as recentStopsRepo from "../db/repositories/recent-stops.repo.js";
 import * as alertSeenRepo from "../db/repositories/alert-seen.repo.js";
 import * as preferencesRepo from "../db/repositories/preferences.repo.js";
+import * as tripLogRepo from "../db/repositories/trip-log.repo.js";
 import type { PreferencesExtra } from "../db/repositories/preferences-extra.js";
+import type { TransitItinerary } from "@reissulla/shared";
 import { NotFoundError } from "../utils/error-envelope.js";
+
+/** Practical export budget — far above any realistic per-user trip count. */
+const TRIP_LOG_EXPORT_LIMIT = 10_000;
 
 /**
  * GDPR-style account export. Every user-owned table the API knows about
@@ -103,8 +108,15 @@ interface ExportedPinnedLine {
 }
 interface ExportedTripLogEntry {
   id: string;
+  fromLat: number;
+  fromLon: number;
+  toLat: number;
+  toLon: number;
+  fromName: string | null;
+  toName: string | null;
+  /** Snapshot of the itinerary at plan time. */
+  itinerary: TransitItinerary;
   plannedAt: string;
-  createdAt: string;
 }
 interface ExportedAlertSeenEntry {
   alertId: string;
@@ -130,6 +142,7 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
     pinnedLineRows,
     recentStopRows,
     alertSeenRows,
+    tripLogRows,
   ] = await Promise.all([
     preferencesRepo.findByUserId(userId),
     savedLocationsRepo.listByUser(userId),
@@ -138,6 +151,7 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
     pinnedLinesRepo.listByUser(userId),
     recentStopsRepo.listByUser(userId, 1000),
     alertSeenRepo.listByUser(userId),
+    tripLogRepo.listByUser(userId, { limit: TRIP_LOG_EXPORT_LIMIT }),
   ]);
 
   return {
@@ -208,7 +222,17 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
       vehicleMode: row.vehicleMode,
       pinnedAt: row.pinnedAt.toISOString(),
     })),
-    tripLog: [],
+    tripLog: tripLogRows.map((row) => ({
+      id: row.id,
+      fromLat: row.fromLat,
+      fromLon: row.fromLon,
+      toLat: row.toLat,
+      toLon: row.toLon,
+      fromName: row.fromName,
+      toName: row.toName,
+      itinerary: row.itinerary as TransitItinerary,
+      plannedAt: row.plannedAt.toISOString(),
+    })),
     alertSeen: alertSeenRows.map((row) => ({
       alertId: row.alertId,
       seenAt: row.seenAt.toISOString(),
