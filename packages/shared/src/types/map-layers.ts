@@ -16,6 +16,7 @@ export const LAYER_IDS = [
   "overlay-lines",
   "overlay-rain-radar",
   "overlay-warnings",
+  "overlay-vehicles",
 ] as const;
 
 export type LayerId = (typeof LAYER_IDS)[number];

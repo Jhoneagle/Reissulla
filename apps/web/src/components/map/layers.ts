@@ -124,6 +124,14 @@ export const LAYERS: Record<LayerId, LayerConfig> = {
     source: { type: "internal" },
     attribution: "",
   },
+  "overlay-vehicles": {
+    id: "overlay-vehicles",
+    kind: "overlay",
+    // Rendered from the per-line SSE stream, not a tile source — the
+    // dots are drawn by <VehicleLayer> on the LineView map.
+    source: { type: "internal" },
+    attribution: "Digitransit / HSL",
+  },
 };
 
 export const DEFAULT_BASE_LAYER: LayerId = "tile-streets";
