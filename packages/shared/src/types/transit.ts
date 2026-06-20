@@ -300,3 +300,45 @@ export interface TransitPlanResult {
   itineraries: TransitItinerary[];
   message?: string;
 }
+
+/**
+ * Wire shape for a single vehicle ping from the Digitransit HFP / MQTT
+ * stream (Phase 4 LIVE-1). Matches docs/technical-plan.md §6.2.
+ *
+ * Coordinates are WGS-84 decimal degrees. `bearing` is heading in degrees
+ * (0 = north, clockwise) — present only when the upstream feed exposes it.
+ * `speed` is metres-per-second; absent when unknown. `delaySeconds` is
+ * positive when running late, negative when early; null for vehicles that
+ * haven't entered service yet.
+ *
+ * Lives in shared so the API SSE publisher and the web map overlay agree on
+ * a single contract — the `digitransit-mqtt` adapter re-exports this type.
+ */
+export interface VehiclePosition {
+  vehicleId: string;
+  routeId: string;
+  /** GTFS direction id ("0" / "1") when the upstream exposes it. */
+  directionId?: string;
+  tripId?: string;
+  lat: number;
+  lon: number;
+  bearing?: number;
+  speed?: number;
+  delaySeconds: number | null;
+  /** Unix millis when the broker timestamped the message. */
+  ts: number;
+}
+
+/**
+ * SSE payload for the per-line vehicle channel
+ * (`GET /api/v1/transit/lines/:gtfsId/live`). Carries the full current set
+ * of vehicles running the line — a snapshot, not a delta — so a client
+ * connecting mid-stream renders every dot on the first event rather than
+ * waiting to accumulate pings. `freshness.degraded` is true while the
+ * channel is serving the polled GraphQL fallback because the MQTT broker
+ * is unreachable; the FE surfaces a "live data degraded" notice.
+ */
+export interface LineVehiclesEvent {
+  vehicles: VehiclePosition[];
+  freshness: { degraded: boolean };
+}
