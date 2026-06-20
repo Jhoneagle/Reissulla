@@ -3,6 +3,7 @@ import { FormattedMessage } from "react-intl";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import type { DayType, DirectionId } from "@reissulla/shared";
 import { LineCard } from "../components/transit/LineCard";
+import { LiveVehiclesPanel } from "../components/transit/LiveVehiclesPanel";
 import { dayTypeForToday } from "../lib/transit-utils";
 import "./LineView.css";
 
@@ -15,9 +16,16 @@ export function LineView() {
   const dayType =
     parseDayType(searchParams.get("dayType")) ?? dayTypeForToday();
 
+  const location = useLocation();
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }, [gtfsId]);
+    // A "#live" deep-link (from the dashboard "View live" action) scrolls to
+    // the vehicle panel; otherwise land at the top of the line.
+    if (location.hash === "#live") {
+      document.getElementById("live")?.scrollIntoView({ behavior: "auto" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [gtfsId, location.hash]);
 
   if (!gtfsId) {
     return (
@@ -47,6 +55,9 @@ export function LineView() {
         }
         showFineprint
       />
+      <div id="live">
+        <LiveVehiclesPanel gtfsId={gtfsId} direction={direction} />
+      </div>
     </section>
   );
 }
