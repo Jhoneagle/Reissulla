@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "./components/Layout";
+import { LiveAnnouncerProvider } from "./components/LiveAnnouncerProvider";
 import { routes } from "./routes";
 import { useAuthStore } from "./stores/auth";
 import { useGeolocationStore } from "./stores/geolocation";
@@ -31,9 +32,11 @@ export function App() {
   return (
     <I18nShell>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppShell />
-        </BrowserRouter>
+        <LiveAnnouncerProvider>
+          <BrowserRouter>
+            <AppShell />
+          </BrowserRouter>
+        </LiveAnnouncerProvider>
       </QueryClientProvider>
     </I18nShell>
   );

@@ -80,6 +80,17 @@ export interface Alert {
 }
 
 /**
+ * An active alert paired with whether the current user has seen it. The
+ * notification-centre endpoint (`GET /api/v1/notifications`) returns these so
+ * the inbox can render unread state and the bell can show a count, without the
+ * FE needing a second round-trip for read receipts.
+ */
+export interface NotifiedAlert {
+  alert: Alert;
+  unread: boolean;
+}
+
+/**
  * Safety-of-life subset that warrants `aria-live="assertive"` (preempts the
  * screen reader). Everything else announces politely. Kept here so the FE
  * banner and any future surface share one definition.

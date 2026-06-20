@@ -1,0 +1,159 @@
+/* Notification centre — the bell pill in the nav and the /notifications page.
+   Severity colouring reuses the .alert-banner--{severity} backgrounds from
+   alerts/Alerts.css; this file owns layout only. */
+
+/* ----- Nav bell ---------------------------------------------------------- */
+
+.notification-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* WCAG 2.5.5 / §15.4 touch target. */
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.notification-bell__badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* ----- Notifications page ------------------------------------------------ */
+
+.notifications__masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.notifications__intro {
+  margin: 0.25rem 0 1rem;
+  color: var(--color-ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
+.notifications__group {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.notifications__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notification-item {
+  border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-surface);
+  padding: 0.625rem 0.875rem;
+}
+
+.notification-item--warning {
+  background: var(--color-warning-bg);
+}
+
+.notification-item--severe {
+  background: var(--color-error-bg);
+}
+
+.notification-item__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.notification-item__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-rule);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.notification-item__unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.notification-item__time {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  color: var(--color-ink-muted);
+}
+
+.notification-item__details {
+  margin-top: 0.375rem;
+}
+
+.notification-item__details > summary {
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.4;
+}
+
+.notification-item__details > summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.notification-item__body {
+  margin: 0.375rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+.notification-item__scope {
+  margin: 0.375rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-ink-muted);
+}
+
+.notification-item__mark {
+  margin-top: 0.5rem;
+  /* Touch target — §15.4. */
+  min-height: 44px;
+}

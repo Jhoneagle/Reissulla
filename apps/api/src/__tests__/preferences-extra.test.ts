@@ -162,4 +162,36 @@ describe("parseExtra", () => {
       "personaBannerDismissed",
     );
   });
+
+  it("parses a well-formed liveRegion", () => {
+    const extra = parseExtra({
+      liveRegion: { verbosity: "verbose", readingPace: "slow" },
+    });
+    expect(extra.liveRegion).toEqual({
+      verbosity: "verbose",
+      readingPace: "slow",
+    });
+  });
+
+  it("defaults invalid liveRegion members to the defaults", () => {
+    const extra = parseExtra({
+      liveRegion: { verbosity: "loud", readingPace: 5 },
+    });
+    expect(extra.liveRegion).toEqual({
+      verbosity: "standard",
+      readingPace: "normal",
+    });
+  });
+
+  it("fills the missing liveRegion member when only one is set", () => {
+    const extra = parseExtra({ liveRegion: { verbosity: "terse" } });
+    expect(extra.liveRegion).toEqual({
+      verbosity: "terse",
+      readingPace: "normal",
+    });
+  });
+
+  it("drops liveRegion when it's not an object", () => {
+    expect(parseExtra({ liveRegion: "nope" }).liveRegion).toBeUndefined();
+  });
 });

@@ -16,6 +16,7 @@ import { locationRoutes } from "./routes/locations.js";
 import { recentPlacesRoutes } from "./routes/recent-places.js";
 import { transitRoutes } from "./routes/transit.js";
 import { alertsRoutes } from "./routes/alerts.js";
+import { notificationsRoutes } from "./routes/notifications.js";
 import { realtimeRoutes } from "./routes/realtime.js";
 import {
   AppError,
@@ -142,6 +143,7 @@ export async function buildServer() {
   await server.register(recentPlacesRoutes);
   await server.register(transitRoutes);
   await server.register(alertsRoutes);
+  await server.register(notificationsRoutes);
   await server.register(realtimeRoutes);
 
   return server;

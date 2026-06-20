@@ -5,6 +5,7 @@ import { TripDetail } from "./pages/TripDetail";
 import { LineView } from "./pages/LineView";
 import { SharedItinerary } from "./pages/SharedItinerary";
 import { Settings } from "./pages/Settings";
+import { Notifications } from "./pages/Notifications";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 
@@ -60,6 +61,13 @@ export const routes = [
     labelId: "nav.settings",
     Component: Settings,
     nav: true,
+  },
+  {
+    path: "/notifications",
+    label: "Notifications",
+    labelId: "notifications.heading",
+    Component: Notifications,
+    nav: false,
   },
   {
     path: "/login",

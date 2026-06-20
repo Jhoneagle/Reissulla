@@ -35,6 +35,7 @@ import {
   type TransitMode,
   type TripPreference,
   type Alert,
+  type NotifiedAlert,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -680,6 +681,30 @@ export const alertsApi = {
     }
     const qs = params.toString();
     return request<ApiResponse<Alert[]>>(`/alerts${qs ? `?${qs}` : ""}`);
+  },
+};
+
+export interface NotificationsResponse {
+  data: NotifiedAlert[];
+  unreadCount: number;
+}
+
+export const notificationsApi = {
+  /** Today's relevant alerts with unread flags + the unread count. */
+  list() {
+    return request<NotificationsResponse>("/notifications");
+  },
+  /** Lightweight unread count for the nav bell's poll. */
+  unreadCount() {
+    return request<{ count: number }>("/notifications/unread-count");
+  },
+  /** Mark specific alerts read. */
+  markRead(alertIds: string[]) {
+    return mutationRequest<void>("/notifications/read", "POST", { alertIds });
+  },
+  /** Mark every currently-relevant alert read. */
+  markAllRead() {
+    return mutationRequest<void>("/notifications/read-all", "POST");
   },
 };
 

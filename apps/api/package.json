@@ -33,12 +33,14 @@
     "fastify": "^5.3.3",
     "ioredis": "^5.10.1",
     "mqtt": "^5.15.1",
+    "node-cron": "^4.4.1",
     "nodemailer": "^8.0.7",
     "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@reissulla/test-fixtures": "workspace:*",
     "@types/node": "^25.6.0",
+    "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.0",
     "drizzle-kit": "^0.31.10",
     "msw": "^2.7.3",

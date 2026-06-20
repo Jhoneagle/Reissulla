@@ -4,16 +4,17 @@ import * as recentPlacesRepo from "../db/repositories/recent-places.repo.js";
 import * as pinnedStopsRepo from "../db/repositories/pinned-stops.repo.js";
 import * as pinnedLinesRepo from "../db/repositories/pinned-lines.repo.js";
 import * as recentStopsRepo from "../db/repositories/recent-stops.repo.js";
+import * as alertSeenRepo from "../db/repositories/alert-seen.repo.js";
 import * as preferencesRepo from "../db/repositories/preferences.repo.js";
 import type { PreferencesExtra } from "../db/repositories/preferences-extra.js";
 import { NotFoundError } from "../utils/error-envelope.js";
 
 /**
  * GDPR-style account export. Every user-owned table the API knows about
- * appears here. Phase 2-5 tables (pinned stops/lines, trip log, alerts seen,
- * share tokens) are pre-declared as empty arrays so adding the underlying
- * table later is the only change needed — the export-roundtrip E2E catches
- * a regression where the new table is silently dropped from the export.
+ * appears here. Still-unbuilt tables (trip log, share tokens) are pre-declared
+ * as empty arrays so adding the underlying table later is the only change
+ * needed — the export-roundtrip E2E catches a regression where a new table is
+ * silently dropped from the export.
  *
  * `schemaVersion` lets external readers detect shape changes.
  */
@@ -128,6 +129,7 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
     pinnedStopRows,
     pinnedLineRows,
     recentStopRows,
+    alertSeenRows,
   ] = await Promise.all([
     preferencesRepo.findByUserId(userId),
     savedLocationsRepo.listByUser(userId),
@@ -135,6 +137,7 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
     pinnedStopsRepo.listByUser(userId),
     pinnedLinesRepo.listByUser(userId),
     recentStopsRepo.listByUser(userId, 1000),
+    alertSeenRepo.listByUser(userId),
   ]);
 
   return {
@@ -206,7 +209,10 @@ export async function exportAccount(userId: string): Promise<AccountExport> {
       pinnedAt: row.pinnedAt.toISOString(),
     })),
     tripLog: [],
-    alertSeen: [],
+    alertSeen: alertSeenRows.map((row) => ({
+      alertId: row.alertId,
+      seenAt: row.seenAt.toISOString(),
+    })),
     shareTokens: [],
   };
 }

@@ -7,6 +7,7 @@ import {
   doublePrecision,
   integer,
   jsonb,
+  primaryKey,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -214,6 +215,24 @@ export const recentStops = pgTable(
       .defaultNow(),
   },
   (t) => [uniqueIndex("recent_stops_user_gtfs_idx").on(t.userId, t.gtfsId)],
+);
+
+// Per-user read receipts for service alerts. One row marks an `Alert.id`
+// (the content-hash from alerts.service) as seen by a user, so the
+// notification centre can compute unread counts. The composite (user_id,
+// alert_id) primary key makes markSeen idempotent — re-marking the same alert
+// is a no-op insert. The nightly prune job drops rows whose alertId is no
+// longer in the active set, so the table never grows unbounded.
+export const alertSeen = pgTable(
+  "alert_seen",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    alertId: text("alert_id").notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.alertId] })],
 );
 
 export const preferences = pgTable("preferences", {

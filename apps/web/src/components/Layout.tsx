@@ -5,6 +5,7 @@ import { useAuthStore } from "../stores/auth";
 import { Wordmark } from "./Wordmark";
 import { PageHeading } from "./PageHeading";
 import { Toast } from "./Toast";
+import { NotificationBell } from "./NotificationBell";
 
 export function Layout() {
   const user = useAuthStore((s) => s.user);
@@ -53,6 +54,7 @@ export function Layout() {
           <div className="auth-nav">
             {user ? (
               <>
+                <NotificationBell />
                 <span className="user-name hide-on-mobile">{user.name}</span>
                 <button
                   type="button"
