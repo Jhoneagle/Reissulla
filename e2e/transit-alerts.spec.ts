@@ -72,6 +72,32 @@ test("LineView shows no alert banner when the line is clear", async ({
   await expect(page.locator("[data-testid='alert-banner']")).toHaveCount(0);
 });
 
+test("LineView folds a long alert list to a count summary", async ({
+  page,
+}) => {
+  const many = Array.from({ length: 4 }, (_, i) => ({
+    ...ROUTE_ALERT,
+    id: `HSL:alert:e2e-${i}`,
+    headline: { fi: `Tiedote ${i}`, en: `Alert ${i}` },
+  }));
+  await page.route(/\/api\/v1\/me\/feature-flags/, (route) =>
+    route.fulfill(flagsOff()),
+  );
+  await page.route(/\/api\/v1\/alerts(?:\?|$)/, (route) =>
+    route.fulfill(alertsBody(many)),
+  );
+
+  await page.goto(`/transit/line/${encodeURIComponent(LINE_ID)}`);
+
+  // Folded by default: no banners shown, a summary + expand control instead.
+  await expect(page.locator("[data-testid='alert-banner']")).toHaveCount(0);
+  const toggle = page.getByRole("button", { name: /Show alerts|Näytä/ });
+  await expect(toggle).toBeVisible();
+
+  await toggle.click();
+  await expect(page.locator("[data-testid='alert-banner']")).toHaveCount(4);
+});
+
 test("the alert banner subtree is axe-clean", async ({ page }) => {
   await page.route(/\/api\/v1\/me\/feature-flags/, (route) =>
     route.fulfill(flagsOff()),
