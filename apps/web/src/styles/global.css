@@ -1621,6 +1621,16 @@ html[data-theme="dark"] .form-field select {
   gap: var(--space-4);
 }
 
+/* HIST-2 SuggestPinCard + DASH-6 RecentItinerariesCard sit side by side when
+   both render, collapsing to one column under 40rem. Each child self-hides
+   when empty; auto-fit lets the surviving card span the full width. */
+.dashboard-history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
 .dashboard-card {
   display: flex;
   flex-direction: column;

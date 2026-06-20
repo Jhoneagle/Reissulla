@@ -7,6 +7,8 @@ import { useSavedLocations } from "../hooks/useSavedLocations";
 import { LocationCard } from "../components/dashboard/LocationCard";
 import { PinnedStopsCard } from "../components/dashboard/PinnedStopsCard";
 import { PinnedLinesCard } from "../components/dashboard/PinnedLinesCard";
+import { SuggestPinCard } from "../components/dashboard/SuggestPinCard";
+import { RecentItinerariesCard } from "../components/dashboard/RecentItinerariesCard";
 import { SaveCurrentLocationPrompt } from "../components/dashboard/SaveCurrentLocationPrompt";
 import { DashboardKicker } from "../components/dashboard/DashboardKicker";
 import { TodayAlerts } from "../components/dashboard/TodayAlerts";
@@ -79,6 +81,13 @@ export function Dashboard() {
               savedId={loc.id}
             />
           ))}
+        </div>
+      )}
+
+      {user && (
+        <div className="dashboard-history-grid">
+          <SuggestPinCard />
+          <RecentItinerariesCard />
         </div>
       )}
 
