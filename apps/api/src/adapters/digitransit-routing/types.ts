@@ -454,12 +454,30 @@ export interface RawCanceledTripsData {
   canceledTripTimes: { edges: RawCanceledTripEdge[] } | null;
 }
 
+/**
+ * One affected entity off an alert. The `alerts(...)` query inline-fragments
+ * `Route` and `Stop` (both expose `gtfsId`); every other union member arrives
+ * with just its `__typename` and is treated as un-scoped.
+ */
+export interface RawAlertEntity {
+  __typename: string;
+  gtfsId?: string | null;
+}
+
 export interface RawAlert {
-  alertHeaderText: string | null;
-  alertDescriptionText: string | null;
+  id: string | null;
+  /** Header / description requested per-language via field args (fi + en). */
+  alertHeaderTextFi: string | null;
+  alertHeaderTextEn: string | null;
+  alertDescriptionTextFi: string | null;
+  alertDescriptionTextEn: string | null;
+  alertCause: string | null;
+  alertEffect: string | null;
   alertSeverityLevel: string | null;
+  /** Unix seconds — converted to ms when normalised into the unified Alert. */
   effectiveStartDate: number | null;
   effectiveEndDate: number | null;
+  entities: RawAlertEntity[] | null;
 }
 
 export interface RawAlertsData {

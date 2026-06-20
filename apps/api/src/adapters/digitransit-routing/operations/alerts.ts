@@ -2,17 +2,33 @@ import type { AdapterContext } from "../../types.js";
 import type { GraphQLClient } from "../client.js";
 import type { RawAlert, RawAlertsData } from "../types.js";
 
-// Service-level alerts (delays, cancellations, planned disruptions). Lands
-// now so the operations directory is complete; the notification-centre
-// consumer wires in a later phase.
+// Service-level alerts (delays, cancellations, planned disruptions). The
+// header / description are requested in both fi and en via the per-field
+// `language` argument (the `*Translations` fields are deprecated upstream).
+// `entities` replaces the deprecated single `route` / `stop` selectors and
+// lets one alert name every affected route or stop.
 const ALERTS_QUERY = `
   query Alerts {
     alerts {
-      alertHeaderText
-      alertDescriptionText
+      id
+      alertHeaderTextFi: alertHeaderText(language: "fi")
+      alertHeaderTextEn: alertHeaderText(language: "en")
+      alertDescriptionTextFi: alertDescriptionText(language: "fi")
+      alertDescriptionTextEn: alertDescriptionText(language: "en")
+      alertCause
+      alertEffect
       alertSeverityLevel
       effectiveStartDate
       effectiveEndDate
+      entities {
+        __typename
+        ... on Route {
+          gtfsId
+        }
+        ... on Stop {
+          gtfsId
+        }
+      }
     }
   }
 `;
