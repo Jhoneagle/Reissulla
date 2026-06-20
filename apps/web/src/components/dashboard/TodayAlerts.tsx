@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Alert } from "@reissulla/shared";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useLiveAlerts, type AlertScope } from "../../hooks/useAlerts";
 import { usePinnedLines, usePinnedStops } from "../../hooks/useTransit";
@@ -40,23 +41,26 @@ export function TodayAlerts(): React.JSX.Element | null {
     [pinnedLines.data, pinnedStops.data, saved.data],
   );
 
-  const { alerts } = useLiveAlerts(scope);
+  const { alerts, isLoading } = useLiveAlerts(scope);
   const [expanded, setExpanded] = useState(false);
 
+  // Polite region announces the *count* (a single short phrase), derived from
+  // the set — so opening the app mid-disruption never reads out N bodies. The
+  // full text of alerts arriving later in the session comes through toasts.
+  const countAnnouncement =
+    alerts.length > 0
+      ? intl.formatMessage(
+          { id: "alert.dashboard.count" },
+          { count: alerts.length },
+        )
+      : "";
+
   const seenRef = useRef<Set<string> | null>(null);
-  const [countAnnouncement, setCountAnnouncement] = useState("");
   useEffect(() => {
+    if (isLoading) return;
     if (seenRef.current === null) {
-      // First load — announce the count, not every body.
-      seenRef.current = new Set(alerts.map((a) => a.id));
-      if (alerts.length > 0) {
-        setCountAnnouncement(
-          intl.formatMessage(
-            { id: "alert.dashboard.count" },
-            { count: alerts.length },
-          ),
-        );
-      }
+      // Baseline = the first settled set; these don't toast as "new".
+      seenRef.current = new Set(alerts.map((a: Alert) => a.id));
       return;
     }
     for (const alert of alerts) {
@@ -66,7 +70,7 @@ export function TodayAlerts(): React.JSX.Element | null {
         alert.headline[locale].trim() || alert.description[locale].trim();
       if (text) showToast({ message: text, kind: "info" });
     }
-  }, [alerts, intl, locale]);
+  }, [alerts, isLoading, locale]);
 
   const hasScope =
     (scope.routes?.length ?? 0) > 0 ||
@@ -84,7 +88,7 @@ export function TodayAlerts(): React.JSX.Element | null {
       {alerts.length === 0 ? null : collapsed ? (
         <div className="alert-banner alert-banner--warning today-alerts__summary">
           <span className="alert-banner__icon" aria-hidden="true">
-            !
+            {"!"}
           </span>
           <p className="alert-banner__headline">
             <FormattedMessage
