@@ -56,7 +56,21 @@ export interface PreferencesExtra {
    * throwing; see apps/api/src/db/repositories/preferences-extra.ts.
    */
   liveRegion?: LiveRegionPrefs;
+  /**
+   * Trip-log retention window in days (HIST-1). The nightly prune drops trip
+   * rows older than this. Server-side parseExtra clamps a numeric value to
+   * [7, 365] at parse time so a buggy or malicious client can't write an
+   * unbounded value; a non-number is dropped and the consumer applies the
+   * default (90). The opt-in toggle itself is the `tripLogEnabled` column.
+   */
+  historyRetentionDays?: number;
 }
+
+/** Default trip-log retention when the user hasn't picked one (HIST-1). */
+export const DEFAULT_HISTORY_RETENTION_DAYS = 90;
+/** Inclusive bounds the retention window is clamped to server-side. */
+export const HISTORY_RETENTION_DAYS_MIN = 7;
+export const HISTORY_RETENTION_DAYS_MAX = 365;
 
 export interface Preferences {
   id: string;
@@ -72,6 +86,8 @@ export interface Preferences {
   /** Percent: 100 = browser default, 200 = doubled. */
   fontScale: number;
   srOptimised: boolean;
+  /** HIST-1 opt-in. When false the planner records no trip-log rows. */
+  tripLogEnabled: boolean;
   extra: PreferencesExtra;
   updatedAt: string;
 }
@@ -86,5 +102,6 @@ export interface PreferencesPatch {
   highContrast?: boolean;
   fontScale?: number;
   srOptimised?: boolean;
+  tripLogEnabled?: boolean;
   extra?: PreferencesExtra;
 }
