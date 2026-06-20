@@ -3,9 +3,12 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { accountApi, ApiError, meApi } from "@reissulla/api-client";
 import {
+  DEFAULT_HISTORY_RETENTION_DAYS,
   DEFAULT_LIVE_REGION,
   type LiveRegionPrefs,
   type Persona,
+  type Preferences,
+  type PreferencesPatch,
   type ReadingPace,
   type Verbosity,
 } from "@reissulla/shared";
@@ -458,7 +461,7 @@ export function Settings() {
             />
           </fieldset>
 
-          <AccountSection id="settings-account" />
+          <AccountSection id="settings-account" prefs={prefs} patch={patch} />
         </div>
       </div>
     </section>
@@ -528,13 +531,34 @@ function ProfileSection({
   );
 }
 
-function AccountSection({ id }: { id: string }) {
+const RETENTION_OPTIONS: { value: string; labelId: string }[] = [
+  { value: "7", labelId: "settings.tripLog.retention.7" },
+  { value: "30", labelId: "settings.tripLog.retention.30" },
+  { value: "90", labelId: "settings.tripLog.retention.90" },
+  { value: "180", labelId: "settings.tripLog.retention.180" },
+  { value: "365", labelId: "settings.tripLog.retention.365" },
+];
+
+function AccountSection({
+  id,
+  prefs,
+  patch,
+}: {
+  id: string;
+  prefs: Preferences | undefined;
+  patch: (update: PreferencesPatch) => void | Promise<void>;
+}) {
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const intl = useIntl();
   const signOut = useAuthStore((s) => s.signOut);
   const navigate = useNavigate();
   const { confirm, dialogProps } = useConfirm();
+
+  const tripLogEnabled = prefs?.tripLogEnabled ?? false;
+  const retentionDays = String(
+    prefs?.extra.historyRetentionDays ?? DEFAULT_HISTORY_RETENTION_DAYS,
+  );
 
   // Navigate home AFTER the live-region message has rendered (one tick
   // later via useEffect). SRs queue aria-live updates at the moment the
@@ -581,6 +605,31 @@ function AccountSection({ id }: { id: string }) {
       <legend>
         <FormattedMessage id="settings.section.account" />
       </legend>
+
+      <BooleanField
+        id="tripLogEnabled"
+        labelId="settings.tripLog.label"
+        value={tripLogEnabled}
+        onChange={(v) => patch({ tripLogEnabled: v })}
+      />
+      <p className="help">
+        <FormattedMessage id="settings.tripLog.help" />
+      </p>
+      <SelectField
+        id="historyRetentionDays"
+        labelId="settings.tripLog.retention.label"
+        value={retentionDays}
+        onChange={(v) =>
+          patch({
+            extra: { ...prefs?.extra, historyRetentionDays: Number(v) },
+          })
+        }
+        options={RETENTION_OPTIONS}
+      />
+      <p className="help">
+        <FormattedMessage id="settings.tripLog.retention.help" />
+      </p>
+
       <div className="form-field">
         <button
           type="button"
