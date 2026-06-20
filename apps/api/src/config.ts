@@ -52,8 +52,9 @@ export const config = {
   feedWalttiEnabled: process.env.FEED_WALTTI_ENABLED !== "false",
   feedVarelyEnabled: process.env.FEED_VARELY_ENABLED !== "false",
   // Master kill-switch for the SSE pipeline (channels, bus, registry, /live
-  // routes). Off by default — Chunk 2 flips it on in dev once the first
-  // consumer ships; production stays off until the closeout E2E sweep passes.
+  // routes). The closeout acceptance sweep has passed, so the template now
+  // ships it enabled; the switch still requires an explicit "true" so an
+  // unset env fails the pipeline closed rather than half-on.
   realtimeSseEnabled: process.env.REALTIME_SSE_ENABLED === "true",
   // Selects the RealtimeBus implementation. "memory" is the default
   // (single-instance Hetzner box); "redis-pubsub" reuses the existing
