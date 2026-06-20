@@ -8,6 +8,7 @@ export * from "./types/line.js";
 export * from "./types/trip.js";
 export * from "./types/trip-detail.js";
 export * from "./types/pinned.js";
+export * from "./types/history.js";
 export * from "./types/persona.js";
 export * from "./types/preferences.js";
 export * from "./types/map-layers.js";

@@ -24,9 +24,10 @@ import {
   type ArrivalDepartureMode,
 } from "../services/transit/index.js";
 import { getActive } from "../services/alerts/alerts.service.js";
+import * as historyService from "../services/history.service.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
 import { parseJson } from "../utils/json.js";
-import { requireAuth } from "../auth/middleware.js";
+import { getOptionalUserId, requireAuth } from "../auth/middleware.js";
 import { NotFoundError } from "../utils/error-envelope.js";
 import * as pinnedStopsRepo from "../db/repositories/pinned-stops.repo.js";
 import * as pinnedLinesRepo from "../db/repositories/pinned-lines.repo.js";
@@ -557,6 +558,30 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
         includeWeather: body.weather === true,
       });
 
+      // HIST-1 — record the recommended itinerary for signed-in users who
+      // opted in. Fire-and-forget: resolving the session and writing the row
+      // must not delay the plan response, and a logging failure must never
+      // fail the plan. Anonymous (incl. share-link) callers resolve to null
+      // and are skipped, keeping share-link reads out of the log.
+      if (data.itineraries.length > 0) {
+        const chosen = data.itineraries[0]!;
+        void getOptionalUserId(request)
+          .then((userId) => {
+            if (!userId) return;
+            return historyService.logIfEnabled({
+              userId,
+              from: {
+                lat: fromLat,
+                lon: fromLon,
+                name: body.query.fromName ?? null,
+              },
+              to: { lat: toLat, lon: toLon, name: body.query.toName ?? null },
+              itinerary: chosen,
+            });
+          })
+          .catch((err) => request.log.warn(err, "trip-log write failed"));
+      }
+
       // Disruption-driven re-plan is computed against the LIVE alert set, so it
       // is never folded into the cached plan — a fresh suggestion is attached to
       // a shallow copy of the (possibly cached) result on each request.
@@ -850,6 +875,9 @@ interface PlanRequestBody {
   query: {
     from: { lat: number; lon: number };
     to: { lat: number; lon: number };
+    /** Human-readable endpoint labels, captured into the trip log (HIST-1). */
+    fromName?: string;
+    toName?: string;
     dateTime?: number;
     arriveBy?: boolean;
     preference?: TripPreference;
@@ -896,6 +924,8 @@ const PLAN_REQUEST_BODY_SCHEMA = {
             lon: { type: "number" },
           },
         },
+        fromName: { type: "string", maxLength: 255 },
+        toName: { type: "string", maxLength: 255 },
         dateTime: { type: "integer", minimum: 0 },
         arriveBy: { type: "boolean" },
         preference: { type: "string", enum: [...ALLOWED_PLAN_PREFERENCES] },

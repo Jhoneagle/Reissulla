@@ -24,6 +24,14 @@ interface ItineraryCardProps {
    * re-plan surface dims the original itinerary while the alternative is shown.
    */
   deemphasised?: boolean;
+  /**
+   * Row-height summary used by the History list and the dashboard recent-trips
+   * card — collapses to from → to + times + duration with no legs, weather
+   * strip, or share button. Rendered as a non-interactive `<div>` so the
+   * caller can wrap the whole row in a button that opens the full card in a
+   * drawer.
+   */
+  compact?: boolean;
 }
 
 function buildShareUrl(itinerary: TransitItinerary): string {
@@ -44,6 +52,7 @@ export function ItineraryCard({
   index,
   labelId = "transit.itinerary.option",
   deemphasised = false,
+  compact = false,
 }: ItineraryCardProps) {
   const intl = useIntl();
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
@@ -51,6 +60,38 @@ export function ItineraryCard({
     { id: "transit.itinerary.transfers" },
     { n: itinerary.transfers },
   );
+
+  if (compact) {
+    const origin = itinerary.legs.at(0)?.from.name ?? "";
+    const dest = itinerary.legs.at(-1)?.to.name ?? "";
+    return (
+      <div className="itinerary-card itinerary-card--compact">
+        <span className="itinerary-card__route">
+          <span className="itinerary-card__endpoint">{origin}</span>
+          <span className="itinerary-card__arrow" aria-hidden="true">
+            {RIGHT_ARROW}
+          </span>
+          <span className="itinerary-card__endpoint">{dest}</span>
+        </span>
+        <span className="itinerary-card__compact-meta">
+          <span className="itinerary-card__times">
+            <span className="itinerary-card__time">
+              {formatDepartureTime(itinerary.startTime)}
+            </span>
+            <span className="itinerary-card__arrow" aria-hidden="true">
+              {RIGHT_ARROW}
+            </span>
+            <span className="itinerary-card__time">
+              {formatDepartureTime(itinerary.endTime)}
+            </span>
+          </span>
+          <span className="itinerary-card__duration">
+            {formatDuration(itinerary.duration)}
+          </span>
+        </span>
+      </div>
+    );
+  }
 
   const sharePath = buildShareUrl(itinerary);
   const shareUrl =

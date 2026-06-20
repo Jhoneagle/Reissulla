@@ -1,6 +1,8 @@
 import {
   DEFAULT_LIVE_REGION,
   DEFAULT_PERSONA,
+  HISTORY_RETENTION_DAYS_MAX,
+  HISTORY_RETENTION_DAYS_MIN,
   isLayerId,
   type LayerDefaults,
   type LayerId,
@@ -30,6 +32,7 @@ export interface PreferencesExtra {
   layerDefaults?: LayerDefaults;
   personaBannerDismissed?: boolean;
   liveRegion?: LiveRegionPrefs;
+  historyRetentionDays?: number;
 }
 
 export function parseExtra(raw: unknown): PreferencesExtra {
@@ -51,7 +54,29 @@ export function parseExtra(raw: unknown): PreferencesExtra {
   const liveRegion = parseLiveRegion(r.liveRegion);
   if (liveRegion) extra.liveRegion = liveRegion;
 
+  const historyRetentionDays = parseHistoryRetentionDays(
+    r.historyRetentionDays,
+  );
+  if (historyRetentionDays !== undefined) {
+    extra.historyRetentionDays = historyRetentionDays;
+  }
+
   return extra;
+}
+
+/**
+ * Validate the trip-log retention window. A non-number is dropped (the
+ * consumer applies the 90-day default); a number is rounded and clamped to
+ * [7, 365] so a buggy or hostile client can't write `99999` and keep rows
+ * forever. Clamps rather than throws, matching the tolerant-parse precedent.
+ */
+function parseHistoryRetentionDays(raw: unknown): number | undefined {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return undefined;
+  const rounded = Math.round(raw);
+  return Math.min(
+    HISTORY_RETENTION_DAYS_MAX,
+    Math.max(HISTORY_RETENTION_DAYS_MIN, rounded),
+  );
 }
 
 function parsePersona(raw: unknown): Persona | undefined {

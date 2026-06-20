@@ -36,6 +36,8 @@ import {
   type TripPreference,
   type Alert,
   type NotifiedAlert,
+  type TripLogEntry,
+  type PinSuggestions,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -477,6 +479,9 @@ export interface PlanRequestInput {
   query: {
     from: { lat: number; lon: number };
     to: { lat: number; lon: number };
+    /** Human-readable endpoint labels, captured into the trip log (HIST-1). */
+    fromName?: string;
+    toName?: string;
     /** Unix seconds; omit for "now". */
     dateTime?: number;
     arriveBy?: boolean;
@@ -705,6 +710,35 @@ export const notificationsApi = {
   /** Mark every currently-relevant alert read. */
   markAllRead() {
     return mutationRequest<void>("/notifications/read-all", "POST");
+  },
+};
+
+export interface HistoryListOptions {
+  limit?: number;
+  sinceDays?: number;
+}
+
+export const historyApi = {
+  /** The signed-in user's recorded trips, newest first (HIST-1). */
+  list(opts?: HistoryListOptions) {
+    const params = new URLSearchParams();
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    if (opts?.sinceDays) params.set("sinceDays", String(opts.sinceDays));
+    const qs = params.toString();
+    return request<{ data: TripLogEntry[] }>(
+      `/history/trips${qs ? `?${qs}` : ""}`,
+    );
+  },
+  /** Clear the entire trip log; returns the number of rows removed. */
+  clear() {
+    return mutationRequest<{ data: { removed: number } }>(
+      "/history/trips",
+      "DELETE",
+    );
+  },
+  /** Frequently-used stops + lines the user hasn't pinned yet (HIST-2). */
+  suggestedPins() {
+    return request<{ data: PinSuggestions }>("/history/suggested-pins");
   },
 };
 

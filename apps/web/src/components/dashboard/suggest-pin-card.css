@@ -1,0 +1,72 @@
+.suggest-pin-card {
+  margin: var(--space-4) 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+}
+
+.suggest-pin-card__kicker {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+}
+
+.suggest-pin-card__title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--text-xl);
+  color: var(--color-ink);
+}
+
+.suggest-pin-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.suggest-pin-card__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-rule-soft);
+}
+
+.suggest-pin-card__item:last-child {
+  border-bottom: 0;
+}
+
+.suggest-pin-card__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.suggest-pin-card__name {
+  font-weight: 600;
+}
+
+.suggest-pin-card__uses {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+.suggest-pin-card__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Keep the per-row actions at a real thumb target (WCAG 2.5.8). */
+.suggest-pin-card__actions .btn {
+  min-height: 44px;
+}

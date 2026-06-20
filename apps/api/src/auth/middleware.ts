@@ -15,6 +15,25 @@ export async function requireAuth(request: FastifyRequest) {
   request.session = session;
 }
 
+/**
+ * Resolve the signed-in user id without forcing auth — returns null for
+ * anonymous requests instead of throwing. Used by auth-optional endpoints
+ * (the plan route) that behave differently for signed-in users (trip-log
+ * capture) but stay open to everyone. A probe failure degrades to anonymous.
+ */
+export async function getOptionalUserId(
+  request: FastifyRequest,
+): Promise<string | null> {
+  try {
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(request.headers),
+    });
+    return session?.user.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 declare module "fastify" {
   interface FastifyRequest {
     session?: Awaited<ReturnType<typeof auth.api.getSession>>;

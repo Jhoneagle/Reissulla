@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import type { FastifyBaseLogger } from "fastify";
 import { pruneAlertSeen } from "./prune-alert-seen.js";
+import { pruneHistory } from "./prune-history.js";
 
 /**
  * Register the API's scheduled background jobs. Called once from the real
@@ -17,6 +18,16 @@ export function registerJobs(log: FastifyBaseLogger): void {
       pruneAlertSeen()
         .then((removed) => log.info({ removed }, "prune-alert-seen completed"))
         .catch((err) => log.error(err, "prune-alert-seen failed"));
+    },
+    { timezone: "Europe/Helsinki" },
+  );
+
+  cron.schedule(
+    "0 4 * * *",
+    () => {
+      pruneHistory()
+        .then((removed) => log.info({ removed }, "prune-history completed"))
+        .catch((err) => log.error(err, "prune-history failed"));
     },
     { timezone: "Europe/Helsinki" },
   );

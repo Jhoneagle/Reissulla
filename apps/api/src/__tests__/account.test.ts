@@ -17,6 +17,7 @@ import {
   savedLocations,
   recentPlaces,
   pinnedLines,
+  tripLog,
 } from "../db/schema.js";
 import type { FastifyInstance } from "fastify";
 
@@ -150,6 +151,42 @@ describe("GET /api/v1/account/export", () => {
       name: "550",
       vehicleMode: "BUS",
     });
+  });
+
+  it("populates tripLog with the full row shape when present", async () => {
+    const itinerary = {
+      startTime: 1,
+      endTime: 2,
+      duration: 1,
+      walkDistance: 0,
+      transfers: 0,
+      legs: [],
+    };
+    await db.insert(tripLog).values({
+      userId: TEST_USER_ID,
+      fromLat: 60.17,
+      fromLon: 24.94,
+      toLat: 60.2,
+      toLon: 24.96,
+      fromName: "Kamppi",
+      toName: "Pasila",
+      itinerary,
+    });
+
+    const res = await server.inject({
+      method: "GET",
+      url: "/api/v1/account/export",
+    });
+    const body = res.json();
+    expect(body.tripLog).toHaveLength(1);
+    expect(body.tripLog[0]).toMatchObject({
+      fromName: "Kamppi",
+      toName: "Pasila",
+      fromLat: 60.17,
+      toLon: 24.96,
+      itinerary,
+    });
+    expect(typeof body.tripLog[0].plannedAt).toBe("string");
   });
 
   it("sets a Content-Disposition header for download", async () => {
