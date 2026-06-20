@@ -4,6 +4,8 @@ import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import type { DayType, DirectionId } from "@reissulla/shared";
 import { LineCard } from "../components/transit/LineCard";
 import { LiveVehiclesPanel } from "../components/transit/LiveVehiclesPanel";
+import { AlertBanner } from "../components/alerts/AlertBanner";
+import { useLiveAlerts } from "../hooks/useAlerts";
 import { dayTypeForToday } from "../lib/transit-utils";
 import "./LineView.css";
 
@@ -43,6 +45,7 @@ export function LineView() {
   return (
     <section className="line-view">
       <BackLink />
+      <LineAlerts gtfsId={gtfsId} />
       <LineCard
         gtfsId={gtfsId}
         direction={direction}
@@ -59,6 +62,18 @@ export function LineView() {
         <LiveVehiclesPanel gtfsId={gtfsId} direction={direction} />
       </div>
     </section>
+  );
+}
+
+/** Leading service-alert banner for the line. Renders nothing when clear. */
+function LineAlerts({ gtfsId }: { gtfsId: string }) {
+  const { alerts } = useLiveAlerts({ routes: [gtfsId] });
+  return (
+    <AlertBanner
+      kind="transit"
+      alerts={alerts}
+      restoreFocusToId="main-content"
+    />
   );
 }
 

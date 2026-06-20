@@ -588,6 +588,8 @@
   "alert.dashboard.count": "{count, plural, one {# hälytys} other {# hälytystä}} pinnauksiisi liittyen",
   "alert.dashboard.expand": "Näytä hälytykset",
   "alert.dashboard.collapse": "Piilota hälytykset",
+  "alert.chip.route": "Häiriö linjalla {route}: {summary}",
+  "alert.chip.generic": "Häiriö: {summary}",
   "weather.road.label": "Tien pinta",
   "weather.road.ice": "Liukasta",
   "weather.road.partly-ice": "Paikoin liukasta",

@@ -588,6 +588,8 @@
   "alert.dashboard.count": "{count, plural, one {# alert} other {# alerts}} affecting your pins",
   "alert.dashboard.expand": "Show alerts",
   "alert.dashboard.collapse": "Hide alerts",
+  "alert.chip.route": "Service alert on route {route}: {summary}",
+  "alert.chip.generic": "Service alert: {summary}",
   "weather.road.label": "Road surface",
   "weather.road.ice": "Icy",
   "weather.road.partly-ice": "Partly icy",
