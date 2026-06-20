@@ -4,16 +4,18 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parseFmiWarnings } from "../adapters/fmi/parse-warnings.js";
 import type { OpenMeteoAirQualityResponse } from "../adapters/open-meteo-air-quality/types.js";
+import { decodeHfp } from "../adapters/digitransit-mqtt/client.js";
 
 /**
  * Upstream-shape snapshot gate. The fixtures under `./fixtures/` are the
  * canonical raw payload shapes the adapters must keep handling — FMI WFS
- * XML and Open-Meteo Air Quality JSON. When either upstream ships a
- * backwards-incompatible response shape, these assertions fail loudly in
- * CI rather than letting the adapter degrade to empty fallbacks at
- * runtime. The XML and JSON files are intentionally hand-maintained: a
- * developer can `curl` the live API, drop the new payload in, and see
- * which assertion now fails to scope the migration.
+ * XML, Open-Meteo Air Quality JSON, and the Digitransit/HSL HFP vehicle
+ * ping. When any upstream ships a backwards-incompatible response shape,
+ * these assertions fail loudly in CI rather than letting the adapter
+ * degrade to empty fallbacks at runtime. The fixtures are intentionally
+ * hand-maintained: a developer can `curl` (or subscribe to) the live API,
+ * drop the new payload in, and see which assertion now fails to scope the
+ * migration.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -83,6 +85,43 @@ describe("Open-Meteo Air Quality — upstream shape snapshot", () => {
       for (const v of series) {
         if (v !== null) expect(typeof v).toBe("number");
       }
+    }
+  });
+});
+
+describe("Digitransit HFP vehicle — upstream shape snapshot", () => {
+  const raw = readFileSync(
+    path.join(FIXTURE_DIR, "digitransit-mqtt-vehicle.json"),
+    "utf-8",
+  );
+
+  it("decodes a canonical HFP vp ping into a VehiclePosition", () => {
+    // `now` is fixed so the fallback branch is never silently exercised —
+    // the fixture carries `tsi`, so the decoded ts must come from it.
+    const v = decodeHfp(raw, "HSL:1058", 1_730_000_000_000);
+    expect(v).toEqual({
+      vehicleId: "22/423",
+      routeId: "HSL:1058",
+      // HFP dir is 1-based; GTFS directionId is 0-based.
+      directionId: "0",
+      lat: 60.1699,
+      lon: 24.9384,
+      bearing: 145,
+      speed: 8.3,
+      // HFP `dl` is seconds ahead of schedule; GTFS delay is positive = late.
+      delaySeconds: 30,
+      ts: 1_730_000_001_000,
+    });
+  });
+
+  it("the broker still wraps the ping in a `VP` envelope", () => {
+    // The decode hard-depends on the `VP` key; a topic/shape change that
+    // dropped or renamed it would silently null every dot at runtime.
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    expect(parsed).toHaveProperty("VP");
+    const vp = parsed.VP as Record<string, unknown>;
+    for (const field of ["veh", "lat", "long", "route"]) {
+      expect(vp).toHaveProperty(field);
     }
   });
 });

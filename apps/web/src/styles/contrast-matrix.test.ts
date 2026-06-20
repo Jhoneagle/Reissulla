@@ -1,20 +1,27 @@
 import { describe, it, expect } from "vitest";
 
 /**
- * Token-level contrast gate for Phase 3 surfaces.
+ * Token-level contrast gate for Phase 3 + Phase 4 surfaces.
  *
- * The plan (phase-3-plan.md §10.3) calls for a (text × surface × theme)
- * matrix that fails the build when a token swap drops a real surface
- * below WCAG AA contrast. The axe-core E2E gate catches violations
- * post-render, but a unit gate is faster and pins the contract on the
- * tokens themselves — a refactor of `--color-warning` that breaks the
- * minor/moderate banner fails here long before the browser runs.
+ * The plan calls for a (text × surface × theme) matrix that fails the
+ * build when a token swap drops a real surface below WCAG AA contrast.
+ * The axe-core E2E gate catches violations post-render, but a unit gate
+ * is faster and pins the contract on the tokens themselves — a refactor
+ * of `--color-warning` that breaks the minor/moderate banner fails here
+ * long before the browser runs.
  *
  * Coverage scope (Phase 3):
  *  - Warning banner severity backgrounds (minor/moderate → warning,
  *    severe/extreme → error) across light, dark, and high-contrast.
  *  - AQ chip pill: AQI value text (ink) on sunk surface across themes.
  *  - Radar control surface: ink-muted on sunk across themes.
+ *
+ * Coverage scope (Phase 4):
+ *  - Live-indicator pill: live (success), polling (ink-muted), error
+ *    (warning) text against their state backgrounds across themes.
+ *  - Region-status pills: ink against the normal (12% success tint),
+ *    moderated (warning-bg), and no-service (error-bg) beds.
+ *  - Notification bell badge: on-primary count on the primary fill.
  *
  * The hex values mirror `apps/web/src/styles/global.css`. If they drift
  * in either direction the test fails — that is the forcing function.
@@ -69,6 +76,9 @@ const themes = {
     "warning-bg": "#fbeac6",
     error: "#8b1818",
     "error-bg": "#f4dede",
+    success: "#1f5d34",
+    primary: "#0061c3",
+    "on-primary": "#ffffff",
   },
   dark: {
     surface: "#23262e",
@@ -79,19 +89,39 @@ const themes = {
     "warning-bg": "#2c1f0a",
     error: "#f4b5b5",
     "error-bg": "#2a0f0f",
+    success: "#9dd6b0",
+    primary: "#5ba0e8",
+    "on-primary": "#0b0c10",
   },
   highContrast: {
     surface: "#ffffff",
     "surface-sunk": "#ffffff",
     ink: "#000000",
     "ink-muted": "#000000",
-    // HC inherits warning palette from light :root.
+    // HC inherits warning + success palette from light :root.
     warning: "#7a4f0a",
     "warning-bg": "#fbeac6",
     error: "#800000",
     "error-bg": "#ffe5e5",
+    success: "#1f5d34",
+    primary: "#0033cc",
+    "on-primary": "#ffffff",
   },
 } as const;
+
+/**
+ * Mirror CSS `color-mix(in srgb, <a> <pct>%, <b>)` — a straight weighted
+ * average of the gamma-encoded sRGB component bytes, which is what the
+ * spec does for the srgb interpolation space.
+ */
+function mixSrgb(a: string, b: string, aPct: number): string {
+  const [ar, ag, ab] = hexToRgb(a);
+  const [br, bg, bb] = hexToRgb(b);
+  const w = aPct / 100;
+  const mix = (x: number, y: number) => Math.round(x * w + y * (1 - w));
+  const hex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${hex(mix(ar, br))}${hex(mix(ag, bg))}${hex(mix(ab, bb))}`;
+}
 
 describe("Phase 3 contrast matrix — warning banner severities", () => {
   for (const [name, t] of Object.entries(themes)) {
@@ -154,6 +184,65 @@ describe("Phase 3 contrast matrix — radar control surface", () => {
 
     it(`primary control text on sunk surface meets AA normal (${name})`, () => {
       expect(contrastRatio(t.ink, t["surface-sunk"])).toBeGreaterThanOrEqual(
+        WCAG_AA_NORMAL,
+      );
+    });
+  }
+});
+
+describe("Phase 4 contrast matrix — live-indicator pill", () => {
+  for (const [name, t] of Object.entries(themes)) {
+    // `.live-indicator` base background is surface-sunk; each state overrides
+    // the text colour (and the error state also swaps to warning-bg).
+    it(`live state (success text) on surface-sunk meets AA (${name})`, () => {
+      expect(
+        contrastRatio(t.success, t["surface-sunk"]),
+      ).toBeGreaterThanOrEqual(WCAG_AA_NORMAL);
+    });
+
+    it(`polling state (ink-muted text) on surface-sunk meets AA (${name})`, () => {
+      expect(
+        contrastRatio(t["ink-muted"], t["surface-sunk"]),
+      ).toBeGreaterThanOrEqual(WCAG_AA_NORMAL);
+    });
+
+    it(`error state (warning text) on warning-bg meets AA (${name})`, () => {
+      expect(contrastRatio(t.warning, t["warning-bg"])).toBeGreaterThanOrEqual(
+        WCAG_AA_NORMAL,
+      );
+    });
+  }
+});
+
+describe("Phase 4 contrast matrix — region-status pills", () => {
+  for (const [name, t] of Object.entries(themes)) {
+    // `.region-pill` text is always `--color-ink`; the severity variants
+    // swap the background. The `--normal` pill is a 12% success tint over
+    // surface; `--moderated`/`--no-service` reuse the warning/error beds.
+    it(`normal pill (ink on 12% success tint) meets AA (${name})`, () => {
+      const bg = mixSrgb(t.success, t.surface, 12);
+      expect(contrastRatio(t.ink, bg)).toBeGreaterThanOrEqual(WCAG_AA_NORMAL);
+    });
+
+    it(`moderated pill (ink on warning-bg) meets AA (${name})`, () => {
+      expect(contrastRatio(t.ink, t["warning-bg"])).toBeGreaterThanOrEqual(
+        WCAG_AA_NORMAL,
+      );
+    });
+
+    it(`no-service pill (ink on error-bg) meets AA (${name})`, () => {
+      expect(contrastRatio(t.ink, t["error-bg"])).toBeGreaterThanOrEqual(
+        WCAG_AA_NORMAL,
+      );
+    });
+  }
+});
+
+describe("Phase 4 contrast matrix — notification bell badge", () => {
+  for (const [name, t] of Object.entries(themes)) {
+    it(`badge count (on-primary) on primary meets AA (${name})`, () => {
+      // The count is 0.6875rem bold mono — treat as normal text, AA 4.5.
+      expect(contrastRatio(t["on-primary"], t.primary)).toBeGreaterThanOrEqual(
         WCAG_AA_NORMAL,
       );
     });
