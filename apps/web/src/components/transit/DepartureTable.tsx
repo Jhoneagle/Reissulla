@@ -38,6 +38,7 @@ import { StopAccessibilityDisclosure } from "./StopAccessibilityDisclosure";
 import { DepartureDirectionSplit } from "./DepartureDirectionSplit";
 import { LiveIndicator } from "./LiveIndicator";
 import { RefreshTicker } from "./RefreshTicker";
+import { useLiveAnnouncer } from "../LiveAnnouncerProvider";
 
 interface DepartureTableProps {
   /** GTFS id (stop or station) — drives pin and recent-stops tracking. */
@@ -210,6 +211,7 @@ export function DepartureTable({
     isError,
     dataUpdatedAt,
     refetch,
+    source: liveSource,
     indicator: liveIndicator,
     sseStatus,
     sseAttempted,
@@ -318,6 +320,30 @@ export function DepartureTable({
   // the departures response lands it carries the real upstream name, which
   // we prefer everywhere so the masthead never reads "digitraffic:HKI:…".
   const displayName = result?.stopName ?? stopName;
+
+  // DEP-13 — announce a boardable vehicle within 60 s of its realtime
+  // departure, but only on live (SSE) updates so the REST fallback's coarser
+  // ticks don't drive announcements. The announcer enforces the 15 s per-stop
+  // floor and coalesces multiple lines into one phrase.
+  const announcer = useLiveAnnouncer();
+  useEffect(() => {
+    if (liveSource !== "sse") return;
+    const nowSec = Date.now() / 1000;
+    for (const dep of departures) {
+      if (dep.canBoard === false) continue;
+      const etaSeconds =
+        departureToEpoch(dep.serviceDay, dep.realtimeDeparture) - nowSec;
+      if (etaSeconds < 0 || etaSeconds > 60) continue;
+      announcer.announce({
+        stopId,
+        stopName: displayName,
+        routeShortName: dep.routeShortName,
+        headsign: dep.headsign,
+        etaSeconds,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departures, liveSource, stopId, displayName]);
 
   return (
     <section className="departure-board-section" aria-labelledby="dep-title">

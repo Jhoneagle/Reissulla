@@ -2,7 +2,13 @@ import { useEffect, useState, type FormEvent } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { accountApi, ApiError, meApi } from "@reissulla/api-client";
-import type { Persona } from "@reissulla/shared";
+import {
+  DEFAULT_LIVE_REGION,
+  type LiveRegionPrefs,
+  type Persona,
+  type ReadingPace,
+  type Verbosity,
+} from "@reissulla/shared";
 import { useAuthStore } from "../stores/auth";
 import { usePersonaStore } from "../stores/persona";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
@@ -136,6 +142,19 @@ export function Settings() {
         },
       });
     }
+  }
+
+  // A11Y-23 / A11Y-29 — live-region announcement tuning, persisted on
+  // preferences.extra.liveRegion. Merge so changing one member preserves
+  // the other.
+  function setLiveRegion(partial: Partial<LiveRegionPrefs>) {
+    const current = prefs?.extra.liveRegion ?? DEFAULT_LIVE_REGION;
+    void patch({
+      extra: {
+        ...prefs?.extra,
+        liveRegion: { ...current, ...partial },
+      },
+    });
   }
 
   if (!user) {
@@ -311,6 +330,64 @@ export function Settings() {
                 onChange={(v) => setPersonaFlag(key, v)}
               />
             ))}
+
+            <div className="form-field">
+              <label htmlFor="readingPace">
+                <FormattedMessage id="settings.readingPace.label" />
+              </label>
+              <select
+                id="readingPace"
+                aria-describedby="readingPace-help"
+                value={prefs?.extra.liveRegion?.readingPace ?? "normal"}
+                onChange={(e) =>
+                  setLiveRegion({
+                    readingPace: e.currentTarget.value as ReadingPace,
+                  })
+                }
+              >
+                <option value="slow">
+                  {intl.formatMessage({ id: "settings.readingPace.slow" })}
+                </option>
+                <option value="normal">
+                  {intl.formatMessage({ id: "settings.readingPace.normal" })}
+                </option>
+                <option value="fast">
+                  {intl.formatMessage({ id: "settings.readingPace.fast" })}
+                </option>
+              </select>
+              <p id="readingPace-help" className="help">
+                <FormattedMessage id="settings.readingPace.help" />
+              </p>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="verbosity">
+                <FormattedMessage id="settings.verbosity.label" />
+              </label>
+              <select
+                id="verbosity"
+                aria-describedby="verbosity-help"
+                value={prefs?.extra.liveRegion?.verbosity ?? "standard"}
+                onChange={(e) =>
+                  setLiveRegion({
+                    verbosity: e.currentTarget.value as Verbosity,
+                  })
+                }
+              >
+                <option value="terse">
+                  {intl.formatMessage({ id: "settings.verbosity.terse" })}
+                </option>
+                <option value="standard">
+                  {intl.formatMessage({ id: "settings.verbosity.standard" })}
+                </option>
+                <option value="verbose">
+                  {intl.formatMessage({ id: "settings.verbosity.verbose" })}
+                </option>
+              </select>
+              <p id="verbosity-help" className="help">
+                <FormattedMessage id="settings.verbosity.help" />
+              </p>
+            </div>
           </fieldset>
 
           <PersonaWizard

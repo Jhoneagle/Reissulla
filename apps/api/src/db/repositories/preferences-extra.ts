@@ -1,9 +1,13 @@
 import {
+  DEFAULT_LIVE_REGION,
   DEFAULT_PERSONA,
   isLayerId,
   type LayerDefaults,
   type LayerId,
+  type LiveRegionPrefs,
   type Persona,
+  type ReadingPace,
+  type Verbosity,
 } from "@reissulla/shared";
 
 /**
@@ -25,6 +29,7 @@ export interface PreferencesExtra {
   persona?: Persona;
   layerDefaults?: LayerDefaults;
   personaBannerDismissed?: boolean;
+  liveRegion?: LiveRegionPrefs;
 }
 
 export function parseExtra(raw: unknown): PreferencesExtra {
@@ -42,6 +47,9 @@ export function parseExtra(raw: unknown): PreferencesExtra {
   if (r.personaBannerDismissed === true) {
     extra.personaBannerDismissed = true;
   }
+
+  const liveRegion = parseLiveRegion(r.liveRegion);
+  if (liveRegion) extra.liveRegion = liveRegion;
 
   return extra;
 }
@@ -79,6 +87,30 @@ function parseLayerDefaults(raw: unknown): LayerDefaults | undefined {
   }
 
   return { baseLayer: r.baseLayer, overlays };
+}
+
+const VERBOSITIES: readonly Verbosity[] = ["terse", "standard", "verbose"];
+const READING_PACES: readonly ReadingPace[] = ["slow", "normal", "fast"];
+
+/**
+ * Parse the live-region tuning bag. Each member is validated against its
+ * literal union; an unknown value falls back to the default rather than
+ * throwing, matching the tolerant parseLayerDefaults precedent. Returns
+ * undefined only when the input isn't an object at all, so a partial write
+ * (e.g. just `verbosity`) still round-trips with the other member defaulted.
+ */
+function parseLiveRegion(raw: unknown): LiveRegionPrefs | undefined {
+  if (typeof raw !== "object" || raw === null) return undefined;
+  const r = raw as Record<string, unknown>;
+
+  const verbosity = VERBOSITIES.includes(r.verbosity as Verbosity)
+    ? (r.verbosity as Verbosity)
+    : DEFAULT_LIVE_REGION.verbosity;
+  const readingPace = READING_PACES.includes(r.readingPace as ReadingPace)
+    ? (r.readingPace as ReadingPace)
+    : DEFAULT_LIVE_REGION.readingPace;
+
+  return { verbosity, readingPace };
 }
 
 /**

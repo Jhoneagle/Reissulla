@@ -13,6 +13,26 @@ export interface LayerDefaults {
   overlays: LayerId[];
 }
 
+/** How much detail each live-region announcement carries (A11Y-29). */
+export type Verbosity = "terse" | "standard" | "verbose";
+/**
+ * How fast the user reads announcements (A11Y-23). Governs the multi-line
+ * coalesce window — a slower pace groups close-together announcements into one
+ * so there's time to absorb them. NOT speech rate (the browser can't set that).
+ */
+export type ReadingPace = "slow" | "normal" | "fast";
+
+export interface LiveRegionPrefs {
+  verbosity: Verbosity;
+  readingPace: ReadingPace;
+}
+
+/** Defaults applied when the user has not set live-region preferences. */
+export const DEFAULT_LIVE_REGION: LiveRegionPrefs = {
+  verbosity: "standard",
+  readingPace: "normal",
+};
+
 export interface PreferencesExtra {
   persona?: Persona;
   /**
@@ -29,6 +49,13 @@ export interface PreferencesExtra {
    * field on round-trip; see apps/api/src/db/repositories/preferences-extra.ts.
    */
   personaBannerDismissed?: boolean;
+  /**
+   * Live-region announcement tuning (A11Y-23 reading pace + A11Y-29
+   * verbosity). Server-side parseExtra validates each member against its
+   * literal union and drops unknown values to the default rather than
+   * throwing; see apps/api/src/db/repositories/preferences-extra.ts.
+   */
+  liveRegion?: LiveRegionPrefs;
 }
 
 export interface Preferences {
