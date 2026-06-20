@@ -19,9 +19,11 @@ import {
   getLine,
   getLineDepartures,
   getFrequency,
+  suggestReplan,
   type DeparturesOptions,
   type ArrivalDepartureMode,
 } from "../services/transit/index.js";
+import { getActive } from "../services/alerts/alerts.service.js";
 import { badRequest, parseCoordinates } from "../utils/validation.js";
 import { parseJson } from "../utils/json.js";
 import { requireAuth } from "../auth/middleware.js";
@@ -539,6 +541,7 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           ? Math.min(body.numItineraries, 5)
           : 3;
 
+      const persona = request.persona ?? DEFAULT_PERSONA;
       const { data, cached } = await planRouteFull({
         query: {
           from: { lat: fromLat, lon: fromLon },
@@ -548,11 +551,33 @@ export const transitRoutes: FastifyPluginAsync = async (server) => {
           preference,
           modes,
           planPreferences,
-          persona: request.persona ?? DEFAULT_PERSONA,
+          persona,
         },
         numItineraries,
         includeWeather: body.weather === true,
       });
+
+      // Disruption-driven re-plan is computed against the LIVE alert set, so it
+      // is never folded into the cached plan — a fresh suggestion is attached to
+      // a shallow copy of the (possibly cached) result on each request.
+      if (body.reactToAlerts === true && data.itineraries.length > 0) {
+        const baseItinerary = data.itineraries[0]!;
+        const routes = baseItinerary.legs
+          .map((leg) => leg.route?.gtfsId)
+          .filter((id): id is string => typeof id === "string");
+        if (routes.length > 0) {
+          const { data: activeAlerts } = await getActive({ routes });
+          const replanSuggestion = await suggestReplan({
+            baseItinerary,
+            activeAlerts,
+            persona,
+          });
+          if (replanSuggestion.reason) {
+            return { data: { ...data, replanSuggestion }, cached };
+          }
+        }
+      }
+
       return { data, cached };
     },
   );
@@ -838,6 +863,13 @@ interface PlanRequestBody {
    * keep the lean payload.
    */
   weather?: boolean;
+  /**
+   * Opt-in to disruption-driven re-plan (LIVE-6 / TRIP-18). When true, the
+   * response gains an optional `data.replanSuggestion` when an active alert
+   * touches the recommended itinerary. Defaults to false so the wire stays
+   * stable for share-link consumers.
+   */
+  reactToAlerts?: boolean;
 }
 
 const PLAN_REQUEST_BODY_SCHEMA = {
@@ -894,6 +926,7 @@ const PLAN_REQUEST_BODY_SCHEMA = {
     },
     numItineraries: { type: "integer", minimum: 1, maximum: 5 },
     weather: { type: "boolean" },
+    reactToAlerts: { type: "boolean" },
   },
   additionalProperties: false,
 } as const;

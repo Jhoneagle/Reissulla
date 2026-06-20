@@ -1,0 +1,165 @@
+/* Disruption-driven re-plan surface (LIVE-6 / TRIP-18). Reuses the editorial
+   4px primary-bar banner language shared with the alert banners. */
+
+.replan-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.replan-banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--color-rule);
+  /* Severity is carried by background + icon, never the bar colour alone. */
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-surface);
+}
+
+.replan-banner--warning {
+  background: var(--color-warning-bg);
+}
+
+.replan-banner--severe {
+  background: var(--color-error-bg);
+}
+
+.replan-banner__icon {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.replan-banner__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.replan-banner__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.replan-banner__summary {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.replan-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-self: center;
+}
+
+/* On narrow viewports the actions wrap under the body rather than crowding. */
+@media (max-width: 28rem) {
+  .replan-banner {
+    grid-template-columns: auto 1fr;
+  }
+
+  .replan-banner__actions {
+    grid-column: 1 / -1;
+    align-self: stretch;
+  }
+}
+
+.replan-alternative {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 2px dashed var(--color-rule);
+}
+
+.replan-alternative__use {
+  align-self: flex-start;
+}
+
+.replan-slot__adopted {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* De-emphasised original itinerary while the alternative is shown. */
+.itinerary-card--deemphasised {
+  opacity: 0.5;
+}
+
+.itinerary-card__duration--struck {
+  text-decoration: line-through;
+}
+
+/* ----- TRIP-18 alternatives list ----------------------------------------- */
+
+.alternatives-list {
+  margin-bottom: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--color-rule);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-warning-bg);
+}
+
+.alternatives-list__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin-bottom: 0.5rem;
+}
+
+.alternatives-list__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.alternatives-list__summary {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.alternatives-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.alternatives-list__items li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+}
+
+.alternatives-list__time,
+.alternatives-list__duration {
+  font-variant-numeric: tabular-nums;
+}
+
+.alternatives-list__sep {
+  color: var(--color-ink-muted);
+}

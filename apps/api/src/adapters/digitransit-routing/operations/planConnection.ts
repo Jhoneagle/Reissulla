@@ -66,10 +66,20 @@ function buildPreferencesBlock(
       : "";
   const transfer =
     transferParts.length > 0 ? `transfer: { ${transferParts.join(" ")} }` : "";
+  // Disruption-driven re-plan: ban the affected routes via an OTP2 transit
+  // filter. `exclude` takes precedence over any implicit include, so a single
+  // exclude selector is enough to drop every itinerary that boards the route.
+  const transit =
+    args.excludeRoutes && args.excludeRoutes.length > 0
+      ? `transit: { filters: [{ exclude: [{ routes: [${args.excludeRoutes
+          .map((id) => JSON.stringify(id))
+          .join(", ")}] }] }] }`
+      : "";
   const inner: string[] = [];
   if (accessibility) inner.push(accessibility);
   if (street.length > 0) inner.push(`street: { ${street.join(" ")} }`);
   if (transfer) inner.push(transfer);
+  if (transit) inner.push(transit);
   if (inner.length === 0) return "";
   return `preferences: { ${inner.join(" ")} }`;
 }
@@ -122,6 +132,7 @@ function buildPlanQuery(args: PlanConnectionArgs, ctx: AdapterContext): string {
               stop { gtfsId code }
             }
             route {
+              gtfsId
               shortName
               longName
               agency { gtfsId name }

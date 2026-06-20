@@ -107,8 +107,16 @@ export async function planRouteFull({
   query,
   numItineraries,
   includeWeather = false,
+  excludeRoutes,
 }: PlanRouteOptions): Promise<{ data: TransitPlanResult; cached: boolean }> {
   const persona = query.persona ?? DEFAULT_PERSONA;
+  // A re-plan that bans routes must not collide with the cache slot of the
+  // un-excluded plan for the same coordinates — fold the sorted ban list into
+  // the key tail.
+  const excludeTail =
+    excludeRoutes && excludeRoutes.length > 0
+      ? `x${[...excludeRoutes].sort().join(",")}`
+      : "x0";
   // v4: cache key tail gains a `w0` / `w1` flag so a cached weatherless
   // plan doesn't satisfy a weather=true reader and vice versa. Old v3
   // keys time out naturally per the cache-key version-segment policy.
@@ -132,6 +140,7 @@ export async function planRouteFull({
     ),
     serializePersona(persona),
     includeWeather ? "w1" : "w0",
+    excludeTail,
   );
   const cached = await tryCache(() => cacheGet<TransitPlanResult>(key));
   if (cached) return { data: cached, cached: true };
@@ -167,6 +176,7 @@ export async function planRouteFull({
       avoidStairs:
         query.planPreferences.avoidStairs === true ||
         personaArgs.avoidStairs === true,
+      excludeRoutes,
     },
     makeContext(persona),
   );
@@ -210,7 +220,11 @@ export async function planRouteFull({
         stop: leg.to.stop ?? undefined,
       },
       route: leg.route
-        ? { shortName: leg.route.shortName, longName: leg.route.longName }
+        ? {
+            gtfsId: leg.route.gtfsId ?? undefined,
+            shortName: leg.route.shortName,
+            longName: leg.route.longName,
+          }
         : undefined,
       operator:
         leg.route?.agency && leg.route.agency.name

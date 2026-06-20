@@ -69,4 +69,10 @@ export interface PlanRouteOptions {
    * share-link callers keep the lean payload.
    */
   includeWeather?: boolean;
+  /**
+   * Route gtfsIds (FeedId:RouteId) the planner must avoid. Set by the
+   * disruption-driven re-plan path so the alternative skips the disrupted
+   * route; empty / undefined on a normal plan.
+   */
+  excludeRoutes?: string[];
 }

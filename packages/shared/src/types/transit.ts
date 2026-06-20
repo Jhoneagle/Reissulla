@@ -1,5 +1,7 @@
 import type { ServiceDay } from "../utils/service-day.js";
 import type { HourlyForecast } from "./weather.js";
+import type { Alert, AlertEffect } from "./alert.js";
+import type { Persona } from "./persona.js";
 
 /** GTFS wheelchair-boarding status surfaced to the FE. */
 export type WheelchairBoarding = "POSSIBLE" | "NOT_POSSIBLE" | "NO_INFORMATION";
@@ -210,7 +212,16 @@ export interface TransitItineraryLeg {
     lon: number;
     stop?: { gtfsId: string; code: string | null };
   };
-  route?: { shortName: string; longName: string };
+  route?: {
+    /**
+     * Route gtfsId (FeedId:RouteId). Populated for transit legs so a
+     * service-alert scope can be matched against the leg for
+     * disruption-driven re-plan; absent on WALK legs.
+     */
+    gtfsId?: string;
+    shortName: string;
+    longName: string;
+  };
   intermediateStops?: { name: string; gtfsId: string }[];
   /**
    * Operator behind this leg (HSL / VR / Nysse / …). Populated when the
@@ -299,6 +310,49 @@ export interface ItineraryWeather {
 export interface TransitPlanResult {
   itineraries: TransitItinerary[];
   message?: string;
+  /**
+   * Disruption-driven re-plan attached when the plan request opts in with
+   * `reactToAlerts: true` and an active alert touches the recommended
+   * itinerary. Computed against the live alert set outside the plan cache, so
+   * it is never persisted on the cached plan (LIVE-6 / TRIP-18).
+   */
+  replanSuggestion?: ReplanResult;
+}
+
+/**
+ * Outcome of the disruption-driven re-plan check (LIVE-6, TRIP-18). Mirrors
+ * `docs/technical-plan.md` §6.4.
+ *
+ * - `triggered: true` with an `alternative` → an alert with effect
+ *   `NO_SERVICE` / `DETOUR` hits a leg of the base itinerary; the alternative
+ *   was re-planned with the affected routes excluded (the LIVE-6 surface).
+ * - `triggered: false` with a `reason` (no `alternative`) → only
+ *   `SIGNIFICANT_DELAYS` touch the route; no route ban was warranted, but the
+ *   FE still offers the other already-returned itineraries (the TRIP-18
+ *   "alternatives" surface).
+ * - `triggered: false` with no `reason` → nothing relevant; the FE renders
+ *   the plan unchanged.
+ */
+export interface ReplanResult {
+  triggered: boolean;
+  reason?: {
+    /** Stable content-hash ids of the alerts that drove the suggestion. */
+    alertIds: string[];
+    /** Distinct effects across those alerts. */
+    effect: AlertEffect[];
+  };
+  /** The re-planned itineraries, present only when `triggered`. */
+  alternative?: TransitPlanResult;
+}
+
+/** Service-level input for the re-plan check. */
+export interface ReplanInput {
+  /** The recommended itinerary whose legs are checked against active alerts. */
+  baseItinerary: TransitItinerary;
+  /** The currently-active alert set (already gated on "now"). */
+  activeAlerts: Alert[];
+  /** Merged persona — re-plan honours the same accessibility preferences. */
+  persona: Persona;
 }
 
 /**
