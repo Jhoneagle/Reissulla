@@ -60,11 +60,28 @@ export const config = {
   // cache/redis.ts client so a second API instance is a config flip.
   realtimeBus:
     process.env.REALTIME_BUS === "redis-pubsub" ? "redis-pubsub" : "memory",
-  // Digitransit MQTT broker — Chunk 3 connects; left blank in dev so the
-  // adapter stays in stub mode and tests don't reach the network.
+  // Digitransit MQTT broker. Blank disables the live vehicle stream
+  // entirely — the line-vehicles channel falls straight to the polled
+  // GraphQL fallback, so tests never reach the network.
   mqttBrokerUrl: process.env.MQTT_BROKER_URL ?? "",
   mqttUsername: process.env.MQTT_USERNAME ?? "",
   mqttPassword: process.env.MQTT_PASSWORD ?? "",
+  // How long the MQTT broker may stay unreachable before the adapter
+  // degrades to the polled `vehiclePositions` GraphQL fallback and raises
+  // `freshness.degraded`. Reconnecting clears it.
+  mqttFallbackAfterMs: positiveIntEnv("MQTT_FALLBACK_AFTER_MS", 60_000),
+  // Polling cadence for the degraded GraphQL fallback (same data, slower).
+  realtimeVehicleFallbackPollMs: positiveIntEnv(
+    "REALTIME_VEHICLE_FALLBACK_POLL_MS",
+    5000,
+  ),
+  // Coalesce cadence for the per-line vehicle channel: pings accumulate in
+  // memory and the full snapshot publishes on this clock, bounding SSE
+  // bandwidth on busy lines. Tests lower it to observe a tick quickly.
+  realtimeVehiclePublishMs: positiveIntEnv("REALTIME_VEHICLE_PUBLISH_MS", 1000),
+  // Drop a vehicle from the live set when no ping has arrived for this long,
+  // so dots for vehicles that left service disappear from the map.
+  realtimeVehicleStaleMs: positiveIntEnv("REALTIME_VEHICLE_STALE_MS", 90_000),
   // Shared poller cadence for alerts.service.streamActive — Chunk 4 consumer.
   alertsPollIntervalSec: positiveIntEnv("ALERTS_POLL_INTERVAL_SEC", 60),
   // Per-stop live-departures poll cadence. 5 s gives an upper-bound latency

@@ -50,6 +50,12 @@ export function PinnedLinesCard() {
                 </span>
                 <span className="pinned-lines-card__name">{pin.name}</span>
               </Link>
+              <Link
+                to={`/transit/line/${encodeURIComponent(pin.gtfsId)}#live`}
+                className="pinned-lines-card__live"
+              >
+                <FormattedMessage id="dashboard.pinnedLines.viewLive" />
+              </Link>
             </li>
           );
         })}

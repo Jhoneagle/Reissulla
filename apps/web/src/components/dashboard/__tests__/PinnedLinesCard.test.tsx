@@ -76,8 +76,15 @@ describe("PinnedLinesCard", () => {
     });
     expect(screen.getByText("25")).toBeInTheDocument();
     expect(screen.getByText("9")).toBeInTheDocument();
-    const links = screen.getAllByRole("link");
-    expect(links[0]).toHaveAttribute("href", "/transit/line/HSL%3A1025");
-    expect(links[1]).toHaveAttribute("href", "/transit/line/HSL%3A9");
+    // Each row carries the main deep-link plus a "View live" deep-link.
+    const mainLinks = document.querySelectorAll(".pinned-lines-card__link");
+    expect(mainLinks[0]).toHaveAttribute("href", "/transit/line/HSL%3A1025");
+    expect(mainLinks[1]).toHaveAttribute("href", "/transit/line/HSL%3A9");
+    const liveLinks = document.querySelectorAll(".pinned-lines-card__live");
+    expect(liveLinks[0]).toHaveAttribute(
+      "href",
+      "/transit/line/HSL%3A1025#live",
+    );
+    expect(liveLinks[1]).toHaveAttribute("href", "/transit/line/HSL%3A9#live");
   });
 });

@@ -32,6 +32,7 @@
     "fast-xml-parser": "^5.8.0",
     "fastify": "^5.3.3",
     "ioredis": "^5.10.1",
+    "mqtt": "^5.15.1",
     "nodemailer": "^8.0.7",
     "postgres": "^3.4.9"
   },

@@ -1,27 +1,11 @@
+import type { VehiclePosition } from "@reissulla/shared";
+
 /**
- * Wire shape for a single vehicle ping from the Digitransit HFP / MQTT
- * stream. Matches docs/technical-plan.md §6.2.
- *
- * Coordinates are WGS-84 decimal degrees. `bearing` is heading in degrees
- * (0 = north, clockwise) — only present when the upstream feed exposes it.
- * `speed` is metres-per-second; absent when unknown. `delaySeconds` is
- * positive when running late, negative when early; nullable for vehicles
- * that haven't entered service yet.
+ * The vehicle-ping wire shape lives in `@reissulla/shared` so the SSE
+ * publisher and the web overlay share one contract. Re-exported here so
+ * adapter consumers keep importing it from the adapter barrel.
  */
-export interface VehiclePosition {
-  vehicleId: string;
-  routeId: string;
-  /** GTFS direction id ("0" / "1") when the upstream exposes it. */
-  directionId?: string;
-  tripId?: string;
-  lat: number;
-  lon: number;
-  bearing?: number;
-  speed?: number;
-  delaySeconds: number | null;
-  /** Unix millis when the broker timestamped the message. */
-  ts: number;
-}
+export type { VehiclePosition } from "@reissulla/shared";
 
 export interface VehicleFilter {
   /** GTFS route id (e.g. "HSL:1014") — narrows the topic subscription. */
@@ -33,3 +17,16 @@ export interface VehicleFilter {
    */
   region?: "hsl" | "waltti" | "varely";
 }
+
+/**
+ * Health signal raised alongside vehicle pings. `degraded` flips true when
+ * the adapter has fallen back to the polled `vehiclePositions` GraphQL query
+ * after the MQTT broker stayed unreachable past the fallback threshold, and
+ * back to false once the broker reconnects.
+ */
+export interface VehicleStreamStatus {
+  degraded: boolean;
+}
+
+/** Local alias kept so call sites can read the decode return shape. */
+export type DecodedVehicle = VehiclePosition;
