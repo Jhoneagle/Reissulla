@@ -6,6 +6,7 @@ import {
   boolean,
   doublePrecision,
   integer,
+  index,
   jsonb,
   primaryKey,
   uniqueIndex,
@@ -263,6 +264,11 @@ export const preferences = pgTable("preferences", {
   // browser zoom so users can scale text independently.
   fontScale: integer("font_scale").notNull().default(100),
   srOptimised: boolean("sr_optimised").notNull().default(false),
+  // HIST-1 opt-in. Default off — the trip log only records itineraries once
+  // the user explicitly enables it. Stored as a first-class column (not in
+  // `extra`) because the planner reads it on the hot path to decide whether
+  // to log; the retention window lives in `extra.historyRetentionDays`.
+  tripLogEnabled: boolean("trip_log_enabled").notNull().default(false),
   // jsonb bag for shape-evolving extras: { persona?, layerDefaults? }.
   // Drizzle types this as `unknown`; the preferences repo wraps reads and
   // writes through parseExtra/serializeExtra so callers see a typed
@@ -272,3 +278,32 @@ export const preferences = pgTable("preferences", {
     .notNull()
     .defaultNow(),
 });
+
+// HIST-1 trip log. One row per planned itinerary, written fire-and-forget by
+// the planner when the user has `tripLogEnabled`. The chosen itinerary is
+// snapshotted into `itinerary` (jsonb) so History renders exactly what was
+// planned without a re-plan. Rows are pruned nightly past the user's
+// retention window (default 90 days). The (user_id, planned_at) index serves
+// both the newest-first list and the prune scan.
+export const tripLog = pgTable(
+  "trip_log",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    fromLat: doublePrecision("from_lat").notNull(),
+    fromLon: doublePrecision("from_lon").notNull(),
+    toLat: doublePrecision("to_lat").notNull(),
+    toLon: doublePrecision("to_lon").notNull(),
+    fromName: text("from_name"),
+    toName: text("to_name"),
+    itinerary: jsonb("itinerary").notNull(),
+    plannedAt: timestamp("planned_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("trip_log_user_planned_idx").on(t.userId, t.plannedAt)],
+);
