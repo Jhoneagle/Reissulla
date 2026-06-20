@@ -93,8 +93,12 @@ export function useLiveAlerts(scope?: AlertScope): UseLiveAlertsResult {
     sseEnabled ? "/api/v1/alerts/live" : null,
   );
 
-  const all =
-    sseEnabled && sse.data !== null ? sse.data : (rest.data?.data ?? []);
+  // Trust the stream only when it carries a well-formed alert array. A
+  // malformed frame (server bug, partial deploy) must not crash the page —
+  // fall back to the polled REST set, mirroring the JSON guard in
+  // useSseSubscription.
+  const liveSet = sseEnabled && Array.isArray(sse.data) ? sse.data : null;
+  const all = liveSet ?? rest.data?.data ?? [];
   const scopeKey = JSON.stringify(scope ?? {});
   const alerts = useMemo(
     () => all.filter((a) => matchesScope(a, scope)),
@@ -104,7 +108,7 @@ export function useLiveAlerts(scope?: AlertScope): UseLiveAlertsResult {
 
   const status: AlertsLiveStatus = !sseEnabled
     ? "polling"
-    : sse.status === "open" && sse.data !== null
+    : sse.status === "open" && liveSet !== null
       ? "live"
       : sse.status === "error"
         ? "error"
