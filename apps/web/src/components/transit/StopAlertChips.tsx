@@ -1,4 +1,4 @@
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import type { AlertSeverity, TransitDeparture } from "@reissulla/shared";
 import { useLiveAlerts } from "../../hooks/useAlerts";
 
@@ -7,6 +7,16 @@ const SEVERITY_ICON: Record<AlertSeverity, string> = {
   warning: "!",
   severe: "✕",
 };
+
+/** Highest-severity first when ordering the chips. */
+const SEVERITY_RANK: Record<AlertSeverity, number> = {
+  severe: 0,
+  warning: 1,
+  info: 2,
+};
+
+/** Cap the strip so a busy hub doesn't render a wall of chips. */
+const MAX_CHIPS = 5;
 
 /**
  * Inline service-alert chips for a stop's departure board. One chip per active
@@ -35,9 +45,15 @@ export function StopAlertChips({
   });
   if (alerts.length === 0) return null;
 
+  const ordered = [...alerts].sort(
+    (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity],
+  );
+  const shown = ordered.slice(0, MAX_CHIPS);
+  const overflow = ordered.length - shown.length;
+
   return (
     <div className="stop-alert-chips">
-      {alerts.map((alert) => {
+      {shown.map((alert) => {
         const routeName =
           alert.scope.kind === "route"
             ? routeNames.get(alert.scope.gtfsId)
@@ -70,6 +86,11 @@ export function StopAlertChips({
           </details>
         );
       })}
+      {overflow > 0 && (
+        <span className="stop-alert-chips__more">
+          <FormattedMessage id="alert.chip.more" values={{ count: overflow }} />
+        </span>
+      )}
     </div>
   );
 }

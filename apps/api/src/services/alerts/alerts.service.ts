@@ -1,4 +1,4 @@
-import type { Alert } from "@reissulla/shared";
+import { isActiveAlert, type Alert } from "@reissulla/shared";
 import { cacheGet, cacheSet } from "../../cache/cache.js";
 import { cacheKey } from "../../cache/key.js";
 import { ALERTS_ACTIVE_TTL } from "../../cache/ttl.js";
@@ -124,6 +124,11 @@ export async function getActive(
     await tryCache(() => cacheSet(key, set, ALERTS_ACTIVE_TTL));
     cached = false;
   }
-  const data = filter ? applyFilter(set, filter) : set;
+  // The cache holds the full composed set (incl. scheduled/expired alerts so a
+  // near-future one doesn't force a re-fetch when it activates); gate on "now"
+  // at read time so every response reflects what is actually in effect.
+  const now = Date.now();
+  const active = set.filter((alert) => isActiveAlert(alert, now));
+  const data = filter ? applyFilter(active, filter) : active;
   return { data, cached };
 }

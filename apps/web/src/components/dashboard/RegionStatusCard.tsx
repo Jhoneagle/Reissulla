@@ -1,5 +1,5 @@
 import { FormattedMessage, useIntl } from "react-intl";
-import type { Alert } from "@reissulla/shared";
+import { isDisruption, type Alert } from "@reissulla/shared";
 import { useLiveAlerts } from "../../hooks/useAlerts";
 import { usePreferences } from "../../hooks/usePreferences";
 import "./RegionStatusCard.css";
@@ -79,6 +79,9 @@ export function RegionStatusCard(): React.JSX.Element | null {
   );
   for (const alert of alerts) {
     if (alert.source !== "digitransit") continue;
+    // Count service-affecting disruptions only — info notices don't degrade a
+    // region's health, and counting them produced alarming "364 disruptions".
+    if (!isDisruption(alert)) continue;
     const key = regionKeyForAlert(alert);
     if (key) byRegion.get(key)!.push(alert);
   }

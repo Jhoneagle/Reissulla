@@ -1,23 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { Alert } from "@reissulla/shared";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useEffect, useMemo, useRef } from "react";
+import { isDisruption } from "@reissulla/shared";
+import { useIntl } from "react-intl";
 import { useLiveAlerts, type AlertScope } from "../../hooks/useAlerts";
 import { usePinnedLines, usePinnedStops } from "../../hooks/useTransit";
 import { useSavedLocations } from "../../hooks/useSavedLocations";
-import { AlertBanner } from "../alerts/AlertBanner";
+import { CollapsibleAlerts } from "../alerts/CollapsibleAlerts";
 import { showToast } from "../../stores/toast";
-
-/** At or above this count the banner collapses to a one-line summary. */
-const COLLAPSE_THRESHOLD = 3;
 
 /**
  * DASH-5 — today's alerts affecting the user's pins. Mounts above the primary
  * card when the composed set (filtered to pinned stops / lines / saved-location
- * regions) is non-empty.
- *
- * Announcement discipline (so opening the app mid-disruption doesn't fire an
- * announcement storm): on first paint a polite live region announces the
- * *count* only; alerts arriving later in the session toast in full, once each.
+ * regions) is non-empty. The list folds to a count summary via
+ * `CollapsibleAlerts`; alerts arriving later in the session toast in full
+ * (once each) so a mid-session disruption is noticed without re-reading the
+ * whole list.
  */
 export function TodayAlerts(): React.JSX.Element | null {
   const intl = useIntl();
@@ -41,26 +37,17 @@ export function TodayAlerts(): React.JSX.Element | null {
     [pinnedLines.data, pinnedStops.data, saved.data],
   );
 
-  const { alerts, isLoading } = useLiveAlerts(scope);
-  const [expanded, setExpanded] = useState(false);
-
-  // Polite region announces the *count* (a single short phrase), derived from
-  // the set — so opening the app mid-disruption never reads out N bodies. The
-  // full text of alerts arriving later in the session comes through toasts.
-  const countAnnouncement =
-    alerts.length > 0
-      ? intl.formatMessage(
-          { id: "alert.dashboard.count" },
-          { count: alerts.length },
-        )
-      : "";
+  const { alerts: scoped, isLoading } = useLiveAlerts(scope);
+  // The dashboard banner is for service-affecting disruptions only; low-impact
+  // info notices stay on the stop / line surfaces where they're in context.
+  const alerts = useMemo(() => scoped.filter(isDisruption), [scoped]);
 
   const seenRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (isLoading) return;
     if (seenRef.current === null) {
       // Baseline = the first settled set; these don't toast as "new".
-      seenRef.current = new Set(alerts.map((a: Alert) => a.id));
+      seenRef.current = new Set(alerts.map((a) => a.id));
       return;
     }
     for (const alert of alerts) {
@@ -78,51 +65,13 @@ export function TodayAlerts(): React.JSX.Element | null {
     (scope.regions?.length ?? 0) > 0;
   if (!hasScope) return null;
 
-  const collapsed = alerts.length >= COLLAPSE_THRESHOLD && !expanded;
-
   return (
     <div className="today-alerts">
-      <p className="visually-hidden" role="status" aria-live="polite">
-        {countAnnouncement}
-      </p>
-      {alerts.length === 0 ? null : collapsed ? (
-        <div className="alert-banner alert-banner--warning today-alerts__summary">
-          <span className="alert-banner__icon" aria-hidden="true">
-            {"!"}
-          </span>
-          <p className="alert-banner__headline">
-            <FormattedMessage
-              id="alert.dashboard.count"
-              values={{ count: alerts.length }}
-            />
-          </p>
-          <button
-            type="button"
-            className="today-alerts__toggle"
-            onClick={() => setExpanded(true)}
-          >
-            <FormattedMessage id="alert.dashboard.expand" />
-          </button>
-        </div>
-      ) : (
-        <>
-          <AlertBanner
-            kind="transit"
-            alerts={alerts}
-            live={false}
-            restoreFocusToId="main-content"
-          />
-          {alerts.length >= COLLAPSE_THRESHOLD && (
-            <button
-              type="button"
-              className="today-alerts__toggle"
-              onClick={() => setExpanded(false)}
-            >
-              <FormattedMessage id="alert.dashboard.collapse" />
-            </button>
-          )}
-        </>
-      )}
+      <CollapsibleAlerts
+        alerts={alerts}
+        summaryMessageId="alert.dashboard.count"
+        restoreFocusToId="main-content"
+      />
     </div>
   );
 }

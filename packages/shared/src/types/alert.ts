@@ -92,3 +92,24 @@ export function isAssertiveAlert(alert: Alert): boolean {
       alert.cause === "POLICE_ACTIVITY")
   );
 }
+
+/**
+ * Whether the alert is in effect at `now` (Unix ms). Digitransit returns
+ * scheduled/future and recently-expired alerts alongside live ones, so every
+ * "active alerts" surface must gate on this.
+ */
+export function isActiveAlert(alert: Alert, now: number): boolean {
+  if (alert.startTime > now) return false;
+  if (alert.endTime !== null && alert.endTime < now) return false;
+  return true;
+}
+
+/**
+ * A service-affecting disruption (worth surfacing on the dashboard / region
+ * overview) versus a low-impact `info` notice (relevant only on the specific
+ * stop / line it touches). Mirrors Digitransit's own severity semantics:
+ * INFO = "no significant effect on the journey".
+ */
+export function isDisruption(alert: Alert): boolean {
+  return alert.severity === "warning" || alert.severity === "severe";
+}

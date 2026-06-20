@@ -39,8 +39,32 @@ function seedHslAlert(): void {
           alertCause: "TECHNICAL_PROBLEM",
           alertEffect: "NO_SERVICE",
           alertSeverityLevel: "SEVERE",
-          effectiveStartDate: 1_700_000_000,
-          effectiveEndDate: 1_700_003_600,
+          // Active now: started in the past, open-ended.
+          effectiveStartDate: 1_600_000_000,
+          effectiveEndDate: null,
+          entities: [{ __typename: "Route", gtfsId: "HSL:1014" }],
+        },
+      ],
+    },
+  };
+}
+
+/** A scheduled alert whose window hasn't opened yet — must be filtered out. */
+function seedFutureHslAlert(): void {
+  alertsByGraph.hsl = {
+    data: {
+      alerts: [
+        {
+          id: "HSL:alert:future",
+          alertHeaderTextFi: "Tuleva työmaa",
+          alertHeaderTextEn: "Upcoming works",
+          alertDescriptionTextFi: "Alkaa myöhemmin.",
+          alertDescriptionTextEn: "Starts later.",
+          alertCause: "CONSTRUCTION",
+          alertEffect: "DETOUR",
+          alertSeverityLevel: "WARNING",
+          effectiveStartDate: Math.floor(Date.now() / 1000) + 86_400,
+          effectiveEndDate: Math.floor(Date.now() / 1000) + 172_800,
           entities: [{ __typename: "Route", gtfsId: "HSL:1014" }],
         },
       ],
@@ -108,5 +132,17 @@ describe("GET /api/v1/alerts", () => {
       url: "/api/v1/alerts",
     });
     expect((second.json() as { cached: boolean }).cached).toBe(true);
+  });
+
+  it("excludes alerts whose effective window has not started", async () => {
+    await cacheDel("alerts:active:v1:all");
+    seedFutureHslAlert();
+    const res = await server.inject({ method: "GET", url: "/api/v1/alerts" });
+    const body = res.json() as { data: Alert[] };
+    expect(
+      body.data.some(
+        (a) => a.scope.kind === "route" && a.scope.gtfsId === "HSL:1014",
+      ),
+    ).toBe(false);
   });
 });

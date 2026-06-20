@@ -86,21 +86,21 @@
   background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
-/* ----- DASH-5 today's-alerts wrapper ------------------------------------- */
+/* ----- Collapsible alert list (dashboard + line view) -------------------- */
 
-.today-alerts {
+.alert-collapse {
   margin-bottom: 0.75rem;
 }
 
-.today-alerts__summary {
+.alert-collapse__summary {
   margin-bottom: 0;
 }
 
-.today-alerts__summary .alert-banner__headline {
+.alert-collapse__summary .alert-banner__headline {
   align-self: center;
 }
 
-.today-alerts__toggle {
+.alert-collapse__toggle {
   appearance: none;
   background: transparent;
   border: none;
@@ -114,8 +114,8 @@
   border-radius: 4px;
 }
 
-.today-alerts__toggle:hover,
-.today-alerts__toggle:focus-visible {
+.alert-collapse__toggle:hover,
+.alert-collapse__toggle:focus-visible {
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
@@ -174,4 +174,10 @@
   font-weight: 400;
   line-height: 1.4;
   color: var(--color-ink);
+}
+
+.stop-alert-chips__more {
+  align-self: center;
+  font-size: 0.8125rem;
+  color: var(--color-ink-muted);
 }
