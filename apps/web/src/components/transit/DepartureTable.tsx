@@ -20,6 +20,7 @@ import type {
 } from "@reissulla/api-client";
 import { useFirstLast, useRecordRecentStop } from "../../hooks/useTransit";
 import { useLiveDepartures } from "../../hooks/useLiveDepartures";
+import { StopAlertChips } from "./StopAlertChips";
 import { useRefreshChoice } from "../../hooks/useRefreshChoice";
 import {
   vehicleModeLabel,
@@ -346,6 +347,8 @@ export function DepartureTable({
             showLiveUnavailable={showLiveUnavailable}
           />
         </div>
+
+        <StopAlertChips stopId={stopId} departures={result?.departures ?? []} />
 
         {frequency && (
           <p className="departure-masthead__frequency">

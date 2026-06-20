@@ -9,6 +9,8 @@ import { PinnedStopsCard } from "../components/dashboard/PinnedStopsCard";
 import { PinnedLinesCard } from "../components/dashboard/PinnedLinesCard";
 import { SaveCurrentLocationPrompt } from "../components/dashboard/SaveCurrentLocationPrompt";
 import { DashboardKicker } from "../components/dashboard/DashboardKicker";
+import { TodayAlerts } from "../components/dashboard/TodayAlerts";
+import { RegionStatusCard } from "../components/dashboard/RegionStatusCard";
 import { SatelliteArt } from "../components/art/EmptyArt";
 
 /**
@@ -52,6 +54,8 @@ export function Dashboard() {
         </p>
       )}
 
+      {user && <TodayAlerts />}
+
       {primary ? (
         <PrimaryCard location={primary} />
       ) : gps ? (
@@ -77,6 +81,8 @@ export function Dashboard() {
           ))}
         </div>
       )}
+
+      {user && <RegionStatusCard />}
 
       {user && savedLocations.length === 0 && gps && (
         <SaveCurrentLocationPrompt lat={gps.lat} lon={gps.lon} />

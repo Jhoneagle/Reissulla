@@ -101,21 +101,28 @@ test("live indicator turns green when an SSE event lands and stays polling other
       };
       (window as unknown as { __sseSpy: typeof ctorSpy }).__sseSpy = ctorSpy;
 
+      // The page now opens two streams: the departures `/live` channel under
+      // test and the alerts `/api/v1/alerts/live` channel. Only spy on /
+      // emit the departure payload to the departures stream; hand the alerts
+      // stream a valid (empty) Alert[] so its hook stays happy.
+      const isAlerts = (url: string): boolean => url.includes("/alerts/");
       function FakeEventSource(this: FakeES, url: string): void {
-        ctorSpy.hits += 1;
-        ctorSpy.lastUrl = url;
         this.url = url;
         this.onopen = null;
         this.onmessage = null;
         this.onerror = null;
         this.close = (): void => {};
+        if (!isAlerts(url)) {
+          ctorSpy.hits += 1;
+          ctorSpy.lastUrl = url;
+        }
         // Open + emit one message on the next tick so React useEffect has
         // wired the handlers before we fire.
         setTimeout(() => {
           this.onopen?.(new Event("open"));
           this.onmessage?.(
             new MessageEvent("message", {
-              data: JSON.stringify(payload),
+              data: JSON.stringify(isAlerts(url) ? [] : payload),
             }),
           );
         }, 0);

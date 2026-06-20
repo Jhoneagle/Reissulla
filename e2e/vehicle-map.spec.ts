@@ -121,18 +121,27 @@ test("LineView shows a live vehicle dot and a matching list row", async ({
     }
     const spy = { hits: 0, lastUrl: null as string | null };
     (window as unknown as { __sseSpy: typeof spy }).__sseSpy = spy;
+    // LineView opens two streams: the vehicles `/live` channel under test and
+    // the alerts `/api/v1/alerts/live` channel. Only spy on / emit the vehicle
+    // snapshot to the vehicles stream; hand the alerts stream a valid (empty)
+    // Alert[] so its hook stays happy.
+    const isAlerts = (url: string): boolean => url.includes("/alerts/");
     function FakeEventSource(this: FakeES, url: string): void {
-      spy.hits += 1;
-      spy.lastUrl = url;
       this.url = url;
       this.onopen = null;
       this.onmessage = null;
       this.onerror = null;
       this.close = (): void => {};
+      if (!isAlerts(url)) {
+        spy.hits += 1;
+        spy.lastUrl = url;
+      }
       setTimeout(() => {
         this.onopen?.(new Event("open"));
         this.onmessage?.(
-          new MessageEvent("message", { data: JSON.stringify(payload) }),
+          new MessageEvent("message", {
+            data: JSON.stringify(isAlerts(url) ? [] : payload),
+          }),
         );
       }, 0);
     }

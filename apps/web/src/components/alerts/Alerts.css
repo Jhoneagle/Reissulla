@@ -1,0 +1,183 @@
+/* Composed transit / road alert banners. Weather-warning styling lives in
+   weather/Weather.css and is reused verbatim under AlertBanner kind="weather". */
+
+.alert-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.alert-banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--color-rule);
+  /* Editorial 4px primary bar — shared across every Phase 4 banner. Severity
+     is carried by background + icon + label, never the bar colour alone. */
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-surface);
+}
+
+.alert-banner--info {
+  background: var(--color-surface-sunk);
+}
+
+.alert-banner--warning {
+  background: var(--color-warning-bg);
+}
+
+.alert-banner--severe {
+  background: var(--color-error-bg);
+}
+
+.alert-banner__icon {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.alert-banner__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.alert-banner__severity {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.alert-banner__headline {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.alert-banner__text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.alert-banner__dismiss {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.25rem 0.375rem;
+  border-radius: 4px;
+}
+
+.alert-banner__dismiss:hover,
+.alert-banner__dismiss:focus-visible {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* ----- Collapsible alert list (dashboard + line view) -------------------- */
+
+.alert-collapse {
+  margin-bottom: 0.75rem;
+}
+
+.alert-collapse__summary {
+  margin-bottom: 0;
+}
+
+.alert-collapse__summary .alert-banner__headline {
+  align-self: center;
+}
+
+.alert-collapse__toggle {
+  appearance: none;
+  background: transparent;
+  border: none;
+  align-self: center;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.alert-collapse__toggle:hover,
+.alert-collapse__toggle:focus-visible {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+/* ----- Inline per-stop / per-line alert chips ---------------------------- */
+
+.stop-alert-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.alert-chip {
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-surface-sunk);
+  font-size: 0.8125rem;
+}
+
+.alert-chip[open] {
+  border-radius: var(--radius-sm, 6px);
+}
+
+.alert-chip--warning {
+  border-color: var(--color-warning);
+}
+
+.alert-chip--severe {
+  border-color: var(--color-error);
+}
+
+.alert-chip > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.1875rem 0.625rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.alert-chip > summary::-webkit-details-marker {
+  display: none;
+}
+
+.alert-chip > summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.alert-chip__body {
+  margin: 0;
+  padding: 0.25rem 0.625rem 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.stop-alert-chips__more {
+  align-self: center;
+  font-size: 0.8125rem;
+  color: var(--color-ink-muted);
+}

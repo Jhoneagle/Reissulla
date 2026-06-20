@@ -3,6 +3,7 @@ export * from "./types/weather-snapshot.js";
 export * from "./types/geocoding.js";
 export * from "./types/location.js";
 export * from "./types/transit.js";
+export * from "./types/alert.js";
 export * from "./types/line.js";
 export * from "./types/trip.js";
 export * from "./types/trip-detail.js";

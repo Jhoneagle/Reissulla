@@ -4,6 +4,8 @@ import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import type { DayType, DirectionId } from "@reissulla/shared";
 import { LineCard } from "../components/transit/LineCard";
 import { LiveVehiclesPanel } from "../components/transit/LiveVehiclesPanel";
+import { CollapsibleAlerts } from "../components/alerts/CollapsibleAlerts";
+import { useLiveAlerts } from "../hooks/useAlerts";
 import { dayTypeForToday } from "../lib/transit-utils";
 import "./LineView.css";
 
@@ -43,6 +45,7 @@ export function LineView() {
   return (
     <section className="line-view">
       <BackLink />
+      <LineAlerts gtfsId={gtfsId} />
       <LineCard
         gtfsId={gtfsId}
         direction={direction}
@@ -60,6 +63,16 @@ export function LineView() {
       </div>
     </section>
   );
+}
+
+/**
+ * Leading service-alert banner for the line. Folds to a count summary when the
+ * line carries several alerts so the page doesn't open with a wall of banners;
+ * renders nothing when clear.
+ */
+function LineAlerts({ gtfsId }: { gtfsId: string }) {
+  const { alerts } = useLiveAlerts({ routes: [gtfsId] });
+  return <CollapsibleAlerts alerts={alerts} restoreFocusToId="main-content" />;
 }
 
 function parseDirection(raw: string | null): DirectionId | undefined {

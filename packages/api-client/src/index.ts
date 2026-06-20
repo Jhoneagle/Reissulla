@@ -34,6 +34,7 @@ import {
   type PlanPreferences,
   type TransitMode,
   type TripPreference,
+  type Alert,
 } from "@reissulla/shared";
 
 const BASE_URL = "/api/v1";
@@ -649,6 +650,30 @@ export const transitApi = {
   },
   unpinLine(id: string) {
     return mutationRequest<void>(`/transit/pinned-lines/${id}`, "DELETE");
+  },
+};
+
+export interface AlertsFilter {
+  routes?: string[];
+  stops?: string[];
+  regions?: string[];
+}
+
+export const alertsApi = {
+  /**
+   * Composed active alert set (Digitransit + FMI). Default returns the full
+   * set; the FE filters by its own pins at the edge. The filter params back
+   * the SSE-off polling fallback and direct API use.
+   */
+  getActive(filter?: AlertsFilter) {
+    const params = new URLSearchParams();
+    if (filter?.routes?.length) params.set("routes", filter.routes.join(","));
+    if (filter?.stops?.length) params.set("stops", filter.stops.join(","));
+    if (filter?.regions?.length) {
+      params.set("regions", filter.regions.join(","));
+    }
+    const qs = params.toString();
+    return request<ApiResponse<Alert[]>>(`/alerts${qs ? `?${qs}` : ""}`);
   },
 };
 
