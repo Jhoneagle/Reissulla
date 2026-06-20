@@ -28,6 +28,12 @@ export function Layout() {
   );
   const pageTitleId = activeRoute?.labelId ?? "app.title";
 
+  // Auth-only nav links (e.g. History) are hidden for anonymous users; the
+  // pages themselves still render a sign-in CTA on direct navigation.
+  const visibleNav = navRoutes.filter(
+    (r) => !(r as { authOnly?: boolean }).authOnly || Boolean(user),
+  );
+
   return (
     <>
       <a href="#main-content" className="skip-link">
@@ -37,7 +43,7 @@ export function Layout() {
         <Wordmark />
         <nav aria-label={intl.formatMessage({ id: "nav.mainNav" })}>
           <ul>
-            {navRoutes.map(({ path, labelId }) => (
+            {visibleNav.map(({ path, labelId }) => (
               <li key={path}>
                 <NavLink
                   to={path}

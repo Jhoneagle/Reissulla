@@ -5,6 +5,7 @@ import { TripDetail } from "./pages/TripDetail";
 import { LineView } from "./pages/LineView";
 import { SharedItinerary } from "./pages/SharedItinerary";
 import { Settings } from "./pages/Settings";
+import { History } from "./pages/History";
 import { Notifications } from "./pages/Notifications";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
@@ -54,6 +55,16 @@ export const routes = [
     labelId: "transit.itinerary.share.viewHeading",
     Component: SharedItinerary,
     nav: false,
+  },
+  {
+    path: "/history",
+    label: "History",
+    labelId: "nav.history",
+    Component: History,
+    nav: true,
+    // Nav link hidden for anonymous users; the page itself shows a sign-in
+    // CTA on direct navigation (mirrors /settings).
+    authOnly: true,
   },
   {
     path: "/settings",
