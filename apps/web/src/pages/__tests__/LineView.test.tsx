@@ -29,6 +29,19 @@ vi.mock("../../components/transit/LineCard", () => ({
   ),
 }));
 
+// The live-vehicle panel is body content (its own map + SSE wiring is
+// covered by the vehicle-map E2E). Stub it so this shell test stays focused
+// on URL → prop wiring and doesn't pull in Leaflet / matchMedia.
+vi.mock("../../components/transit/LiveVehiclesPanel", () => ({
+  LiveVehiclesPanel: (props: Record<string, unknown>) => (
+    <div
+      data-testid="live-vehicles-panel"
+      data-gtfsid={props.gtfsId as string}
+      data-direction={String(props.direction)}
+    />
+  ),
+}));
+
 function renderRoute(initialEntries: string[]) {
   return renderWithProviders(
     <Routes>
