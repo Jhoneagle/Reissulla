@@ -9,7 +9,7 @@ import { HourlyForecast } from "../weather/HourlyForecast";
 import { ForecastStrip } from "../weather/ForecastStrip";
 import { AirQualityChip } from "../weather/AirQualityChip";
 import { SunWindowCard } from "../weather/SunWindowCard";
-import { WarningBanner } from "../weather/WarningBanner";
+import { AlertBanner } from "../alerts/AlertBanner";
 import { RoadConditionChip } from "../weather/RoadConditionChip";
 import { RainNowcast } from "../weather/RainNowcast";
 import {
@@ -121,7 +121,11 @@ export function LocationCard({
       aria-labelledby={`card-${lat}-${lon}-heading`}
     >
       {isPrimary && warnings.length > 0 && (
-        <WarningBanner warnings={warnings} restoreFocusToId="main-content" />
+        <AlertBanner
+          kind="weather"
+          warnings={warnings}
+          restoreFocusToId="main-content"
+        />
       )}
 
       <header className="dashboard-card__header">
