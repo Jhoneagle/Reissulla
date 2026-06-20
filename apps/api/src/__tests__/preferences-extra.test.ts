@@ -194,4 +194,40 @@ describe("parseExtra", () => {
   it("drops liveRegion when it's not an object", () => {
     expect(parseExtra({ liveRegion: "nope" }).liveRegion).toBeUndefined();
   });
+
+  it("keeps an in-range historyRetentionDays", () => {
+    expect(parseExtra({ historyRetentionDays: 30 }).historyRetentionDays).toBe(
+      30,
+    );
+  });
+
+  it("clamps historyRetentionDays above the max to 365", () => {
+    expect(
+      parseExtra({ historyRetentionDays: 99999 }).historyRetentionDays,
+    ).toBe(365);
+  });
+
+  it("clamps historyRetentionDays below the min to 7", () => {
+    expect(parseExtra({ historyRetentionDays: 1 }).historyRetentionDays).toBe(
+      7,
+    );
+  });
+
+  it("rounds a fractional historyRetentionDays", () => {
+    expect(
+      parseExtra({ historyRetentionDays: 90.7 }).historyRetentionDays,
+    ).toBe(91);
+  });
+
+  it("drops a non-number historyRetentionDays — consumer applies default", () => {
+    expect(parseExtra({ historyRetentionDays: "90" })).not.toHaveProperty(
+      "historyRetentionDays",
+    );
+    expect(parseExtra({ historyRetentionDays: Infinity })).not.toHaveProperty(
+      "historyRetentionDays",
+    );
+    expect(parseExtra({ historyRetentionDays: NaN })).not.toHaveProperty(
+      "historyRetentionDays",
+    );
+  });
 });
