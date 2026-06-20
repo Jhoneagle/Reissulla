@@ -490,6 +490,12 @@ export interface PlanRequestInput {
    * payload stays small.
    */
   weather?: boolean;
+  /**
+   * Opt-in to disruption-driven re-plan (LIVE-6 / TRIP-18). The authenticated
+   * planner UI sets this to `true`; share-link reads leave it `false` so the
+   * cached wire payload stays stable.
+   */
+  reactToAlerts?: boolean;
 }
 
 export const transitApi = {

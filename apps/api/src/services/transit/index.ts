@@ -16,6 +16,7 @@ export type {
   FirstLastResult,
 } from "./departures.service.js";
 export { planRoute, planRouteFull, optionsHash } from "./trip.service.js";
+export { suggestReplan } from "./replan.service.js";
 export { attachItineraryWeather } from "./trip-weather.service.js";
 export { getTripDetail } from "./trip-detail.service.js";
 export {

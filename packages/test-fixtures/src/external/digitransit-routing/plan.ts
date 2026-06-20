@@ -192,6 +192,7 @@ const helsinkiPlan: PlanFixture = {
                   stop: { gtfsId: "HSL:2040601", code: "2041" },
                 },
                 route: {
+                  gtfsId: "HSL:2550",
                   shortName: "550",
                   longName: "Itäkeskus-Westendinasema",
                 },

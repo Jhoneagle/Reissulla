@@ -10,6 +10,7 @@ import { LocationSearch } from "../LocationSearch";
 import { useRoutePlan } from "../../hooks/useTransit";
 import { useSavedLocations } from "../../hooks/useSavedLocations";
 import { ItineraryCard } from "./ItineraryCard";
+import { ReplanBanner, AlternativesList } from "./ReplanBanner";
 import { PlannerControls, type PlannerControlsValue } from "./PlannerControls";
 
 const DEFAULT_MODES: TransitMode[] = ["BUS", "TRAM", "RAIL", "SUBWAY", "FERRY"];
@@ -106,6 +107,9 @@ export function RoutePlanner({
       // The planner card surfaces the weather strip; share links opt out
       // so the read endpoint stays light.
       weather: true,
+      // Authenticated planner opts in to disruption-driven re-plan; share-link
+      // reads stay opt-out so their cached payload is stable (LIVE-6/TRIP-18).
+      reactToAlerts: true,
     };
   }, [origin, destination, controls]);
 
@@ -114,6 +118,16 @@ export function RoutePlanner({
   const itineraries = result?.itineraries ?? [];
   const message = result?.message;
   const appliedFlags = itineraries[0]?.appliedPersonaFlags;
+
+  const replan = result?.replanSuggestion;
+  const replanAlternatives = replan?.alternative?.itineraries ?? [];
+  // LIVE-6: a route-banning re-plan exists → wrap the first itinerary in the
+  // re-plan slot. TRIP-18: only SIGNIFICANT_DELAYS touched the route → nudge
+  // the user toward the other itineraries already returned.
+  const showReplanSlot =
+    replan?.triggered === true && replanAlternatives.length > 0;
+  const showAlternativesHint =
+    replan != null && replan.triggered === false && replan.reason != null;
 
   return (
     <div className="route-planner">
@@ -263,13 +277,34 @@ export function RoutePlanner({
               </div>
             )}
           <div className="route-planner__results">
-            {itineraries.map((it, i) => (
-              <ItineraryCard
-                key={`${it.startTime}-${it.endTime}-${i}`}
-                itinerary={it}
-                index={i}
-              />
-            ))}
+            {showReplanSlot && replan ? (
+              <>
+                <ReplanBanner original={itineraries[0]!} suggestion={replan} />
+                {itineraries.slice(1).map((it, i) => (
+                  <ItineraryCard
+                    key={`${it.startTime}-${it.endTime}-${i + 1}`}
+                    itinerary={it}
+                    index={i + 1}
+                  />
+                ))}
+              </>
+            ) : (
+              <>
+                {showAlternativesHint && replan?.reason && (
+                  <AlternativesList
+                    alternatives={itineraries.slice(1, 4)}
+                    alertIds={replan.reason.alertIds}
+                  />
+                )}
+                {itineraries.map((it, i) => (
+                  <ItineraryCard
+                    key={`${it.startTime}-${it.endTime}-${i}`}
+                    itinerary={it}
+                    index={i}
+                  />
+                ))}
+              </>
+            )}
           </div>
         </>
       )}

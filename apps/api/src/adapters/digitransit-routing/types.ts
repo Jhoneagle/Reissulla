@@ -143,6 +143,8 @@ export interface RawPlanLeg {
     stop?: { gtfsId: string; code: string | null };
   };
   route?: {
+    /** Route gtfsId (FeedId:RouteId) — backs disruption-driven re-plan route matching. */
+    gtfsId?: string | null;
     shortName: string;
     longName: string;
     /** Operator agency — populated when the orchestrator resolves it for TRIP-19. */
@@ -197,6 +199,13 @@ export interface PlanConnectionArgs {
   numberOfTransfers?: number;
   /** Avoid escalators / stairs (TRIP-13 + persona noStairs). */
   avoidStairs?: boolean;
+  /**
+   * Route gtfsIds (FeedId:RouteId) the planner must avoid — drives
+   * disruption-driven re-plan. Emitted as an OTP2
+   * `preferences.transit.filters[].exclude` selector. Empty / undefined → no
+   * exclusion.
+   */
+  excludeRoutes?: string[];
 }
 
 // ---- Line catalogue (routes / route / pattern / patterns) ------------------

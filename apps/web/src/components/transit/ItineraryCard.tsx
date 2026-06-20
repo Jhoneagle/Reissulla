@@ -14,6 +14,16 @@ const RIGHT_ARROW = "→";
 interface ItineraryCardProps {
   itinerary: TransitItinerary;
   index: number;
+  /**
+   * Replaces the default "Option N" label. Used by the disruption-driven
+   * re-plan surface to label the suggested alternative.
+   */
+  labelId?: string;
+  /**
+   * Visually de-emphasises the card (dimmed + struck total duration) — the
+   * re-plan surface dims the original itinerary while the alternative is shown.
+   */
+  deemphasised?: boolean;
 }
 
 function buildShareUrl(itinerary: TransitItinerary): string {
@@ -29,7 +39,12 @@ function buildShareUrl(itinerary: TransitItinerary): string {
   return `/t#${params.toString()}`;
 }
 
-export function ItineraryCard({ itinerary, index }: ItineraryCardProps) {
+export function ItineraryCard({
+  itinerary,
+  index,
+  labelId = "transit.itinerary.option",
+  deemphasised = false,
+}: ItineraryCardProps) {
   const intl = useIntl();
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const transfersLabel = intl.formatMessage(
@@ -69,13 +84,12 @@ export function ItineraryCard({ itinerary, index }: ItineraryCardProps) {
   }
 
   return (
-    <article className="itinerary-card">
+    <article
+      className={`itinerary-card${deemphasised ? " itinerary-card--deemphasised" : ""}`}
+    >
       <header className="itinerary-card__header">
         <span className="itinerary-card__label">
-          <FormattedMessage
-            id="transit.itinerary.option"
-            values={{ n: index + 1 }}
-          />
+          <FormattedMessage id={labelId} values={{ n: index + 1 }} />
         </span>
         <div className="itinerary-card__times">
           <span className="itinerary-card__time">
@@ -89,7 +103,15 @@ export function ItineraryCard({ itinerary, index }: ItineraryCardProps) {
           </span>
         </div>
         <div className="itinerary-card__meta">
-          <span>{formatDuration(itinerary.duration)}</span>
+          <span
+            className={
+              deemphasised
+                ? "itinerary-card__duration itinerary-card__duration--struck"
+                : "itinerary-card__duration"
+            }
+          >
+            {formatDuration(itinerary.duration)}
+          </span>
           <span aria-label={transfersLabel}>
             {itinerary.transfers === 0 ? (
               <FormattedMessage id="transit.itinerary.direct" />
