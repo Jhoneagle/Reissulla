@@ -31,6 +31,7 @@ export const preferencesRoutes: FastifyPluginAsync = async (server) => {
       highContrast?: boolean;
       fontScale?: number;
       srOptimised?: boolean;
+      tripLogEnabled?: boolean;
       extra?: unknown;
     };
   }>(
@@ -50,6 +51,7 @@ export const preferencesRoutes: FastifyPluginAsync = async (server) => {
             highContrast: { type: "boolean" },
             fontScale: { type: "integer", minimum: 100, maximum: 200 },
             srOptimised: { type: "boolean" },
+            tripLogEnabled: { type: "boolean" },
             extra: { type: "object" },
           },
         },
@@ -77,6 +79,8 @@ export const preferencesRoutes: FastifyPluginAsync = async (server) => {
         patch.highContrast = body.highContrast;
       if (body.fontScale !== undefined) patch.fontScale = body.fontScale;
       if (body.srOptimised !== undefined) patch.srOptimised = body.srOptimised;
+      if (body.tripLogEnabled !== undefined)
+        patch.tripLogEnabled = body.tripLogEnabled;
       // `extra` goes through parseExtra so a malformed body can't write
       // garbage to the jsonb column.
       if (body.extra !== undefined) patch.extra = parseExtra(body.extra);
@@ -107,6 +111,7 @@ function defaultsFor(userId: string): preferencesRepo.PreferencesRow {
     highContrast: false,
     fontScale: 100,
     srOptimised: false,
+    tripLogEnabled: false,
     extra: {},
     updatedAt: now,
   };
